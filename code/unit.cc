@@ -1,6 +1,6 @@
 /* vim: set sw=4 sts=4 et foldmethod=syntax : */
 
-#include "sequential.hh"
+#include "unit.hh"
 #include "bit_graph.hh"
 #include "template_voodoo.hh"
 #include "degree_sort.hh"
@@ -9,6 +9,7 @@
 #include <numeric>
 #include <limits>
 #include <random>
+#include <iostream>
 
 namespace
 {
@@ -26,29 +27,33 @@ namespace
         {
             unsigned v;
             unsigned popcount;
+            bool fixed = false;
             FixedBitSet<n_words_> values;
         };
 
         using Domains = std::vector<Domain>;
-        using Assignments = std::vector<unsigned>;
+        using Assignments = std::vector<std::pair<unsigned, unsigned> >;
 
         const Params & params;
 
+        unsigned pattern_size, full_pattern_size, target_size;
+
         static constexpr int max_graphs = 1 + (l_ - 1) * k_;
-        std::array<FixedBitGraph<n_words_>, max_graphs> target_graphs;
-        std::array<FixedBitGraph<n_words_>, max_graphs> pattern_graphs;
+        std::vector<FixedBitGraph<n_words_> > target_graphs;
+        std::vector<FixedBitGraph<n_words_> > pattern_graphs;
 
         std::vector<int> pattern_order, target_order, isolated_vertices;
-        std::array<std::pair<int, int>, n_words_ * bits_per_word> pattern_degree_tiebreak;
-
-        unsigned pattern_size, full_pattern_size, target_size;
+        std::vector<std::pair<int, int> > pattern_degree_tiebreak;
 
         SequentialSubgraphIsomorphism(const Graph & target, const Graph & pattern, const Params & a) :
             params(a),
-            target_order(target.size()),
             pattern_size(pattern.size()),
             full_pattern_size(pattern.size()),
-            target_size(target.size())
+            target_size(target.size()),
+            target_graphs(max_graphs),
+            pattern_graphs(max_graphs),
+            target_order(target.size()),
+            pattern_degree_tiebreak(pattern_size)
         {
             // strip out isolated vertices in the pattern
             for (unsigned v = 0 ; v < full_pattern_size ; ++v)
@@ -140,26 +145,46 @@ namespace
             }
         }
 
-        auto assign(Domains & new_domains, unsigned branch_v, unsigned f_v, int g_end) -> bool
+        auto find_unit_domain(Domains & domains) -> typename Domains::iterator
         {
-            // for each remaining domain...
-            for (auto & d : new_domains) {
-                // all different
-                d.values.unset(f_v);
+            return std::find_if(domains.begin(), domains.end(), [] (Domain & d) {
+                    return (! d.fixed) && 1 == d.popcount;
+                    });
+        }
 
-                // for each graph pair...
-                for (int g = 0 ; g < g_end ; ++g) {
-                    // if we're adjacent...
-                    if (pattern_graphs.at(g).adjacent(branch_v, d.v)) {
-                        // ...then we can only be mapped to adjacent vertices
-                        target_graphs.at(g).intersect_with_row(f_v, d.values);
+        auto propagate(Domains & new_domains, Assignments & assignments) -> bool
+        {
+            for (typename Domains::iterator branch_domain = find_unit_domain(new_domains) ;
+                    branch_domain != new_domains.end() ;
+                    branch_domain = find_unit_domain(new_domains)) {
+                int branch_v = branch_domain->v;
+                int f_v = branch_domain->values.first_set_bit();
+                branch_domain->fixed = true;
+
+                assignments.emplace_back(branch_v, f_v);
+
+                // propagate for each remaining domain...
+                for (auto & d : new_domains) {
+                    if (d.fixed)
+                        continue;
+
+                    // all different
+                    d.values.unset(f_v);
+
+                    // for each graph pair...
+                    for (int g = 0 ; g < max_graphs ; ++g) {
+                        // if we're adjacent...
+                        if (pattern_graphs.at(g).adjacent(branch_v, d.v)) {
+                            // ...then we can only be mapped to adjacent vertices
+                            target_graphs.at(g).intersect_with_row(f_v, d.values);
+                        }
                     }
-                }
 
-                // we might have removed values
-                d.popcount = d.values.popcount();
-                if (0 == d.popcount)
-                    return false;
+                    // we might have removed values
+                    d.popcount = d.values.popcount();
+                    if (0 == d.popcount)
+                        return false;
+                }
             }
 
             if (! cheap_all_different(new_domains))
@@ -168,70 +193,83 @@ namespace
             return true;
         }
 
+        auto find_branch_domain(const Domains & domains) -> const Domain *
+        {
+            const Domain * result = nullptr;
+            for (auto & d : domains)
+                if (! d.fixed)
+                    if ((! result) ||
+                            (d.popcount < result->popcount) ||
+                            (d.popcount == result->popcount && pattern_degree_tiebreak.at(d.v) > pattern_degree_tiebreak.at(result->v)))
+                        result = &d;
+            return result;
+        }
+
         auto search(
                 Assignments & assignments,
-                Domains & domains,
+                const Domains & domains,
                 unsigned long long & nodes,
-                int g_end, int depth) -> Search
+                int depth) -> Search
         {
             if (params.abort->load())
                 return Search::Aborted;
 
             ++nodes;
 
-            Domain * branch_domain = nullptr;
-            for (auto & d : domains)
-                if ((! branch_domain) ||
-                        d.popcount < branch_domain->popcount ||
-                        (d.popcount == branch_domain->popcount && pattern_degree_tiebreak.at(d.v) > pattern_degree_tiebreak.at(branch_domain->v)))
-                    branch_domain = &d;
-
+            const Domain * branch_domain = find_branch_domain(domains);
             if (! branch_domain)
                 return Search::Satisfiable;
 
             auto remaining = branch_domain->values;
-            auto branch_v = branch_domain->v;
 
             for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
                 remaining.unset(f_v);
 
-                /* try assigning f_v to v */
-                assignments.at(branch_v) = f_v;
+                auto assignments_size = assignments.size();
 
                 /* set up new domains */
                 Domains new_domains;
-                new_domains.reserve(domains.size() - 1);
-                for (auto & d : domains)
-                    if (d.v != branch_v)
-                        new_domains.push_back(d);
+                new_domains.reserve(domains.size());
+                for (auto & d : domains) {
+                    if (d.fixed)
+                        continue;
 
-                /* assign and propagate */
-                if (! assign(new_domains, branch_v, f_v, g_end))
-                    continue;
-
-                auto search_result = search(assignments, new_domains, nodes, g_end, depth + 1);
-                switch (search_result) {
-                    case Search::Satisfiable:    return Search::Satisfiable;
-                    case Search::Aborted:        return Search::Aborted;
-                    case Search::Unsatisfiable:  break;
+                    new_domains.push_back(d);
+                    if (d.v == branch_domain->v) {
+                        new_domains.back().values.unset_all();
+                        new_domains.back().values.set(f_v);
+                        new_domains.back().popcount = 1;
+                    }
                 }
+
+                if (propagate(new_domains, assignments)) {
+                    auto search_result = search(assignments, new_domains, nodes, depth + 1);
+
+                    switch (search_result) {
+                        case Search::Satisfiable:    return Search::Satisfiable;
+                        case Search::Aborted:        return Search::Aborted;
+                        case Search::Unsatisfiable:  break;
+                    }
+                }
+
+                assignments.resize(assignments_size);
             }
 
             return Search::Unsatisfiable;
         }
 
-        auto initialise_domains(Domains & domains, int g_end) -> bool
+        auto initialise_domains(Domains & domains) -> bool
         {
-            std::array<std::vector<int>, max_graphs> patterns_degrees;
-            std::array<std::vector<int>, max_graphs> targets_degrees;
+            std::vector<std::vector<int> > patterns_degrees(max_graphs);
+            std::vector<std::vector<int> > targets_degrees(max_graphs);
 
-            for (int g = 0 ; g < g_end ; ++g) {
+            for (int g = 0 ; g < max_graphs ; ++g) {
                 patterns_degrees.at(g).resize(pattern_size);
                 targets_degrees.at(g).resize(target_size);
             }
 
             /* pattern and target degree sequences */
-            for (int g = 0 ; g < g_end ; ++g) {
+            for (int g = 0 ; g < max_graphs ; ++g) {
                 for (unsigned i = 0 ; i < pattern_size ; ++i)
                     patterns_degrees.at(g).at(i) = pattern_graphs.at(g).degree(i);
 
@@ -240,15 +278,15 @@ namespace
             }
 
             /* pattern and target neighbourhood degree sequences */
-            std::array<std::vector<std::vector<int> >, max_graphs> patterns_ndss;
-            std::array<std::vector<std::vector<int> >, max_graphs> targets_ndss;
+            std::vector<std::vector<std::vector<int> > > patterns_ndss(max_graphs);
+            std::vector<std::vector<std::vector<int> > > targets_ndss(max_graphs);
 
-            for (int g = 0 ; g < g_end ; ++g) {
+            for (int g = 0 ; g < max_graphs ; ++g) {
                 patterns_ndss.at(g).resize(pattern_size);
                 targets_ndss.at(g).resize(target_size);
             }
 
-            for (int g = 0 ; g < g_end ; ++g) {
+            for (int g = 0 ; g < max_graphs ; ++g) {
                 for (unsigned i = 0 ; i < pattern_size ; ++i) {
                     for (unsigned j = 0 ; j < pattern_size ; ++j) {
                         if (pattern_graphs.at(g).adjacent(i, j))
@@ -273,7 +311,7 @@ namespace
                 for (unsigned j = 0 ; j < target_size ; ++j) {
                     bool ok = true;
 
-                    for (int g = 0 ; g < g_end ; ++g) {
+                    for (int g = 0 ; g < max_graphs ; ++g) {
                         if (pattern_graphs.at(g).adjacent(i, i) && ! target_graphs.at(g).adjacent(j, j))
                             ok = false;
                         else if (targets_ndss.at(g).at(j).size() < patterns_ndss.at(g).at(i).size())
@@ -304,10 +342,13 @@ namespace
             if (domains_union_popcount < unsigned(pattern_size))
                 return false;
 
+            for (auto & d : domains)
+                d.popcount = d.values.popcount();
+
             return true;
         }
 
-        auto cheap_all_different(Domains & domains) -> bool
+        auto sorting_cheap_all_different(Domains & domains) -> bool
         {
             // pick domains smallest first, with tiebreaking
             std::array<int, n_words_ * bits_per_word> domains_order;
@@ -349,16 +390,69 @@ namespace
             return true;
         }
 
-        auto prepare_for_search(Domains & domains) -> void
+        auto cheap_all_different(Domains & domains) -> bool
         {
-            for (auto & d : domains)
-                d.popcount = d.values.popcount();
+            // Pick domains smallest first; ties are broken by smallest .v first.
+            // For each popcount p we have a linked list, whose first member is
+            // first[p].  The element following x in one of these lists is next[x].
+            // Any domain with a popcount greater than domains.size() is put
+            // int the "popcount==domains.size()" bucket.
+            // The "first" array is sized to be able to hold domains.size()+1
+            // elements
+            std::array<int, n_words_ * bits_per_word + 1> first;
+            std::array<int, n_words_ * bits_per_word> next;
+            std::fill(first.begin(), first.begin()+domains.size()+1, -1);
+            std::fill(next.begin(), next.begin()+domains.size(), -1);
+            // Iterate backwards, because we insert elements at the head of
+            // lists and we want the sort to be stable
+            for (int i=(int)domains.size()-1; i>=0; i--) {
+                int popcount = domains.at(i).popcount;
+                if (popcount > (int)domains.size())
+                    popcount = domains.size();
+                next.at(i) = first.at(popcount);
+                first.at(popcount) = i;
+            }
+
+            // counting all-different
+            FixedBitSet<n_words_> domains_so_far, hall;
+            unsigned neighbours_so_far = 0;
+
+            for (int i=0; i<=(int)domains.size(); i++) {  // iterate over linked lists
+                int domain_index = first[i];
+                while (domain_index != -1) {
+                    auto & d = domains.at(domain_index);
+
+                    d.values.intersect_with_complement(hall);
+                    d.popcount = d.values.popcount();
+
+                    if (0 == d.popcount)
+                        return false;
+
+                    domains_so_far.union_with(d.values);
+                    ++neighbours_so_far;
+
+                    unsigned domains_so_far_popcount = domains_so_far.popcount();
+                    if (domains_so_far_popcount < neighbours_so_far) {
+                        return false;
+                    }
+                    else if (domains_so_far_popcount == neighbours_so_far) {
+                        // equivalent to hall=domains_so_far
+                        hall.union_with(domains_so_far);
+                    }
+                    domain_index = next[domain_index];
+                }
+            }
+
+            return true;
         }
 
-        auto save_result(Assignments & assignments, Result & result) -> void
+
+
+
+        auto save_result(const Assignments & assignments, Result & result) -> void
         {
-            for (unsigned v = 0 ; v < pattern_size ; ++v)
-                result.isomorphism.emplace(pattern_order.at(v), target_order.at(assignments.at(v)));
+            for (auto & a : assignments)
+                result.isomorphism.emplace(pattern_order.at(a.first), target_order.at(a.second));
 
             int t = 0;
             for (auto & v : isolated_vertices) {
@@ -383,27 +477,14 @@ namespace
 
             Domains domains(pattern_size);
 
-            if (! initialise_domains(domains, max_graphs))
+            if (! initialise_domains(domains))
                 return result;
 
-            if (! cheap_all_different(domains))
-                return result;
-
-            prepare_for_search(domains);
-
-            Assignments assignments(pattern_size, std::numeric_limits<unsigned>::max());
-            switch (search(assignments, domains, result.nodes, max_graphs, 0)) {
-                case Search::Satisfiable:
+            Assignments assignments;
+            assignments.reserve(pattern_size);
+            if (propagate(domains, assignments))
+                if (search(assignments, domains, result.nodes, 0) == Search::Satisfiable)
                     save_result(assignments, result);
-                    break;
-
-                case Search::Unsatisfiable:
-                    break;
-
-                case Search::Aborted:
-                    break;
-            }
-
             return result;
         }
     };
@@ -415,7 +496,7 @@ namespace
     };
 }
 
-auto sequential_subgraph_isomorphism(const std::pair<Graph, Graph> & graphs, const Params & params) -> Result
+auto unit_subgraph_isomorphism(const std::pair<Graph, Graph> & graphs, const Params & params) -> Result
 {
     if (graphs.first.size() > graphs.second.size())
         return Result{ };

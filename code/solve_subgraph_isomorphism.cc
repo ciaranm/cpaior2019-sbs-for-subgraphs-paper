@@ -2,6 +2,7 @@
 
 #include "lad.hh"
 #include "sequential.hh"
+#include "unit.hh"
 
 #include <boost/program_options.hpp>
 
@@ -82,7 +83,8 @@ auto run_this(Result_ func(const Data_ &, const Params_ &)) -> std::function<Res
 auto main(int argc, char * argv[]) -> int
 {
     auto subgraph_isomorphism_algorithms = {
-        std::make_pair( std::string{ "sequential" },         sequential_subgraph_isomorphism )
+        std::make_pair( std::string{ "ndegndegsequential42noilf" },         sequential_subgraph_isomorphism ),
+        std::make_pair( std::string{ "pigeonndegndegunit42noilf" },               unit_subgraph_isomorphism )
     };
 
     try {
