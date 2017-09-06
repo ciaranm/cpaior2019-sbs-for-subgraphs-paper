@@ -90,55 +90,29 @@ namespace
                         pattern_degree_tiebreak.at(j).second += pattern_degree_tiebreak.at(i).first;
         }
 
-        auto build_supplemental_graphs() -> void
+        auto build_supplemental_graphs(std::vector<FixedBitGraph<n_words_> > & graphs, unsigned size) -> void
         {
             for (int g = 1 ; g < max_graphs ; ++g)
-                pattern_graphs.at(g).resize(pattern_size);
+                graphs.at(g).resize(size);
 
             if (l_ >= 2) {
-                for (unsigned v = 0 ; v < pattern_size ; ++v) {
-                    auto nv = pattern_graphs.at(0).neighbourhood(v);
+                for (unsigned v = 0 ; v < size ; ++v) {
+                    auto nv = graphs.at(0).neighbourhood(v);
                     for (int c = nv.first_set_bit() ; c != -1 ; c = nv.first_set_bit()) {
                         nv.unset(c);
-                        auto nc = pattern_graphs.at(0).neighbourhood(c);
+                        auto nc = graphs.at(0).neighbourhood(c);
                         for (int w = nc.first_set_bit() ; w != -1 && unsigned(w) <= v ; w = nc.first_set_bit()) {
                             nc.unset(w);
-                            if (k_ >= 5 && pattern_graphs.at(4).adjacent(v, w))
-                                pattern_graphs.at(5).add_edge(v, w);
-                            else if (k_ >= 4 && pattern_graphs.at(3).adjacent(v, w))
-                                pattern_graphs.at(4).add_edge(v, w);
-                            else if (k_ >= 3 && pattern_graphs.at(2).adjacent(v, w))
-                                pattern_graphs.at(3).add_edge(v, w);
-                            else if (k_ >= 2 && pattern_graphs.at(1).adjacent(v, w))
-                                pattern_graphs.at(2).add_edge(v, w);
+                            if (k_ >= 5 && graphs.at(4).adjacent(v, w))
+                                graphs.at(5).add_edge(v, w);
+                            else if (k_ >= 4 && graphs.at(3).adjacent(v, w))
+                                graphs.at(4).add_edge(v, w);
+                            else if (k_ >= 3 && graphs.at(2).adjacent(v, w))
+                                graphs.at(3).add_edge(v, w);
+                            else if (k_ >= 2 && graphs.at(1).adjacent(v, w))
+                                graphs.at(2).add_edge(v, w);
                             else if (k_ >= 1)
-                                pattern_graphs.at(1).add_edge(v, w);
-                        }
-                    }
-                }
-            }
-
-            for (int g = 1 ; g < max_graphs ; ++g)
-                target_graphs.at(g).resize(target_size);
-
-            if (l_ >= 2) {
-                for (unsigned v = 0 ; v < target_size ; ++v) {
-                    auto nv = target_graphs.at(0).neighbourhood(v);
-                    for (int c = nv.first_set_bit() ; c != -1 ; c = nv.first_set_bit()) {
-                        nv.unset(c);
-                        auto nc = target_graphs.at(0).neighbourhood(c);
-                        for (int w = nc.first_set_bit() ; w != -1 && unsigned(w) <= v ; w = nc.first_set_bit()) {
-                            nc.unset(w);
-                            if (k_ >= 5 && target_graphs.at(4).adjacent(v, w))
-                                target_graphs.at(5).add_edge(v, w);
-                            else if (k_ >= 4 && target_graphs.at(3).adjacent(v, w))
-                                target_graphs.at(4).add_edge(v, w);
-                            else if (k_ >= 3 && target_graphs.at(2).adjacent(v, w))
-                                target_graphs.at(3).add_edge(v, w);
-                            else if (k_ >= 2 && target_graphs.at(1).adjacent(v, w))
-                                target_graphs.at(2).add_edge(v, w);
-                            else if (k_ >= 1)
-                                target_graphs.at(1).add_edge(v, w);
+                                graphs.at(1).add_edge(v, w);
                         }
                     }
                 }
@@ -348,48 +322,6 @@ namespace
             return true;
         }
 
-        auto sorting_cheap_all_different(Domains & domains) -> bool
-        {
-            // pick domains smallest first, with tiebreaking
-            std::array<int, n_words_ * bits_per_word> domains_order;
-            std::iota(domains_order.begin(), domains_order.begin() + domains.size(), 0);
-
-            std::sort(domains_order.begin(), domains_order.begin() + domains.size(),
-                    [&] (int a, int b) {
-                    return (domains.at(a).popcount < domains.at(b).popcount) ||
-                    (domains.at(a).popcount == domains.at(b).popcount && pattern_degree_tiebreak.at(domains.at(a).v) > pattern_degree_tiebreak.at(domains.at(b).v));
-                    });
-
-            // counting all-different
-            FixedBitSet<n_words_> domains_so_far, hall;
-            unsigned neighbours_so_far = 0;
-
-            for (int i = 0, i_end = domains.size() ; i != i_end ; ++i) {
-                auto & d = domains.at(domains_order.at(i));
-
-                d.values.intersect_with_complement(hall);
-                d.popcount = d.values.popcount();
-
-                if (0 == d.popcount)
-                    return false;
-
-                domains_so_far.union_with(d.values);
-                ++neighbours_so_far;
-
-                unsigned domains_so_far_popcount = domains_so_far.popcount();
-                if (domains_so_far_popcount < neighbours_so_far) {
-                    return false;
-                }
-                else if (domains_so_far_popcount == neighbours_so_far) {
-                    neighbours_so_far = 0;
-                    hall.union_with(domains_so_far);
-                    domains_so_far.unset_all();
-                }
-            }
-
-            return true;
-        }
-
         auto cheap_all_different(Domains & domains) -> bool
         {
             // Pick domains smallest first; ties are broken by smallest .v first.
@@ -401,13 +333,13 @@ namespace
             // elements
             std::array<int, n_words_ * bits_per_word + 1> first;
             std::array<int, n_words_ * bits_per_word> next;
-            std::fill(first.begin(), first.begin()+domains.size()+1, -1);
-            std::fill(next.begin(), next.begin()+domains.size(), -1);
+            std::fill(first.begin(), first.begin() + domains.size() + 1, -1);
+            std::fill(next.begin(), next.begin() + domains.size(), -1);
             // Iterate backwards, because we insert elements at the head of
             // lists and we want the sort to be stable
-            for (int i=(int)domains.size()-1; i>=0; i--) {
-                int popcount = domains.at(i).popcount;
-                if (popcount > (int)domains.size())
+            for (int i = int(domains.size()) - 1 ; i >= 0; --i) {
+                unsigned popcount = domains.at(i).popcount;
+                if (popcount > domains.size())
                     popcount = domains.size();
                 next.at(i) = first.at(popcount);
                 first.at(popcount) = i;
@@ -417,7 +349,8 @@ namespace
             FixedBitSet<n_words_> domains_so_far, hall;
             unsigned neighbours_so_far = 0;
 
-            for (int i=0; i<=(int)domains.size(); i++) {  // iterate over linked lists
+            for (unsigned i = 0 ; i <= domains.size() ; ++i) {
+                // iterate over linked lists
                 int domain_index = first[i];
                 while (domain_index != -1) {
                     auto & d = domains.at(domain_index);
@@ -446,9 +379,6 @@ namespace
             return true;
         }
 
-
-
-
         auto save_result(const Assignments & assignments, Result & result) -> void
         {
             for (auto & a : assignments)
@@ -473,7 +403,8 @@ namespace
                 return result;
             }
 
-            build_supplemental_graphs();
+            build_supplemental_graphs(pattern_graphs, pattern_size);
+            build_supplemental_graphs(target_graphs, target_size);
 
             Domains domains(pattern_size);
 
