@@ -9,10 +9,8 @@ override LDFLAGS += -pthread
 TARGET := solve_subgraph_isomorphism
 
 SOURCES := \
-    sequential.cc \
     unit.cc \
     bit_graph.cc \
-    degree_sort.cc \
     graph.cc \
     lad.cc \
     solve_subgraph_isomorphism.cc

@@ -3,7 +3,6 @@
 #include "unit.hh"
 #include "bit_graph.hh"
 #include "template_voodoo.hh"
-#include "degree_sort.hh"
 
 #include <algorithm>
 #include <numeric>
@@ -19,6 +18,24 @@ namespace
         Unsatisfiable,
         Satisfiable
     };
+
+    auto tiebreaking_degree_sort(const Graph & graph, std::vector<int> & p, bool reverse) -> void
+    {
+        // pre-calculate degrees
+        std::vector<std::pair<int, int> > degrees;
+
+        for (int v = 0 ; v < graph.size() ; ++v)
+            degrees.push_back(std::make_pair(graph.degree(v), 0));
+
+        for (int v = 0 ; v < graph.size() ; ++v)
+            for (int w = 0 ; w < graph.size() ; ++w)
+                if (graph.adjacent(v, w))
+                    degrees.at(v).second += degrees.at(w).first;
+
+        // sort on degree
+        std::sort(p.begin(), p.end(),
+                [&] (int a, int b) { return (! reverse) ^ (degrees[a] < degrees[b] || (degrees[a] == degrees[b] && a > b)); });
+    }
 
     template <unsigned n_words_, int k_, int l_>
     struct SequentialSubgraphIsomorphism
@@ -73,7 +90,7 @@ namespace
 
             // determine ordering for target graph vertices
             std::iota(target_order.begin(), target_order.end(), 0);
-            degree_sort(target, target_order, false);
+            tiebreaking_degree_sort(target, target_order, false);
 
             // recode target to a bit graph
             target_graphs.at(0).resize(target_size);
