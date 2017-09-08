@@ -12,11 +12,21 @@
 
 namespace
 {
+    constexpr long long dodgy_magic_luby_multiplier = 100;
+
     enum class Search
     {
         Aborted,
         Unsatisfiable,
         Satisfiable
+    };
+
+    enum class RestartingSearch
+    {
+        Aborted,
+        Unsatisfiable,
+        Satisfiable,
+        Restart
     };
 
     auto tiebreaking_degree_sort(const Graph & graph, std::vector<int> & p, bool reverse) -> void
@@ -61,6 +71,8 @@ namespace
 
         std::vector<int> pattern_order, target_order, isolated_vertices;
         std::vector<std::pair<int, int> > pattern_degree_tiebreak;
+
+        std::mt19937 global_rand;
 
         SequentialSubgraphIsomorphism(const Graph & target, const Graph & pattern, const Params & a) :
             params(a),
@@ -256,6 +268,58 @@ namespace
             }
 
             return Search::Unsatisfiable;
+        }
+
+        auto restarting_search(
+                Assignments & assignments,
+                const Domains & domains,
+                unsigned long long & nodes,
+                int depth,
+                long long & backtracks_until_restart) -> RestartingSearch
+        {
+            if (params.abort->load())
+                return RestartingSearch::Aborted;
+
+            ++nodes;
+
+            const Domain * branch_domain = find_branch_domain(domains);
+            if (! branch_domain)
+                return RestartingSearch::Satisfiable;
+
+            auto remaining = branch_domain->values;
+
+            std::vector<unsigned> branch_v;
+            for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
+                remaining.unset(f_v);
+                branch_v.push_back(f_v);
+            }
+
+            std::shuffle(branch_v.begin(), branch_v.end(), global_rand);
+
+            for (auto & f_v : branch_v) {
+                auto assignments_size = assignments.size();
+
+                /* set up new domains */
+                Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
+
+                if (propagate(new_domains, assignments)) {
+                    auto search_result = restarting_search(assignments, new_domains, nodes, depth + 1, backtracks_until_restart);
+
+                    switch (search_result) {
+                        case RestartingSearch::Satisfiable:    return RestartingSearch::Satisfiable;
+                        case RestartingSearch::Aborted:        return RestartingSearch::Aborted;
+                        case RestartingSearch::Restart:        return RestartingSearch::Restart;
+                        case RestartingSearch::Unsatisfiable:  break;
+                    }
+                }
+
+                assignments.resize(assignments_size);
+            }
+
+            if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart)
+                return RestartingSearch::Restart;
+            else
+                return RestartingSearch::Unsatisfiable;
         }
 
         auto dds_search(
@@ -493,9 +557,46 @@ namespace
                             break;
                         }
                 }
+                else if (params.restarts) {
+                    bool done = false;
+                    std::list<long long> luby = {{ 1 }};
+                    auto current_luby = luby.begin();
+                    while (! done) {
+                        long long backtracks_until_restart = *current_luby * dodgy_magic_luby_multiplier;
+                        if (std::next(current_luby) == luby.end()) {
+                            luby.insert(luby.end(), luby.begin(), luby.end());
+                            luby.push_back(*luby.rbegin() * 2);
+                        }
+                        ++current_luby;
+
+                        auto assignments_copy = assignments;
+                        auto domains_copy = domains;
+                        switch (restarting_search(assignments_copy, domains_copy, result.nodes, 0, backtracks_until_restart)) {
+                            case RestartingSearch::Satisfiable:
+                                save_result(assignments_copy, result);
+                                done = true;
+                                break;
+
+                            case RestartingSearch::Unsatisfiable:
+                            case RestartingSearch::Aborted:
+                                done = true;
+                                break;
+
+                            case RestartingSearch::Restart:
+                                break;
+                        }
+                    }
+                }
                 else {
-                    if (search(assignments, domains, result.nodes, 0) == Search::Satisfiable)
-                        save_result(assignments, result);
+                    switch (search(assignments, domains, result.nodes, 0)) {
+                        case Search::Satisfiable:
+                            save_result(assignments, result);
+                            break;
+
+                        case Search::Unsatisfiable:
+                        case Search::Aborted:
+                            break;
+                    }
                 }
             }
             return result;

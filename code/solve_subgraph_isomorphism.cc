@@ -92,6 +92,7 @@ auto main(int argc, char * argv[]) -> int
             ("timeout",            po::value<int>(),  "Abort after this many seconds")
             ("format",             po::value<std::string>(), "Specify the format of the input")
             ("dds",                                   "Use depth-bounded discrepancy search")
+            ("restarts",                              "Use restarts (not with dds)")
             ;
 
         po::options_description all_options{ "All options" };
@@ -150,6 +151,7 @@ auto main(int argc, char * argv[]) -> int
         Params params;
 
         params.dds = options_vars.count("dds");
+        params.restarts = options_vars.count("restarts");
 
         /* Read in the graphs */
         auto graphs = std::make_pair(
