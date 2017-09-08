@@ -91,6 +91,7 @@ auto main(int argc, char * argv[]) -> int
             ("help",                                  "Display help information")
             ("timeout",            po::value<int>(),  "Abort after this many seconds")
             ("format",             po::value<std::string>(), "Specify the format of the input")
+            ("dds",                                   "Use depth-bounded discrepancy search")
             ;
 
         po::options_description all_options{ "All options" };
@@ -147,6 +148,8 @@ auto main(int argc, char * argv[]) -> int
 
         /* Figure out what our options should be. */
         Params params;
+
+        params.dds = options_vars.count("dds");
 
         /* Read in the graphs */
         auto graphs = std::make_pair(

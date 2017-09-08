@@ -258,6 +258,52 @@ namespace
             return Search::Unsatisfiable;
         }
 
+        auto dds_search(
+                Assignments & assignments,
+                const Domains & domains,
+                unsigned long long & nodes,
+                int depth,
+                int discrepancies_allowed) -> Search
+        {
+            if (params.abort->load())
+                return Search::Aborted;
+
+            ++nodes;
+
+            const Domain * branch_domain = find_branch_domain(domains);
+            if (! branch_domain)
+                return Search::Satisfiable;
+
+            auto remaining = branch_domain->values;
+
+            for (int f_v = remaining.first_set_bit(), count = 0 ; f_v != -1 ; f_v = remaining.first_set_bit(), ++count) {
+                remaining.unset(f_v);
+
+                if ((0 == discrepancies_allowed && 0 == count)
+                        || (1 == discrepancies_allowed && 0 != count)
+                        || (discrepancies_allowed > 1)) {
+                    auto assignments_size = assignments.size();
+
+                    /* set up new domains */
+                    Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
+
+                    if (propagate(new_domains, assignments)) {
+                        auto search_result = dds_search(assignments, new_domains, nodes, depth + 1, discrepancies_allowed > 1 ? discrepancies_allowed - 1 : 0);
+
+                        switch (search_result) {
+                            case Search::Satisfiable:    return Search::Satisfiable;
+                            case Search::Aborted:        return Search::Aborted;
+                            case Search::Unsatisfiable:  break;
+                        }
+                    }
+
+                    assignments.resize(assignments_size);
+                }
+            }
+
+            return Search::Unsatisfiable;
+        }
+
         auto initialise_domains(Domains & domains) -> bool
         {
             std::vector<std::vector<int> > patterns_degrees(max_graphs);
@@ -439,9 +485,19 @@ namespace
 
             Assignments assignments;
             assignments.reserve(pattern_size);
-            if (propagate(domains, assignments))
-                if (search(assignments, domains, result.nodes, 0) == Search::Satisfiable)
-                    save_result(assignments, result);
+            if (propagate(domains, assignments)) {
+                if (params.dds) {
+                    for (unsigned discrepancies_allowed = 0 ; discrepancies_allowed <= pattern_size ; ++discrepancies_allowed)
+                        if (dds_search(assignments, domains, result.nodes, 0, discrepancies_allowed) == Search::Satisfiable) {
+                            save_result(assignments, result);
+                            break;
+                        }
+                }
+                else {
+                    if (search(assignments, domains, result.nodes, 0) == Search::Satisfiable)
+                        save_result(assignments, result);
+                }
+            }
             return result;
         }
     };
