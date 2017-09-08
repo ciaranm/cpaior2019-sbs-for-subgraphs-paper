@@ -196,6 +196,27 @@ namespace
             return result;
         }
 
+        auto prepare_domains(
+                const Domains & domains,
+                unsigned branch_v,
+                unsigned f_v) -> Domains
+        {
+            Domains new_domains;
+            new_domains.reserve(domains.size());
+            for (auto & d : domains) {
+                if (d.fixed)
+                    continue;
+
+                new_domains.push_back(d);
+                if (d.v == branch_v) {
+                    new_domains.back().values.unset_all();
+                    new_domains.back().values.set(f_v);
+                    new_domains.back().popcount = 1;
+                }
+            }
+            return new_domains;
+        }
+
         auto search(
                 Assignments & assignments,
                 const Domains & domains,
@@ -219,19 +240,7 @@ namespace
                 auto assignments_size = assignments.size();
 
                 /* set up new domains */
-                Domains new_domains;
-                new_domains.reserve(domains.size());
-                for (auto & d : domains) {
-                    if (d.fixed)
-                        continue;
-
-                    new_domains.push_back(d);
-                    if (d.v == branch_domain->v) {
-                        new_domains.back().values.unset_all();
-                        new_domains.back().values.set(f_v);
-                        new_domains.back().popcount = 1;
-                    }
-                }
+                Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
 
                 if (propagate(new_domains, assignments)) {
                     auto search_result = search(assignments, new_domains, nodes, depth + 1);
