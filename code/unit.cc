@@ -8,6 +8,7 @@
 #include <numeric>
 #include <limits>
 #include <random>
+#include <set>
 #include <iostream>
 
 namespace
@@ -59,7 +60,9 @@ namespace
         };
 
         using Domains = std::vector<Domain>;
-        using Assignments = std::vector<std::pair<unsigned, unsigned> >;
+        using Assignments = std::vector<std::tuple<unsigned, unsigned, bool> >;
+        using Nogood = std::vector<std::pair<unsigned, unsigned> >;
+        using Nogoods = std::set<Nogood>;
 
         const Params & params;
 
@@ -71,6 +74,8 @@ namespace
 
         std::vector<int> pattern_order, target_order, isolated_vertices;
         std::vector<std::pair<int, int> > pattern_degree_tiebreak;
+
+        Nogoods nogoods;
 
         std::mt19937 global_rand;
 
@@ -157,6 +162,7 @@ namespace
 
         auto propagate(Domains & new_domains, Assignments & assignments) -> bool
         {
+            bool first = true;
             for (typename Domains::iterator branch_domain = find_unit_domain(new_domains) ;
                     branch_domain != new_domains.end() ;
                     branch_domain = find_unit_domain(new_domains)) {
@@ -164,7 +170,8 @@ namespace
                 int f_v = branch_domain->values.first_set_bit();
                 branch_domain->fixed = true;
 
-                assignments.emplace_back(branch_v, f_v);
+                assignments.emplace_back(branch_v, f_v, first);
+                first = false;
 
                 // propagate for each remaining domain...
                 for (auto & d : new_domains) {
@@ -192,6 +199,54 @@ namespace
 
             if (! cheap_all_different(new_domains))
                 return false;
+
+            for (const auto & nogood : nogoods) {
+                bool differing = false, missing = false, has_force = false;
+                unsigned force_var, force_value;
+
+                for (auto & n : nogood) {
+                    bool found = false;
+                    for (auto & a : assignments) {
+                        if (std::get<0>(a) == n.first) {
+                            if (n.second != std::get<1>(a)) {
+                                differing = true;
+                                break;
+                            }
+                            else
+                                found = true;
+                        }
+                    }
+
+                    if (! found) {
+                        if (has_force) {
+                            missing = true;
+                            break;
+                        }
+                        has_force = true;
+                        force_var = n.first;
+                        force_value = n.second;
+                    }
+
+                    if (differing)
+                        break;
+                }
+
+                if (! missing && has_force) {
+                    // std::cerr << "-- would force " << force_var << " /= " << force_value << std::endl;
+                    for (auto & d : new_domains) {
+                        if (d.v == force_var) {
+                            d.values.unset(force_value);
+                            d.popcount = d.values.popcount();
+                            if (0 == d.popcount)
+                                return false;
+                            break;
+                        }
+                    }
+                }
+                else if ((! differing) && (! missing)) {
+                    return false;
+                }
+            }
 
             return true;
         }
@@ -270,6 +325,17 @@ namespace
             return Search::Unsatisfiable;
         }
 
+        auto post_nogood(
+                const Assignments & assignments)
+        {
+            Nogood nogood;
+            for (auto & a : assignments)
+                if (std::get<2>(a))
+                    nogood.emplace_back(std::get<0>(a), std::get<1>(a));
+
+            nogoods.emplace(std::move(nogood));
+        }
+
         auto restarting_search(
                 Assignments & assignments,
                 const Domains & domains,
@@ -296,28 +362,50 @@ namespace
 
             std::shuffle(branch_v.begin(), branch_v.end(), global_rand);
 
-            for (auto & f_v : branch_v) {
+            for (auto f_v = branch_v.begin(), f_end = branch_v.end() ; f_v != f_end ; ++f_v) {
+                /* modified in-place by appending, we can restore by shrinking */
                 auto assignments_size = assignments.size();
 
                 /* set up new domains */
-                Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
+                Domains new_domains = prepare_domains(domains, branch_domain->v, *f_v);
 
-                if (propagate(new_domains, assignments)) {
+                if (! propagate(new_domains, assignments)) {
+                    assignments.resize(assignments_size);
+                }
+                else {
                     auto search_result = restarting_search(assignments, new_domains, nodes, depth + 1, backtracks_until_restart);
 
                     switch (search_result) {
-                        case RestartingSearch::Satisfiable:    return RestartingSearch::Satisfiable;
-                        case RestartingSearch::Aborted:        return RestartingSearch::Aborted;
-                        case RestartingSearch::Restart:        return RestartingSearch::Restart;
-                        case RestartingSearch::Unsatisfiable:  break;
+                        case RestartingSearch::Satisfiable:
+                            return RestartingSearch::Satisfiable;
+
+                        case RestartingSearch::Aborted:
+                            return RestartingSearch::Aborted;
+
+                        case RestartingSearch::Restart:
+                            /* restore this before figuring out nogoods */
+                            assignments.resize(assignments_size);
+
+                            /* post nogoods for everything we've done so far */
+                            for (auto l = branch_v.begin() ; l != f_v ; ++l) {
+                                assignments.emplace_back(branch_domain->v, *l, true);
+                                post_nogood(assignments);
+                                assignments.pop_back();
+                            }
+
+                            return RestartingSearch::Restart;
+
+                        case RestartingSearch::Unsatisfiable:
+                            assignments.resize(assignments_size);
+                            break;
                     }
                 }
-
-                assignments.resize(assignments_size);
             }
 
-            if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart)
+            if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart) {
+                post_nogood(assignments);
                 return RestartingSearch::Restart;
+            }
             else
                 return RestartingSearch::Unsatisfiable;
         }
@@ -518,7 +606,7 @@ namespace
         auto save_result(const Assignments & assignments, Result & result) -> void
         {
             for (auto & a : assignments)
-                result.isomorphism.emplace(pattern_order.at(a.first), target_order.at(a.second));
+                result.isomorphism.emplace(pattern_order.at(std::get<0>(a)), target_order.at(std::get<1>(a)));
 
             int t = 0;
             for (auto & v : isolated_vertices) {
@@ -570,8 +658,7 @@ namespace
                         ++current_luby;
 
                         auto assignments_copy = assignments;
-                        auto domains_copy = domains;
-                        switch (restarting_search(assignments_copy, domains_copy, result.nodes, 0, backtracks_until_restart)) {
+                        switch (restarting_search(assignments_copy, domains, result.nodes, 0, backtracks_until_restart)) {
                             case RestartingSearch::Satisfiable:
                                 save_result(assignments_copy, result);
                                 done = true;
