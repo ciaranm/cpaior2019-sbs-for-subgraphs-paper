@@ -9,11 +9,13 @@
 #include <limits>
 #include <random>
 #include <set>
+#include <map>
+#include <list>
 #include <iostream>
 
 namespace
 {
-    constexpr long long dodgy_magic_luby_multiplier = 100;
+    constexpr long long dodgy_magic_luby_multiplier = 666;
 
     enum class Search
     {
@@ -48,6 +50,29 @@ namespace
                 [&] (int a, int b) { return (! reverse) ^ (degrees[a] < degrees[b] || (degrees[a] == degrees[b] && a > b)); });
     }
 
+    using Assignment = std::pair<unsigned, unsigned>;
+
+    struct Assignments
+    {
+        std::vector<std::pair<Assignment, bool> > values;
+
+        bool contains(const Assignment & assignment) const
+        {
+            return values.end() != std::find_if(values.begin(), values.end(), [&] (const auto & a) {
+                    return a.first == assignment;
+                    });
+        }
+    };
+
+    struct Nogood
+    {
+        unsigned long long id;
+        std::vector<Assignment> literals;
+    };
+
+    using Nogoods = std::list<Nogood>;
+    using Watches = std::map<Assignment, std::list<Nogoods::iterator> >;
+
     template <unsigned n_words_, int k_, int l_>
     struct SequentialSubgraphIsomorphism
     {
@@ -60,9 +85,6 @@ namespace
         };
 
         using Domains = std::vector<Domain>;
-        using Assignments = std::vector<std::tuple<unsigned, unsigned, bool> >;
-        using Nogood = std::vector<std::pair<unsigned, unsigned> >;
-        using Nogoods = std::set<Nogood>;
 
         const Params & params;
 
@@ -76,6 +98,8 @@ namespace
         std::vector<std::pair<int, int> > pattern_degree_tiebreak;
 
         Nogoods nogoods;
+        Watches watches;
+        std::list<typename Nogoods::iterator> need_to_watch;
 
         std::mt19937 global_rand;
 
@@ -162,16 +186,82 @@ namespace
 
         auto propagate(Domains & new_domains, Assignments & assignments) -> bool
         {
-            bool first = true;
+            bool this_is_a_decision = true;
+
+            // whilst we've got a unit domain...
             for (typename Domains::iterator branch_domain = find_unit_domain(new_domains) ;
                     branch_domain != new_domains.end() ;
                     branch_domain = find_unit_domain(new_domains)) {
-                int branch_v = branch_domain->v;
-                int f_v = branch_domain->values.first_set_bit();
-                branch_domain->fixed = true;
+                // what are we assigning?
+                Assignment current_assignment = { branch_domain->v, branch_domain->values.first_set_bit() };
 
-                assignments.emplace_back(branch_v, f_v, first);
-                first = false;
+                // ok, make the assignment
+                branch_domain->fixed = true;
+                assignments.values.push_back({ { current_assignment.first, current_assignment.second }, this_is_a_decision });
+                this_is_a_decision = false;
+
+                // propagate watches
+                auto watches_to_update = watches.find(current_assignment);
+                if (watches_to_update != watches.end()) {
+                    for (auto watch_to_update = watches_to_update->second.begin() ; watch_to_update != watches_to_update->second.end() ; ) {
+                        Nogood & nogood = **watch_to_update;
+
+                        // make the first watch the thing we just triggered
+                        if (nogood.literals[0] != current_assignment)
+                            std::swap(nogood.literals[0], nogood.literals[1]);
+
+                        if (nogood.literals[0] != current_assignment) {
+                            std::cerr << "-- huh? bug in the watches code... current assignment is " << current_assignment.first << "=" << current_assignment.second
+                                << " and watches are " << nogood.literals[0].first << "=" << nogood.literals[0].second << " and "
+                                << nogood.literals[1].first << "=" << nogood.literals[1].second << std::endl;
+                        }
+
+                        // can we find something else to watch?
+                        bool success = false;
+                        for (auto new_literal = std::next(nogood.literals.begin(), 2) ; new_literal != nogood.literals.end() ; ++new_literal) {
+                            if (! assignments.contains(*new_literal)) {
+                                // we can watch new_literal instead of current_assignment in this nogood
+                                success = true;
+
+                                // move the new watch to be the first item in the nogood
+                                std::swap(nogood.literals[0], *new_literal);
+
+                                // start watching it
+                                watches.try_emplace(nogood.literals[0]).first->second.push_back(*watch_to_update);
+
+                                // remove the current watch, and update the loop iterator
+                                watches_to_update->second.erase(watch_to_update++);
+
+                                break;
+                            }
+                        }
+
+                        // found something new? nothing to propagate (and we've already updated our loop iterator in the erase)
+                        if (success)
+                            continue;
+
+                        // no new watch, this nogood will now propagate.
+                        if (assignments.contains(nogood.literals[1])) {
+                            std::cerr << "-- had already made " << nogood.literals[1].first << "=" << nogood.literals[1].second << std::endl;
+                            return false;
+                        }
+
+                        // feeling lazy, do a linear scan to find the variable for now... note that it might
+                        // not exist if we've assigned it something other value anyway.
+                        for (auto & d : new_domains) {
+                            if (d.fixed)
+                                continue;
+
+                            if (d.v == nogood.literals[1].first) {
+                                d.values.unset(nogood.literals[1].second);
+                                break;
+                            }
+                        }
+
+                        // step the loop variable, only if we've not already erased it
+                        ++watch_to_update;
+                    }
+                }
 
                 // propagate for each remaining domain...
                 for (auto & d : new_domains) {
@@ -179,14 +269,14 @@ namespace
                         continue;
 
                     // all different
-                    d.values.unset(f_v);
+                    d.values.unset(current_assignment.second);
 
                     // for each graph pair...
                     for (int g = 0 ; g < max_graphs ; ++g) {
                         // if we're adjacent...
-                        if (pattern_graphs.at(g).adjacent(branch_v, d.v)) {
+                        if (pattern_graphs.at(g).adjacent(current_assignment.first, d.v)) {
                             // ...then we can only be mapped to adjacent vertices
-                            target_graphs.at(g).intersect_with_row(f_v, d.values);
+                            target_graphs.at(g).intersect_with_row(current_assignment.second, d.values);
                         }
                     }
 
@@ -197,56 +287,9 @@ namespace
                 }
             }
 
+            // all unit domains done, try all different (and don't bother fixedpointing)
             if (! cheap_all_different(new_domains))
                 return false;
-
-            for (const auto & nogood : nogoods) {
-                bool differing = false, missing = false, has_force = false;
-                unsigned force_var, force_value;
-
-                for (auto & n : nogood) {
-                    bool found = false;
-                    for (auto & a : assignments) {
-                        if (std::get<0>(a) == n.first) {
-                            if (n.second != std::get<1>(a)) {
-                                differing = true;
-                                break;
-                            }
-                            else
-                                found = true;
-                        }
-                    }
-
-                    if (! found) {
-                        if (has_force) {
-                            missing = true;
-                            break;
-                        }
-                        has_force = true;
-                        force_var = n.first;
-                        force_value = n.second;
-                    }
-
-                    if (differing)
-                        break;
-                }
-
-                if (! missing && has_force) {
-                    // std::cerr << "-- would force " << force_var << " /= " << force_value << std::endl;
-                    for (auto & d : new_domains) {
-                        if (d.v == force_var) {
-                            d.values.unset(force_value);
-                            d.popcount = d.values.popcount();
-                            if (0 == d.popcount)
-                                return false;
-                            break;
-                        }
-                    }
-                }
-                else if ((! differing) && (! missing)) {
-                    return false;
-                }
-            }
 
             return true;
         }
@@ -304,7 +347,7 @@ namespace
             for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
                 remaining.unset(f_v);
 
-                auto assignments_size = assignments.size();
+                auto assignments_size = assignments.values.size();
 
                 /* set up new domains */
                 Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
@@ -319,7 +362,7 @@ namespace
                     }
                 }
 
-                assignments.resize(assignments_size);
+                assignments.values.resize(assignments_size);
             }
 
             return Search::Unsatisfiable;
@@ -328,12 +371,17 @@ namespace
         auto post_nogood(
                 const Assignments & assignments)
         {
-            Nogood nogood;
-            for (auto & a : assignments)
-                if (std::get<2>(a))
-                    nogood.emplace_back(std::get<0>(a), std::get<1>(a));
+            static unsigned long long nogood_id_counter = 1;
 
-            nogoods.emplace(std::move(nogood));
+            Nogood nogood;
+            nogood.id = nogood_id_counter++;
+
+            for (auto & a : assignments.values)
+                if (a.second)
+                    nogood.literals.emplace_back(a.first);
+
+            nogoods.emplace_back(std::move(nogood));
+            need_to_watch.emplace_back(std::prev(nogoods.end()));
         }
 
         auto restarting_search(
@@ -364,13 +412,13 @@ namespace
 
             for (auto f_v = branch_v.begin(), f_end = branch_v.end() ; f_v != f_end ; ++f_v) {
                 /* modified in-place by appending, we can restore by shrinking */
-                auto assignments_size = assignments.size();
+                auto assignments_size = assignments.values.size();
 
                 /* set up new domains */
                 Domains new_domains = prepare_domains(domains, branch_domain->v, *f_v);
 
                 if (! propagate(new_domains, assignments)) {
-                    assignments.resize(assignments_size);
+                    assignments.values.resize(assignments_size);
                 }
                 else {
                     auto search_result = restarting_search(assignments, new_domains, nodes, depth + 1, backtracks_until_restart);
@@ -384,19 +432,19 @@ namespace
 
                         case RestartingSearch::Restart:
                             /* restore this before figuring out nogoods */
-                            assignments.resize(assignments_size);
+                            assignments.values.resize(assignments_size);
 
                             /* post nogoods for everything we've done so far */
                             for (auto l = branch_v.begin() ; l != f_v ; ++l) {
-                                assignments.emplace_back(branch_domain->v, *l, true);
+                                assignments.values.push_back({ { branch_domain->v, *l }, true });
                                 post_nogood(assignments);
-                                assignments.pop_back();
+                                assignments.values.pop_back();
                             }
 
                             return RestartingSearch::Restart;
 
                         case RestartingSearch::Unsatisfiable:
-                            assignments.resize(assignments_size);
+                            assignments.values.resize(assignments_size);
                             break;
                     }
                 }
@@ -434,7 +482,7 @@ namespace
                 if ((0 == discrepancies_allowed && 0 == count)
                         || (1 == discrepancies_allowed && 0 != count)
                         || (discrepancies_allowed > 1)) {
-                    auto assignments_size = assignments.size();
+                    auto assignments_size = assignments.values.size();
 
                     /* set up new domains */
                     Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
@@ -449,7 +497,7 @@ namespace
                         }
                     }
 
-                    assignments.resize(assignments_size);
+                    assignments.values.resize(assignments_size);
                 }
             }
 
@@ -605,8 +653,8 @@ namespace
 
         auto save_result(const Assignments & assignments, Result & result) -> void
         {
-            for (auto & a : assignments)
-                result.isomorphism.emplace(pattern_order.at(std::get<0>(a)), target_order.at(std::get<1>(a)));
+            for (auto & a : assignments.values)
+                result.isomorphism.emplace(pattern_order.at(a.first.first), target_order.at(a.first.second));
 
             int t = 0;
             for (auto & v : isolated_vertices) {
@@ -636,7 +684,7 @@ namespace
                 return result;
 
             Assignments assignments;
-            assignments.reserve(pattern_size);
+            assignments.values.reserve(pattern_size);
             if (propagate(domains, assignments)) {
                 if (params.dds) {
                     for (unsigned discrepancies_allowed = 0 ; discrepancies_allowed <= pattern_size ; ++discrepancies_allowed)
@@ -658,6 +706,27 @@ namespace
                         ++current_luby;
 
                         auto assignments_copy = assignments;
+
+                        // start watching new nogoods. we're not backjumping so this is a bit icky.
+                        for (auto & n : need_to_watch) {
+                            if (n->literals.empty()) {
+                                done = true;
+                                break;
+                            }
+                            else if (1 == n->literals.size()) {
+                                for (auto & d : domains)
+                                    if (d.v == n->literals[0].first) {
+                                        d.values.unset(n->literals[0].second);
+                                        d.popcount = d.values.popcount();
+                                    }
+                            }
+                            else {
+                                watches.try_emplace(n->literals[0]).first->second.push_back(n);
+                                watches.try_emplace(n->literals[1]).first->second.push_back(n);
+                            }
+                        }
+                        need_to_watch.clear();
+
                         switch (restarting_search(assignments_copy, domains, result.nodes, 0, backtracks_until_restart)) {
                             case RestartingSearch::Satisfiable:
                                 save_result(assignments_copy, result);
