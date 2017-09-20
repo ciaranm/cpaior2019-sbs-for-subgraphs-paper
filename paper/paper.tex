@@ -1,0 +1,103 @@
+% vim: set spell spelllang=en tw=100 et sw=4 sts=4 :
+
+\documentclass{article}
+\usepackage{ijcai17}
+\usepackage{times}
+\usepackage{microtype}
+
+\usepackage{showframe}
+
+\title{Value-Ordering, Discrepancies, and Restarts in Subgraph Solvers}
+\author{Ciaran McCreesh\thanks{This work was supported by the Engineering and Physical Sciences
+    Research Council [grant number EP/026842/1]}\\ University of Glasgow, Glasgow, Scotland \\
+    ciaran.mccreesh@glasgow.ac.uk}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+    Modern subgraph isomorphism solvers use reasonably good value-ordering heuristics to direct
+    search, but they are not perfect, particularly for early choices. We investigate various forms
+    of discrepancy search, but get best results by combining restarts with biased randomness in
+    value-ordering heuristics.
+\end{abstract}
+
+\section{Introduction}
+
+\section{The Basic Algorithm}
+
+?? Started with the Glasgow algorithm, removed parts which did not contribute hugely to speedups,
+and ended up with a simpler algorithm that performs as well in practice. In particular, large
+graphs, no ILF, and not doing supplemental graphs of length 3.
+
+\subsection{Ordering Heuristics}
+
+\begin{description}
+    \item[Random]
+    \item[Tailored]
+    \item[Anti-Tailored]
+    \item[Tailor-Weighted Random]
+\end{description}
+
+\subsection{Discrepancy Searches}
+
+?? Not dealing with binary search. Make it binary. Other versions where we increase the discrepancy
+each time the degree changes, and where we count every ``against'' branch as one discrepancy.
+
+\subsection{Restarts}
+
+?? Aimed primarily at value-ordering, not value-ordering.
+
+?? Value-ordering options
+
+?? Propagation
+
+?? We use the Luby scheme, because everyone else does. We count the number of backtracks (that is,
+when we reach the end of the main for loop) to decide when to restart. Following established wisdom,
+we multiply each item in the sequence by a magic constant. Preliminary experiments demonstrated that
+this is useful, but we failed to determine a principled way of selecting the constant's value, so we
+fell back on divine revelation and set it to 666. As with everyone else, we are not entirely clear
+why we are doing this: it could be to allow the solver to spend more time deep in search, it could
+be to reduce the overheads from repeatedly visiting inner nodes, or it could be to keep the nogoods
+small.
+
+?? Increasing nogoods etc. We are not confident enough in our programming abilities to implement
+these correctly. Cannot propagate on negative decisions.
+
+\section{Empirical Evaluation}
+
+\subsection{Our Solver is Good}
+
+?? Non-induced, compare to Glasgow, LAD, PathLAD, SND?, VF2
+
+?? Induced, compare to Glasgow, LAD, PathLAD, VF2, VF3, McSplit.
+
+\subsection{Discrepancies Don't Help}
+
+?? DDS counting bias both ways, LDS
+
+\subsection{Restarts Make it Better}
+
+?? Random, tailored, antitailored, random with restarts, tailored biased, tailored biased with
+restarts. Satisfiable and unsatisfiable split.
+
+?? Breakdown by family
+
+\subsection{Near the Phase Transition}
+
+?? Closer look at SAT instances near the phase transition
+
+\section{Other Subgraph Solvers}
+
+?? Also do this in McSplit and kdown?
+
+\section{Conclusion}
+
+?? Parallel
+
+\bibliographystyle{named}
+\bibliography{dblp}
+
+\end{document}
+
