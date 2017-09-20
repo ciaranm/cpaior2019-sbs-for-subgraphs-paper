@@ -19,6 +19,9 @@ struct Params
 
     /// Use restarts? (Not with dds)
     bool restarts = false;
+
+    /// Use shuffles? (For science purposes, not real use)
+    bool shuffle = false;
 };
 
 #endif

@@ -396,7 +396,8 @@ namespace
 
             // at some point this will do something sneaky and do a biased shuffle or something, because
             // the value-ordering heuristics are really quite good most of the time
-            std::shuffle(branch_v.begin(), branch_v.end(), global_rand);
+            if (params.shuffle)
+                std::shuffle(branch_v.begin(), branch_v.end(), global_rand);
 
             // for each value remaining...
             for (auto f_v = branch_v.begin(), f_end = branch_v.end() ; f_v != f_end ; ++f_v) {
@@ -735,6 +736,19 @@ namespace
                             case RestartingSearch::Restart:
                                 break;
                         }
+                    }
+                }
+                else if (params.shuffle) {
+                    long long backtracks_until_restart = -1;
+                    switch (restarting_search(assignments, domains, result.nodes, 0, backtracks_until_restart)) {
+                        case RestartingSearch::Satisfiable:
+                            save_result(assignments, result);
+                            break;
+
+                        case RestartingSearch::Unsatisfiable:
+                        case RestartingSearch::Aborted:
+                        case RestartingSearch::Restart:
+                            break;
                     }
                 }
                 else {
