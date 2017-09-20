@@ -11,11 +11,10 @@
 #include <set>
 #include <map>
 #include <list>
-#include <iostream>
 
 namespace
 {
-    constexpr long long dodgy_magic_luby_multiplier = 666;
+    constexpr long long dodgy_magic_luby_multiplier = 666; // chosen by divine revelation
 
     enum class Search
     {
@@ -58,6 +57,7 @@ namespace
 
         bool contains(const Assignment & assignment) const
         {
+            // this should not be a linear scan...
             return values.end() != std::find_if(values.begin(), values.end(), [&] (const auto & a) {
                     return a.first == assignment;
                     });
@@ -66,7 +66,6 @@ namespace
 
     struct Nogood
     {
-        unsigned long long id;
         std::vector<Assignment> literals;
     };
 
@@ -210,12 +209,6 @@ namespace
                         if (nogood.literals[0] != current_assignment)
                             std::swap(nogood.literals[0], nogood.literals[1]);
 
-                        if (nogood.literals[0] != current_assignment) {
-                            std::cerr << "-- huh? bug in the watches code... current assignment is " << current_assignment.first << "=" << current_assignment.second
-                                << " and watches are " << nogood.literals[0].first << "=" << nogood.literals[0].second << " and "
-                                << nogood.literals[1].first << "=" << nogood.literals[1].second << std::endl;
-                        }
-
                         // can we find something else to watch?
                         bool success = false;
                         for (auto new_literal = std::next(nogood.literals.begin(), 2) ; new_literal != nogood.literals.end() ; ++new_literal) {
@@ -240,14 +233,8 @@ namespace
                         if (success)
                             continue;
 
-                        // no new watch, this nogood will now propagate.
-                        if (assignments.contains(nogood.literals[1])) {
-                            std::cerr << "-- had already made " << nogood.literals[1].first << "=" << nogood.literals[1].second << std::endl;
-                            return false;
-                        }
-
-                        // feeling lazy, do a linear scan to find the variable for now... note that it might
-                        // not exist if we've assigned it something other value anyway.
+                        // no new watch, this nogood will now propagate. do a linear scan to find the variable for now... note
+                        // that it might not exist if we've assigned it something other value anyway.
                         for (auto & d : new_domains) {
                             if (d.fixed)
                                 continue;
@@ -371,10 +358,7 @@ namespace
         auto post_nogood(
                 const Assignments & assignments)
         {
-            static unsigned long long nogood_id_counter = 1;
-
             Nogood nogood;
-            nogood.id = nogood_id_counter++;
 
             for (auto & a : assignments.values)
                 if (a.second)
@@ -396,10 +380,12 @@ namespace
 
             ++nodes;
 
+            // find ourselves a domain, or succeed if we're all assigned
             const Domain * branch_domain = find_branch_domain(domains);
             if (! branch_domain)
                 return RestartingSearch::Satisfiable;
 
+            // pull out the remaining values in this domain for branching
             auto remaining = branch_domain->values;
 
             std::vector<unsigned> branch_v;
@@ -408,48 +394,56 @@ namespace
                 branch_v.push_back(f_v);
             }
 
+            // at some point this will do something sneaky and do a biased shuffle or something, because
+            // the value-ordering heuristics are really quite good most of the time
             std::shuffle(branch_v.begin(), branch_v.end(), global_rand);
 
+            // for each value remaining...
             for (auto f_v = branch_v.begin(), f_end = branch_v.end() ; f_v != f_end ; ++f_v) {
-                /* modified in-place by appending, we can restore by shrinking */
+                // modified in-place by appending, we can restore by shrinking
                 auto assignments_size = assignments.values.size();
 
-                /* set up new domains */
+                // set up new domains
                 Domains new_domains = prepare_domains(domains, branch_domain->v, *f_v);
 
+                // propagate
                 if (! propagate(new_domains, assignments)) {
+                    // failure? restore assignments and go on to the next thing
                     assignments.values.resize(assignments_size);
+                    continue;
                 }
-                else {
-                    auto search_result = restarting_search(assignments, new_domains, nodes, depth + 1, backtracks_until_restart);
 
-                    switch (search_result) {
-                        case RestartingSearch::Satisfiable:
-                            return RestartingSearch::Satisfiable;
+                // recursive search
+                auto search_result = restarting_search(assignments, new_domains, nodes, depth + 1, backtracks_until_restart);
 
-                        case RestartingSearch::Aborted:
-                            return RestartingSearch::Aborted;
+                switch (search_result) {
+                    case RestartingSearch::Satisfiable:
+                        return RestartingSearch::Satisfiable;
 
-                        case RestartingSearch::Restart:
-                            /* restore this before figuring out nogoods */
-                            assignments.values.resize(assignments_size);
+                    case RestartingSearch::Aborted:
+                        return RestartingSearch::Aborted;
 
-                            /* post nogoods for everything we've done so far */
-                            for (auto l = branch_v.begin() ; l != f_v ; ++l) {
-                                assignments.values.push_back({ { branch_domain->v, *l }, true });
-                                post_nogood(assignments);
-                                assignments.values.pop_back();
-                            }
+                    case RestartingSearch::Restart:
+                        // restore assignments before posting nogoods, it's easier
+                        assignments.values.resize(assignments_size);
 
-                            return RestartingSearch::Restart;
+                        // post nogoods for everything we've done so far
+                        for (auto l = branch_v.begin() ; l != f_v ; ++l) {
+                            assignments.values.push_back({ { branch_domain->v, *l }, true });
+                            post_nogood(assignments);
+                            assignments.values.pop_back();
+                        }
 
-                        case RestartingSearch::Unsatisfiable:
-                            assignments.values.resize(assignments_size);
-                            break;
-                    }
+                        return RestartingSearch::Restart;
+
+                    case RestartingSearch::Unsatisfiable:
+                        // restore assignments
+                        assignments.values.resize(assignments_size);
+                        break;
                 }
             }
 
+            // no values remaining, backtrack, or possibly kick off a restart
             if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart) {
                 post_nogood(assignments);
                 return RestartingSearch::Restart;
