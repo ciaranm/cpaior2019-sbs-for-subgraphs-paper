@@ -20,6 +20,9 @@ struct Params
     /// Use restarts? (Not with dds)
     bool restarts = false;
 
+    /// Use no heuristic?
+    bool input_order = false;
+
     /// Use shuffles? (For science purposes, not real use)
     bool shuffle = false;
 

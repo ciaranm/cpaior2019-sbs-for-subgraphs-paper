@@ -150,7 +150,7 @@ namespace
 
             if (params.tiebreaking)
                 tiebreaking_degree_sort(target, target_order, params.antiheuristic);
-            else
+            else if (! params.input_order)
                 degree_sort(target, target_order, params.antiheuristic);
 
             // recode target to a bit graph

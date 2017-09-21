@@ -97,6 +97,7 @@ auto main(int argc, char * argv[]) -> int
             ("biased-shuffle",                        "Use biased shuffling")
             ("antiheuristic",                         "Use antiheuristic")
             ("tiebreaking",                           "Use tiebreaking")
+            ("input-order",                           "Use input order")
             ;
 
         po::options_description all_options{ "All options" };
@@ -160,6 +161,7 @@ auto main(int argc, char * argv[]) -> int
         params.biased_shuffle = options_vars.count("biased-shuffle");
         params.antiheuristic = options_vars.count("antiheuristic");
         params.tiebreaking = options_vars.count("tiebreaking");
+        params.input_order = options_vars.count("input-order");
 
         /* Read in the graphs */
         auto graphs = std::make_pair(
