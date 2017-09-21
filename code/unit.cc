@@ -788,7 +788,8 @@ namespace
                         }
                     }
                 }
-                else if (params.shuffle) {
+                else if (params.shuffle || params.biased_shuffle) {
+                    // still need to use the restarts variant
                     long long backtracks_until_restart = -1;
                     switch (restarting_search(assignments, domains, result.nodes, 0, backtracks_until_restart)) {
                         case RestartingSearch::Satisfiable:
