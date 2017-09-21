@@ -23,6 +23,9 @@ struct Params
     /// Use shuffles? (For science purposes, not real use)
     bool shuffle = false;
 
+    /// Use biased shuffles?
+    bool biased_shuffle = false;
+
     /// Use tiebreaking for value ordering?
     bool tiebreaking = false;
 

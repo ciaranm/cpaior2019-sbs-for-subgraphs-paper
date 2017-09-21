@@ -12,6 +12,8 @@
 #include <map>
 #include <list>
 
+#include <iostream>
+
 namespace
 {
     constexpr long long dodgy_magic_luby_multiplier = 666; // chosen by divine revelation
@@ -115,6 +117,8 @@ namespace
 
         std::mt19937 global_rand;
 
+        std::vector<unsigned> target_vertex_biases;
+
         SequentialSubgraphIsomorphism(const Graph & target, const Graph & pattern, const Params & a) :
             params(a),
             pattern_size(pattern.size()),
@@ -162,6 +166,14 @@ namespace
                 for (unsigned j = 0 ; j < pattern_size ; ++j)
                     if (pattern_graphs.at(0).adjacent(i, j))
                         pattern_degree_tiebreak.at(j).second += pattern_degree_tiebreak.at(i).first;
+
+            if (params.biased_shuffle) {
+                for (unsigned j = 0 ; j < target_size ; ++j)
+                    if (params.antiheuristic)
+                        target_vertex_biases.push_back(target_graphs.at(0).degree(j) + 1);
+                    else
+                        target_vertex_biases.push_back(target_size - target_graphs.at(0).degree(j));
+            }
         }
 
         auto build_supplemental_graphs(std::vector<FixedBitGraph<n_words_> > & graphs, unsigned size) -> void
@@ -415,6 +427,27 @@ namespace
             // the value-ordering heuristics are really quite good most of the time
             if (params.shuffle)
                 std::shuffle(branch_v.begin(), branch_v.end(), global_rand);
+            else if (params.biased_shuffle) {
+                unsigned remaining_score = 0;
+                for (auto & v : branch_v)
+                    remaining_score += target_vertex_biases.at(v);
+
+                for (unsigned start = 0 ; start < branch_v.size() ; ++start) {
+                    std::uniform_int_distribution<int> dist(1, remaining_score);
+                    unsigned select_score = dist(global_rand), select_element = start;
+                    for ( ; select_element < branch_v.size() ; ++select_element) {
+                        if (select_score <= target_vertex_biases.at(branch_v.at(select_element)))
+                            break;
+                        select_score -= target_vertex_biases.at(branch_v.at(select_element));
+                    }
+
+                    remaining_score -= target_vertex_biases.at(branch_v.at(select_element));
+                    std::swap(branch_v.at(select_element), branch_v.at(start));
+                }
+
+                if (0 != remaining_score)
+                    throw 0;
+            }
 
             // for each value remaining...
             for (auto f_v = branch_v.begin(), f_end = branch_v.end() ; f_v != f_end ; ++f_v) {
