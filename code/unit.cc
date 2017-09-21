@@ -31,6 +31,19 @@ namespace
         Restart
     };
 
+    auto degree_sort(const Graph & graph, std::vector<int> & p, bool reverse) -> void
+    {
+        // pre-calculate degrees
+        std::vector<int> degrees;
+
+        for (int v = 0 ; v < graph.size() ; ++v)
+            degrees.push_back(graph.degree(v));
+
+        // sort on degree
+        std::sort(p.begin(), p.end(),
+                [&] (int a, int b) { return (! reverse) ^ (degrees[a] < degrees[b] || (degrees[a] == degrees[b] && a > b)); });
+    }
+
     auto tiebreaking_degree_sort(const Graph & graph, std::vector<int> & p, bool reverse) -> void
     {
         // pre-calculate degrees
@@ -130,7 +143,11 @@ namespace
 
             // determine ordering for target graph vertices
             std::iota(target_order.begin(), target_order.end(), 0);
-            tiebreaking_degree_sort(target, target_order, false);
+
+            if (params.tiebreaking)
+                tiebreaking_degree_sort(target, target_order, params.antiheuristic);
+            else
+                degree_sort(target, target_order, params.antiheuristic);
 
             // recode target to a bit graph
             target_graphs.at(0).resize(target_size);

@@ -94,6 +94,8 @@ auto main(int argc, char * argv[]) -> int
             ("dds",                                   "Use depth-bounded discrepancy search")
             ("restarts",                              "Use restarts (not with dds)")
             ("shuffle",                               "Use shuffling (not with dds)")
+            ("antiheuristic",                         "Use antiheuristic")
+            ("tiebreaking",                           "Use tiebreaking")
             ;
 
         po::options_description all_options{ "All options" };
@@ -154,6 +156,8 @@ auto main(int argc, char * argv[]) -> int
         params.dds = options_vars.count("dds");
         params.restarts = options_vars.count("restarts");
         params.shuffle = options_vars.count("shuffle");
+        params.antiheuristic = options_vars.count("antiheuristic");
+        params.tiebreaking = options_vars.count("tiebreaking");
 
         /* Read in the graphs */
         auto graphs = std::make_pair(
