@@ -169,10 +169,7 @@ namespace
 
             if (params.biased_shuffle) {
                 for (unsigned j = 0 ; j < target_size ; ++j)
-                    if (params.antiheuristic)
-                        target_vertex_biases.push_back(target_graphs.at(0).degree(j) + 1);
-                    else
-                        target_vertex_biases.push_back(target_size - target_graphs.at(0).degree(j));
+                    target_vertex_biases.push_back((target_size - target_graphs.at(0).degree(j)) * (target_size - target_graphs.at(0).degree(j)));
             }
         }
 
