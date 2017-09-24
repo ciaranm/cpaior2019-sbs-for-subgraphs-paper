@@ -117,7 +117,7 @@ namespace
 
         std::mt19937 global_rand;
 
-        std::vector<unsigned> target_vertex_biases;
+        std::vector<unsigned long long> target_vertex_biases;
 
         SequentialSubgraphIsomorphism(const Graph & target, const Graph & pattern, const Params & a) :
             params(a),
@@ -168,8 +168,12 @@ namespace
                         pattern_degree_tiebreak.at(j).second += pattern_degree_tiebreak.at(i).first;
 
             if (params.biased_shuffle) {
-                for (unsigned j = 0 ; j < target_size ; ++j)
-                    target_vertex_biases.push_back((target_size - target_graphs.at(0).degree(j)) * (target_size - target_graphs.at(0).degree(j)));
+                for (unsigned j = 0 ; j < target_size ; ++j) {
+                    unsigned long long bias = 1ull << (1 + target_graphs.at(0).degree(j));
+                    if (0 == bias)
+                        bias = std::numeric_limits<unsigned long long>::max();
+                    target_vertex_biases.push_back(bias);
+                }
             }
         }
 
@@ -420,30 +424,34 @@ namespace
                 branch_v.push_back(f_v);
             }
 
-            // at some point this will do something sneaky and do a biased shuffle or something, because
-            // the value-ordering heuristics are really quite good most of the time
             if (params.shuffle)
                 std::shuffle(branch_v.begin(), branch_v.end(), global_rand);
             else if (params.biased_shuffle) {
-                unsigned remaining_score = 0;
+                // sum up the bias scores of every branch vertex
+                unsigned long long remaining_score = 0;
                 for (auto & v : branch_v)
                     remaining_score += target_vertex_biases.at(v);
 
+                // now repeatedly pick a biased-random vertex, move it to the front of branch_v,
+                // and then only consider items further to the right in the next iteration.
                 for (unsigned start = 0 ; start < branch_v.size() ; ++start) {
-                    std::uniform_int_distribution<int> dist(1, remaining_score);
-                    unsigned select_score = dist(global_rand), select_element = start;
+                    // pick a random number between 1 and remaining_score inclusive
+                    std::uniform_int_distribution<unsigned long long> dist(1, remaining_score);
+                    unsigned long long select_score = dist(global_rand);
+
+                    // go over the list until we've used up bias values totalling our
+                    // random number
+                    unsigned select_element = start;
                     for ( ; select_element < branch_v.size() ; ++select_element) {
                         if (select_score <= target_vertex_biases.at(branch_v.at(select_element)))
                             break;
                         select_score -= target_vertex_biases.at(branch_v.at(select_element));
                     }
 
+                    // move to front, and update remaining_score
                     remaining_score -= target_vertex_biases.at(branch_v.at(select_element));
                     std::swap(branch_v.at(select_element), branch_v.at(start));
                 }
-
-                if (0 != remaining_score)
-                    throw 0;
             }
 
             // for each value remaining...
