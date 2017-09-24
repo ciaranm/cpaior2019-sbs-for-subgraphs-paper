@@ -4,10 +4,11 @@
 \usepackage{ijcai17}
 \usepackage{times}
 \usepackage{microtype}
+\usepackage{amsmath}
 
 \usepackage{showframe}
 
-\title{Value-Ordering, Discrepancies, and Restarts in Subgraph Solvers}
+\title{Some Half-Baked Mucking Around with Value-Ordering, Discrepancies, and Restarts in Subgraph Solvers}
 \author{Ciaran McCreesh\thanks{This work was supported by the Engineering and Physical Sciences
     Research Council [grant number EP/026842/1]}\\ University of Glasgow, Glasgow, Scotland \\
     ciaran.mccreesh@glasgow.ac.uk}
@@ -18,12 +19,27 @@
 
 \begin{abstract}
     Modern subgraph isomorphism solvers use reasonably good value-ordering heuristics to direct
-    search, but they are not perfect, particularly for early choices. We investigate various forms
-    of discrepancy search, but get best results by combining restarts with biased randomness in
-    value-ordering heuristics.
+    search, but they are not perfect, particularly for early choices. We investigate two mechanisms
+    for offsetting this weakness: discrepancy searches, and restarts. Our results suggest that
+    discrepancy search is too expensive to be effective, but that restarts with a random
+    value-ordering heuristic beat tailored heuristics. We then design a slightly-random
+    value-ordering heuristic which, when combined with restarts, performs ?? times better on
+    satisfiable instances without substantially weakening performance on unsatisfiable instances.
 \end{abstract}
 
 \section{Introduction}
+
+?? Subgraph isomorphism is useful.
+
+The current strongest subgraph isomorphism solver uses degree as a value-ordering heuristic. This is
+much better than not having a value-ordering heuristic, but it is far from perfect, particularly for
+early branching choices. There are two reasons we suspect we can do better. Firstly, . Secondly, even if degree
+were a perfect source of information, many graphs do not have a large degree distribution, and so we
+still need to determine \emph{which} vertex of highest degree would be best.
+
+We could try to introduce tiebreaking mechanisms. However, given the extreme cost of making an
+incorrect branching choice early on in search, we believe it is more fruitful to investigate
+alternatives to simple backtracking (depth-first) search.
 
 \section{The Basic Algorithm}
 
@@ -33,11 +49,26 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
 
 \subsection{Ordering Heuristics}
 
+?? Variable ordering is smallest domain first with degree tiebreaking. This is not the focus of this
+paper.
+
+In our experiments, we compare five value-ordering heuristics.
+
 \begin{description}
-    \item[Random]
-    \item[Tailored]
-    \item[Anti-Tailored]
-    \item[Tailor-Weighted Random]
+    \item[Tailored] Where we select vertices from highest degree to lowest degree (which is done by
+        permuting the graph at the top of search).
+    \item[Anti-Tailored] Where we select vertices from lowest degree to highest degree.
+    \item[Extra Tiebreaking] Where we select vertices from highest degree to lowest degree,
+        tiebreaking on highest sum of neighbour degrees.
+    \item[Random] Where we select a branching vertex at random by (dynamically, that is, we shuffle
+        the vertices before entering the for loop, rather than by randomly permuting the graph once at the
+        top of search).
+    \item[Tailor-Weighted Random] Where we shuffle the vertices before each for loop, but instead of
+        picking a vertex randomly, we weight the chances of a vertex $v$ being chosen next by \[
+            2^{1 + \left|\operatorname{N}(v)\right|} \textnormal{.} \]
+        This will heavily prefer vertices of high degree, but will give the same chance of being
+        selected next to two vertices of equal degree. This also introduces an element of
+        randomness, which will be important for restarts.
 \end{description}
 
 \subsection{Discrepancy Searches}
