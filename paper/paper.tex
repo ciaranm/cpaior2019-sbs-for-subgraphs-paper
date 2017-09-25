@@ -88,6 +88,12 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
         \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
         \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
         \node [fill=chromaygb3, rounded corners, fit=(restart6sc) (restart6ec)] { };
+        \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
+        \coordinate (restart7ec) at ($(pic cs:restart7e) + (0, 0.00)$);
+        \node [fill=chromaygb3, rounded corners, fit=(restart7sc) (restart7ec)] { };
+        \coordinate (restart8sc) at ($(pic cs:restart8s) + (0.05, 0.15)$);
+        \coordinate (restart8ec) at ($(pic cs:restart8e) + (0, 0.00)$);
+        \node [fill=chromaygb3, rounded corners, fit=(restart8sc) (restart8ec)] { };
     \end{tikzpicture}
 
     \nl $\FuncSty{subgraphIsomorphism}$ (Graph $\mathcal{P}$, Graph $\mathcal{T}$) $\rightarrow$ Bool \;
@@ -117,7 +123,7 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
 }
 \smallskip
     \nl $\FuncSty{search}$ (Domains $D$, Decisions $B$) $\rightarrow$ Bool
-    \KwSty{or} \KwSty{restart} \;
+    \tikzmark{restart8s}\KwSty{or} \KwSty{restart}\tikzmark{restart8e} \;
 \nl \Begin{
     \nl \lIf{$D = \emptyset$}{$\KwSty{return}~\KwSty{true}$}
     \nl $D_v \gets \textnormal{a domain from}~D~\textnormal{chosen by variable heuristic}$ \siplabel{pickd} \;
@@ -144,7 +150,7 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
 \nl \Begin{
     \nl \While{$D_v \gets$~\textnormal{a unit domain from}~$D$}{
         \nl $v' \gets $ the single value in $D_v$ \;
-        \nl Trigger nogoods containing $(v \mapsto v')$ \;
+        \nl \tikzmark{restart7s}Trigger nogoods containing $(v \mapsto v')$\tikzmark{restart7e} \;
         \nl \ForEach{$D_w \in D - D_v$}{
             \nl $D_w \gets D_w - v'$ \siplabel{removev} \;
             \nl \ForEach{$(P,\,T) \in L$}{
