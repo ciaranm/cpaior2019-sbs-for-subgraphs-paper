@@ -120,9 +120,9 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
     \KwSty{or} \KwSty{restart} \;
 \nl \Begin{
     \nl \lIf{$D = \emptyset$}{$\KwSty{return}~\KwSty{true}$}
-    \nl $D_v \gets \textnormal{the smallest domain in}~D$ \siplabel{pickd} \;
+    \nl $D_v \gets \textnormal{a domain from}~D~\textnormal{chosen by variable heuristic}$ \siplabel{pickd} \;
     \nl \tikzmark{restart3s}$C \gets \emptyset$\tikzmark{restart3e} \;
-    \nl \ForEach {$v' \in D_v~\textnormal{ordered by chosen heuristic}$\siplabel{parforeach}}{
+    \nl \ForEach {$v' \in D_v~\textnormal{ordered by chosen value heuristic}$\siplabel{parforeach}}{
         \nl \tikzmark{restart4s}$C \gets C \cup \{ v' \}$\tikzmark{restart4e} \;
         \nl $D' \gets \FuncSty{clone}(D)$ \;
         \nl $D'_v \gets \{ v' \} $ \;
