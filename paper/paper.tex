@@ -236,7 +236,7 @@ want larger numbers of satisfiable instances, so we include all pattern / target
 
 ?? \cref{figure:value-ordering-heuristics}
 
-\begin{figure}[p]
+\begin{figure}[tb]
     \centering
     \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
 
@@ -245,6 +245,17 @@ want larger numbers of satisfiable instances, so we include all pattern / target
     heuristic being worse for low runtimes and slightly better towards the end.}
     \label{figure:value-ordering-heuristics}
 \end{figure}
+
+\subsection{Discrepancies Don't Help}
+
+?? Results for DDS counting discrepancies both ways, maybe LDS too. Also look just at satisfiable
+instances.
+
+\subsection{Restarts Make it Better}
+
+?? \cref{figure:restarts}
+
+?? breakdown by family
 
 \begin{figure}[p]
     \centering
@@ -258,22 +269,15 @@ want larger numbers of satisfiable instances, so we include all pattern / target
     \centering
     \includegraphics*{gen-graph-scatter.pdf}
 
+    \bigskip
+    \centering
+    \includegraphics*{gen-graph-scatter-random.pdf}
+
     \caption{Instance by instance comparison of the basic algorithm with the tailored heuristic,
-    versus weighted with restarts.}
+    versus weighted with restarts. Below, comparing instead with simple random with restarts.}
     \label{figure:scatter}
 \end{figure}
 
-
-\subsection{Discrepancies Don't Help}
-
-?? Results for DDS counting discrepancies both ways, maybe LDS too. Also look just at satisfiable
-instances.
-
-\subsection{Restarts Make it Better}
-
-?? \cref{figure:restarts}
-
-?? breakdown by family
 
 \section{Other Subgraph Solvers}
 

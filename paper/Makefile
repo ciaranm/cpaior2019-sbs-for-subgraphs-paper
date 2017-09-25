@@ -6,7 +6,8 @@ TABLES =
 GRAPHS = \
 	 gen-graph-value-ordering-heuristics.pdf \
 	 gen-graph-restarts.pdf \
-	 gen-graph-scatter.pdf
+	 gen-graph-scatter.pdf \
+	 gen-graph-scatter-random.pdf
 
 tables : $(TABLES)
 
