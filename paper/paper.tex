@@ -6,9 +6,10 @@
 \usepackage{microtype}
 \usepackage{amsmath}
 
-\usepackage{showframe}
+% \usepackage{showframe}
 
-\title{Some Half-Baked Mucking Around with Value-Ordering, Discrepancies, and Restarts in Subgraph Solvers}
+\title{Value-Ordering, Discrepancies, and Restarts in Subgraph Solvers: \\ Some Half-Baked Mucking
+Around}
 \author{Ciaran McCreesh\thanks{This work was supported by the Engineering and Physical Sciences
     Research Council [grant number EP/026842/1]}\\ University of Glasgow, Glasgow, Scotland \\
     ciaran.mccreesh@glasgow.ac.uk}
@@ -64,11 +65,14 @@ In our experiments, we compare five value-ordering heuristics.
         the vertices before entering the for loop, rather than by randomly permuting the graph once at the
         top of search).
     \item[Tailor-Weighted Random] Where we shuffle the vertices before each for loop, but instead of
-        picking a vertex randomly, we weight the chances of a vertex $v$ being chosen next by \[
-            2^{1 + \left|\operatorname{N}(v)\right|} \textnormal{.} \]
-        This will heavily prefer vertices of high degree, but will give the same chance of being
-        selected next to two vertices of equal degree. This also introduces an element of
-        randomness, which will be important for restarts.
+        picking a vertex uniformly at random, we use a weight of
+        $2^{\left|\operatorname{N}(v)\right|}$ when deciding whether to branch on vertex $v$
+        next.\footnote{Actually, we cheat a bit to avoid range issues with random number generation:
+        we give the vertex with highest degree in the entire graph weight $2^{50}$, and then give
+        lower degree vertices smaller powers, giving every vertex weight at least 1. This is a bit
+        of hack but getting it perfectly right is hard.} This scheme heavily prefer vertices of high
+        degree, but will give the same chance of being selected next to two vertices of equal
+        degree. This also introduces an element of randomness, which will be important for restarts.
 \end{description}
 
 \subsection{Discrepancy Searches}
@@ -97,6 +101,12 @@ small.
 these correctly. Cannot propagate on negative decisions.
 
 \section{Empirical Evaluation}
+
+\subsection{Instances}
+
+these, partly because some earlier solvers find many of these instances extremely hard, and partly
+to avoid skewing a portfolio. We want larger numbers of satisfiable instances, so we include all
+pattern / target pairs.
 
 \subsection{Our Solver is Good}
 
