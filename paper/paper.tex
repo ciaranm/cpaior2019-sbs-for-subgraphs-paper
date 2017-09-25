@@ -8,7 +8,7 @@
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{tikz}
 
-\usepackage{showframe}
+% \usepackage{showframe}
 
 \newcommand{\neighbourhood}{\operatorname{N}}
 \newcommand{\vertexset}{\operatorname{V}}
@@ -115,7 +115,7 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
         \nl \tikzmark{restart2s}Trigger nogoods containing only one clause\tikzmark{restart2e} \;
     }
 }
-\medskip
+\smallskip
     \nl $\FuncSty{search}$ (Domains $D$, Decisions $B$) $\rightarrow$ Bool
     \KwSty{or} \KwSty{restart} \;
 \nl \Begin{
@@ -139,7 +139,7 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
     \nl \tikzmark{restart6s}\lIf{$(R \gets R + 1) = R'$}{$\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$}
     \nl $\KwSty{return}~\KwSty{false}$
 }
-\medskip
+\smallskip
 \nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
 \nl \Begin{
     \nl \While{$D_v \gets$~\textnormal{a unit domain from}~$D$}{
