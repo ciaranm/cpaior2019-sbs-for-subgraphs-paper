@@ -5,8 +5,26 @@
 \usepackage{times}
 \usepackage{microtype}
 \usepackage{amsmath}
+\usepackage[ruled,vlined]{algorithm2e}
+\usepackage{tikz}
 
-% \usepackage{showframe}
+\usepackage{showframe}
+
+\newcommand{\neighbourhood}{\operatorname{N}}
+\newcommand{\vertexset}{\operatorname{V}}
+\newcommand{\nds}{\operatorname{S}}
+
+\usetikzlibrary{decorations, decorations.pathreplacing, decorations.pathmorphing,
+    calc, backgrounds, positioning, tikzmark, patterns, fit}
+
+\definecolor{chromaygb1}{rgb}{1.0, 1.0, 0.878431}
+\definecolor{chromaygb1b}{rgb}{0.8, 0.972549, 0.72549}
+\definecolor{chromaygb2}{rgb}{0.560784,0.929412,0.564706}
+\definecolor{chromaygb3}{rgb}{0.407843,0.776471,0.560784}
+\definecolor{chromaygb4}{rgb}{0.227451,0.631373,0.552941}
+\definecolor{chromaygb5}{rgb}{0.301961,0.431373,0.670588}
+\definecolor{chromaygb6}{rgb}{0.317647,0.254902,0.588235}
+\definecolor{chromaygb7}{rgb}{0.294118,0.0,0.509804}
 
 \title{Value-Ordering, Discrepancies, and Restarts in Subgraph Solvers: \\ Some Half-Baked Mucking
 Around}
@@ -48,6 +66,106 @@ alternatives to simple backtracking (depth-first) search.
 and ended up with a simpler algorithm that performs as well in practice. In particular, large
 graphs, no ILF, and not doing supplemental graphs of length 3.
 
+\newcommand{\siplabel}[1]{\label{line:sip:#1}}
+\begin{algorithm}[p]\DontPrintSemicolon\small
+    \begin{tikzpicture}[remember picture,overlay]
+        \coordinate (restart1sc) at ($(pic cs:restart1s) + (0, 0.15)$);
+        \coordinate (restart1ec) at ($(pic cs:restart1e) + (0, 0.00)$);
+        \node [fill=chromaygb3, rounded corners, fit=(restart1sc) (restart1ec)] { };
+        \coordinate (restart2sc) at ($(pic cs:restart2s) + (0, 0.15)$);
+        \coordinate (restart2ec) at ($(pic cs:restart2e) + (0, 0.00)$);
+        \node [fill=chromaygb3, rounded corners, fit=(restart2sc) (restart2ec)] { };
+        \coordinate (restart3sc) at ($(pic cs:restart3s) + (0, 0.15)$);
+        \coordinate (restart3ec) at ($(pic cs:restart3e) + (0, 0.00)$);
+        \node [fill=chromaygb3, rounded corners, fit=(restart3sc) (restart3ec)] { };
+        \coordinate (restart4sc) at ($(pic cs:restart4s) + (0, 0.15)$);
+        \coordinate (restart4ec) at ($(pic cs:restart4e) + (0, 0.00)$);
+        \node [fill=chromaygb3, rounded corners, fit=(restart4sc) (restart4ec)] { };
+        \coordinate (restart5sc) at ($(pic cs:restart5s) + (0, 0.15)$);
+        \coordinate (restart5ec) at ($(pic cs:restart5e) - (0, 0.10)$);
+        \coordinate (restart5rc) at ($(pic cs:restart5r) + (0, 0.00)$);
+        \node [fill=chromaygb3, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
+        \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
+        \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
+        \node [fill=chromaygb3, rounded corners, fit=(restart6sc) (restart6ec)] { };
+    \end{tikzpicture}
+
+    \nl $\FuncSty{subgraphIsomorphism}$ (Graph $\mathcal{P}$, Graph $\mathcal{T}$) $\rightarrow$ Bool \;
+\nl \Begin{
+    \nl \lIf{$\left|\vertexset(\mathcal{P})\right| >
+    \left|\vertexset(\mathcal{T})\right|$}{$\KwSty{return}~\KwSty{false}$\siplabel{enough}}
+    \nl Discard isolated vertices in $\mathcal{P}$\siplabel{isolated} \;
+    \nl \KwSty{global} $L \gets \big[ (\mathcal{P},\ \mathcal{T}), \siplabel{supplemental}
+        (\mathcal{P}^{1,2}, \mathcal{T}^{1,2}),
+        (\mathcal{P}^{2,2},\ \mathcal{T}^{2,2}), $\\\hspace*{6em}$ (\mathcal{P}^{3,2},\ \mathcal{T}^{3,2}),
+        (\mathcal{P}^{4,2},\ \mathcal{T}^{4,2}) \big]$ \;
+    \nl \ForEach{$v \in \vertexset(\mathcal{P})$}{
+        \nl $D_v \gets \vertexset(\mathcal{T})$\;
+        \nl \ForEach{$(P,\,T) \in L$}{
+            \nl $D_v \gets \{ w \in D_v : $ \siplabel{degreefiltering} \\\hspace*{4em}$v \sim_P v \Rightarrow w \sim_T w~\wedge$
+            \\\hspace*{4em}$\nds_P(v) \preceq \nds_T(w)\}$ \;
+        }
+    }
+    \nl \lIf{$\KwSty{not}~\FuncSty{propagate}(D)$}{$\KwSty{return}~\KwSty{false}$}
+    \nl \While{$\KwSty{true}$}{
+        \nl \tikzmark{restart1s}$\KwSty{global}~(R, R') \gets (0,\,\textnormal{the next Luby value})$\tikzmark{restart1e} \;
+        \nl $S \gets \FuncSty{search}(\{ E \in D : \left|E\right| > 1 \}, \top)$ \;
+        \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
+        \nl \lElseIf{$S = \KwSty{false}$}{$\KwSty{return}~\KwSty{false}$}
+        \nl \tikzmark{restart2s}Trigger nogoods containing only one clause\tikzmark{restart2e} \;
+    }
+}
+\medskip
+    \nl $\FuncSty{search}$ (Domains $D$, Decisions $B$) $\rightarrow$ Bool
+    \KwSty{or} \KwSty{restart} \;
+\nl \Begin{
+    \nl \lIf{$D = \emptyset$}{$\KwSty{return}~\KwSty{true}$}
+    \nl $D_v \gets \textnormal{the smallest domain in}~D$ \siplabel{pickd} \;
+    \nl \tikzmark{restart3s}$C \gets \emptyset$\tikzmark{restart3e} \;
+    \nl \ForEach {$v' \in D_v~\textnormal{ordered by chosen heuristic}$\siplabel{parforeach}}{
+        \nl \tikzmark{restart4s}$C \gets C \cup \{ v' \}$\tikzmark{restart4e} \;
+        \nl $D' \gets \FuncSty{clone}(D)$ \;
+        \nl $D'_v \gets \{ v' \} $ \;
+        \nl \If{\FuncSty{propagate}(D')}{
+            \nl $S \gets \FuncSty{search}(\{ E \in D' : \left|E\right| > 1 \},$ \\\hspace*{3em} $B
+            \wedge (v \mapsto v'))$ \;
+            \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
+            \nl \tikzmark{restart5s}\ElseIf{$S = \KwSty{restart}$}{
+                \nl Post nogoods $\{B \wedge (v \mapsto c) \rightarrow \bot : c \in C \}$\tikzmark{restart5r}\;
+                \nl $\KwSty{return}~\KwSty{restart}$\tikzmark{restart5e} \;
+            }
+        }
+    }
+    \nl \tikzmark{restart6s}\lIf{$(R \gets R + 1) = R'$}{$\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$}
+    \nl $\KwSty{return}~\KwSty{false}$
+}
+\medskip
+\nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
+\nl \Begin{
+    \nl \While{$D_v \gets$~\textnormal{a unit domain from}~$D$}{
+        \nl $v' \gets $ the single value in $D_v$ \;
+        \nl Trigger nogoods containing $(v \mapsto v')$ \;
+        \nl \ForEach{$D_w \in D - D_v$}{
+            \nl $D_w \gets D_w - v'$ \siplabel{removev} \;
+            \nl \ForEach{$(P,\,T) \in L$}{
+                \nl \lIf{$v \sim_P w$}{$D_w \gets D_w \cap \neighbourhood_T(v')$
+                }
+            }
+            \nl \lIf{$D_w = \emptyset$}{$\KwSty{return}~\KwSty{false}$}
+        }
+    }
+\nl $(H,\,A,\,n) \gets (\emptyset,\,\emptyset,\,0)$ \;
+\nl \ForEach{$D_v \in D$ \textnormal{from smallest cardinality upwards\siplabel{eachdomain}}}{
+    \nl $D_v \gets D_v \setminus H$ \siplabel{elimhall} \;
+    \nl $(A,\,n) \gets (A \cup D_v,\,n + 1)$ \siplabel{acc} \;
+    \nl \lIf{$D_v = \emptyset~\vee~|A| < n$}{$\KwSty{return}~\KwSty{false}$\siplabel{failhall}}
+    \nl \lIf{$|A| = n$}{$(H,\,A,\,n) \gets (H \cup A,\,\emptyset,\,0)$\siplabel{hall}}
+}
+\nl $\KwSty{return}~\KwSty{true}$ \;
+}
+\caption{Subgraph isomorphism. Highlighted lines are ignored for the non-restarting algorithm.}
+\end{algorithm}
+
 \subsection{Ordering Heuristics}
 
 ?? Variable ordering is smallest domain first with degree tiebreaking. This is not the focus of this
@@ -66,7 +184,7 @@ In our experiments, we compare five value-ordering heuristics.
         top of search).
     \item[Tailor-Weighted Random] Where we shuffle the vertices before each for loop, but instead of
         picking a vertex uniformly at random, we use a weight of
-        $2^{\left|\operatorname{N}(v)\right|}$ when deciding whether to branch on vertex $v$
+        $2^{\left|\neighbourhood(v)\right|}$ when deciding whether to branch on vertex $v$
         next.\footnote{Actually, we cheat a bit to avoid range issues with random number generation:
         we give the vertex with highest degree in the entire graph weight $2^{50}$, and then give
         lower degree vertices smaller powers, giving every vertex weight at least 1. This is a bit
