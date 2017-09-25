@@ -3,7 +3,10 @@ all : tables graphs
 
 TABLES =
 
-GRAPHS =
+GRAPHS = \
+	 gen-graph-value-ordering-heuristics.pdf \
+	 gen-graph-restarts.pdf \
+	 gen-graph-scatter.pdf
 
 tables : $(TABLES)
 

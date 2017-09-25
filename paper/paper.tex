@@ -7,6 +7,7 @@
 \usepackage{amsmath}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{tikz}
+\usepackage{cleveref}
 
 % \usepackage{showframe}
 
@@ -182,13 +183,13 @@ In our experiments, we compare five value-ordering heuristics.
 \begin{description}
     \item[Tailored] Where we select vertices from highest degree to lowest degree (which is done by
         permuting the graph at the top of search).
-    \item[Anti-Tailored] Where we select vertices from lowest degree to highest degree.
-    \item[Extra Tiebreaking] Where we select vertices from highest degree to lowest degree,
+    \item[Anti] Where we select vertices from lowest degree to highest degree.
+    \item[Tiebreaking] Where we select vertices from highest degree to lowest degree,
         tiebreaking on highest sum of neighbour degrees.
     \item[Random] Where we select a branching vertex at random by (dynamically, that is, we shuffle
         the vertices before entering the for loop, rather than by randomly permuting the graph once at the
         top of search).
-    \item[Tailor-Weighted Random] Where we shuffle the vertices before each for loop, but instead of
+    \item[Weighted] Where we shuffle the vertices before each for loop, but instead of
         picking a vertex uniformly at random, we use a weight of
         $2^{\left|\neighbourhood(v)\right|}$ when deciding whether to branch on vertex $v$
         next.\footnote{Actually, we cheat a bit to avoid range issues with random number generation:
@@ -234,24 +235,51 @@ want larger numbers of satisfiable instances, so we include all pattern / target
 
 \subsection{Our Solver is Good}
 
-?? Non-induced, compare to Glasgow, LAD, PathLAD, SND?, VF2
+?? Non-induced, compare to Glasgow, LAD, PathLAD, SND?, VF2, using tailored
 
-?? Induced, compare to Glasgow, LAD, PathLAD, VF2, VF3, McSplit.
+?? Possibly also do induced, compare to Glasgow, LAD, PathLAD, VF2, VF3, McSplit.
+
+\subsection{Value Ordering Heuristics}
+
+?? \cref{figure:value-ordering-heuristics}
+
+\begin{figure}
+    \centering
+    \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
+
+    \caption{Cumulative number of instances solved over time, using the five different
+    value-ordering heuristics. The top three lines are very close together, with the weighted
+    heuristic being worse for low runtimes and slightly better towards the end.}
+    \label{figure:value-ordering-heuristics}
+\end{figure}
 
 \subsection{Discrepancies Don't Help}
 
-?? DDS counting bias both ways, LDS
+?? Results for DDS counting discrepancies both ways, maybe LDS too. Also look just at satisfiable
+instances.
 
 \subsection{Restarts Make it Better}
 
-?? Random, tailored, antitailored, random with restarts, tailored biased, tailored biased with
-restarts. Satisfiable and unsatisfiable split.
+\begin{figure}
+    \centering
+    \includegraphics*{gen-graph-restarts.pdf}
 
-?? Breakdown by family
+    \caption{Cumulative number of instances solved over time, with and without restarts.}
+    \label{figure:restarts}
+\end{figure}
 
-\subsection{Near the Phase Transition}
+\begin{figure}
+    \centering
+    \includegraphics*{gen-graph-scatter.pdf}
 
-?? Closer look at SAT instances near the phase transition
+    \caption{Instance by instance comparison of the basic algorithm with the tailored heuristic,
+    versus weighted with restarts.}
+    \label{figure:restarts}
+\end{figure}
+
+?? \cref{figure:restarts}
+
+?? breakdown by family
 
 \section{Other Subgraph Solvers}
 
