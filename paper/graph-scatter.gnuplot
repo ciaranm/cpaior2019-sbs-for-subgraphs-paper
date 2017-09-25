@@ -21,7 +21,7 @@ set key right horiz above width -8
 set size square
 
 plot \
-    "runtimes.data" u ($3==1?NaN:$5>=1e6?1e6:$5):($10>=1e6?1e6:$10) w p ls 2 pt 2 ps 0.6 ti 'Unsatisfiable', \
-    "runtimes.data" u ($3==0?NaN:$5>=1e6?1e6:$5):($10>=1e6?1e6:$10) w p ls 6 pt 6 ps 0.6 ti 'Satisfiable', \
+    "runtimes.data" u ($3==1?NaN:$5>=1e6?1e6:$5):($10>=1e6?1e6:$10) w p ls 3 pt 2 ps 0.7 ti 'Unsatisfiable', \
+    "runtimes.data" u ($3==0?NaN:$5>=1e6?1e6:$5):($10>=1e6?1e6:$10) w p ls 6 pt 6 ps 0.4 ti 'Satisfiable', \
     x w l ls 0 notitle
 
