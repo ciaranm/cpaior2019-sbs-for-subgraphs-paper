@@ -131,7 +131,7 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
             \wedge (v \mapsto v'))$ \;
             \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
             \nl \tikzmark{restart5s}\ElseIf{$S = \KwSty{restart}$}{
-                \nl Post nogoods $\{B \wedge (v \mapsto c) \rightarrow \bot : c \in C \}$\tikzmark{restart5r}\;
+                \nl Post nogoods $\{B \wedge (v \mapsto c) \Rightarrow \bot : c \in C \}$\tikzmark{restart5r}\;
                 \nl $\KwSty{return}~\KwSty{restart}$\tikzmark{restart5e} \;
             }
         }
