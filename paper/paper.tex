@@ -108,7 +108,7 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
     }
     \nl \lIf{$\KwSty{not}~\FuncSty{propagate}(D)$}{$\KwSty{return}~\KwSty{false}$}
     \nl \While{$\KwSty{true}$}{
-        \nl \tikzmark{restart1s}$\KwSty{global}~(R, R') \gets (0,\,\textnormal{the next Luby value})$\tikzmark{restart1e} \;
+        \nl \tikzmark{restart1s}$\KwSty{global}~(R, R') \gets (0, 666 \times \textnormal{the next Luby value})$\tikzmark{restart1e} \;
         \nl $S \gets \FuncSty{search}(\{ E \in D : \left|E\right| > 1 \}, \top)$ \;
         \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
         \nl \lElseIf{$S = \KwSty{false}$}{$\KwSty{return}~\KwSty{false}$}
