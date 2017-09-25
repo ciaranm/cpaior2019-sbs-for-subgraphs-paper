@@ -1,6 +1,6 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 7cm,4.82cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 8cm,4.82cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-restarts.tex"
 
 load "magma.pal"

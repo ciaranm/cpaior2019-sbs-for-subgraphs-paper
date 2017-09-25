@@ -18,14 +18,7 @@
 \usetikzlibrary{decorations, decorations.pathreplacing, decorations.pathmorphing,
     calc, backgrounds, positioning, tikzmark, patterns, fit}
 
-\definecolor{chromaygb1}{rgb}{1.0, 1.0, 0.878431}
-\definecolor{chromaygb1b}{rgb}{0.8, 0.972549, 0.72549}
-\definecolor{chromaygb2}{rgb}{0.560784,0.929412,0.564706}
-\definecolor{chromaygb3}{rgb}{0.407843,0.776471,0.560784}
-\definecolor{chromaygb4}{rgb}{0.227451,0.631373,0.552941}
-\definecolor{chromaygb5}{rgb}{0.301961,0.431373,0.670588}
-\definecolor{chromaygb6}{rgb}{0.317647,0.254902,0.588235}
-\definecolor{chromaygb7}{rgb}{0.294118,0.0,0.509804}
+\definecolor{magma8}{rgb}{0.996078, 0.760784, 0.529412}
 
 \title{Value-Ordering, Discrepancies, and Restarts in Subgraph Solvers: \\ Some Half-Baked Mucking
 Around}
@@ -72,29 +65,29 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
     \begin{tikzpicture}[remember picture,overlay]
         \coordinate (restart1sc) at ($(pic cs:restart1s) + (0, 0.15)$);
         \coordinate (restart1ec) at ($(pic cs:restart1e) + (0, 0.00)$);
-        \node [fill=chromaygb3, rounded corners, fit=(restart1sc) (restart1ec)] { };
+        \node [fill=magma8, rounded corners, fit=(restart1sc) (restart1ec)] { };
         \coordinate (restart2sc) at ($(pic cs:restart2s) + (0, 0.15)$);
         \coordinate (restart2ec) at ($(pic cs:restart2e) + (0, 0.00)$);
-        \node [fill=chromaygb3, rounded corners, fit=(restart2sc) (restart2ec)] { };
+        \node [fill=magma8, rounded corners, fit=(restart2sc) (restart2ec)] { };
         \coordinate (restart3sc) at ($(pic cs:restart3s) + (0, 0.15)$);
         \coordinate (restart3ec) at ($(pic cs:restart3e) + (0, 0.00)$);
-        \node [fill=chromaygb3, rounded corners, fit=(restart3sc) (restart3ec)] { };
+        \node [fill=magma8, rounded corners, fit=(restart3sc) (restart3ec)] { };
         \coordinate (restart4sc) at ($(pic cs:restart4s) + (0, 0.15)$);
         \coordinate (restart4ec) at ($(pic cs:restart4e) + (0, 0.00)$);
-        \node [fill=chromaygb3, rounded corners, fit=(restart4sc) (restart4ec)] { };
+        \node [fill=magma8, rounded corners, fit=(restart4sc) (restart4ec)] { };
         \coordinate (restart5sc) at ($(pic cs:restart5s) + (0, 0.15)$);
         \coordinate (restart5ec) at ($(pic cs:restart5e) - (0, 0.10)$);
         \coordinate (restart5rc) at ($(pic cs:restart5r) + (0, 0.00)$);
-        \node [fill=chromaygb3, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
+        \node [fill=magma8, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
         \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
         \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
-        \node [fill=chromaygb3, rounded corners, fit=(restart6sc) (restart6ec)] { };
+        \node [fill=magma8, rounded corners, fit=(restart6sc) (restart6ec)] { };
         \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
         \coordinate (restart7ec) at ($(pic cs:restart7e) + (0, 0.00)$);
-        \node [fill=chromaygb3, rounded corners, fit=(restart7sc) (restart7ec)] { };
+        \node [fill=magma8, rounded corners, fit=(restart7sc) (restart7ec)] { };
         \coordinate (restart8sc) at ($(pic cs:restart8s) + (0.05, 0.15)$);
         \coordinate (restart8ec) at ($(pic cs:restart8e) + (0, 0.00)$);
-        \node [fill=chromaygb3, rounded corners, fit=(restart8sc) (restart8ec)] { };
+        \node [fill=magma8, rounded corners, fit=(restart8sc) (restart8ec)] { };
     \end{tikzpicture}
 
     \nl $\FuncSty{subgraphIsomorphism}$ (Graph $\mathcal{P}$, Graph $\mathcal{T}$) $\rightarrow$ Bool \;
@@ -243,7 +236,7 @@ want larger numbers of satisfiable instances, so we include all pattern / target
 
 ?? \cref{figure:value-ordering-heuristics}
 
-\begin{figure}
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
 
@@ -253,14 +246,7 @@ want larger numbers of satisfiable instances, so we include all pattern / target
     \label{figure:value-ordering-heuristics}
 \end{figure}
 
-\subsection{Discrepancies Don't Help}
-
-?? Results for DDS counting discrepancies both ways, maybe LDS too. Also look just at satisfiable
-instances.
-
-\subsection{Restarts Make it Better}
-
-\begin{figure}
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-restarts.pdf}
 
@@ -268,14 +254,22 @@ instances.
     \label{figure:restarts}
 \end{figure}
 
-\begin{figure}
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter.pdf}
 
     \caption{Instance by instance comparison of the basic algorithm with the tailored heuristic,
     versus weighted with restarts.}
-    \label{figure:restarts}
+    \label{figure:scatter}
 \end{figure}
+
+
+\subsection{Discrepancies Don't Help}
+
+?? Results for DDS counting discrepancies both ways, maybe LDS too. Also look just at satisfiable
+instances.
+
+\subsection{Restarts Make it Better}
 
 ?? \cref{figure:restarts}
 
