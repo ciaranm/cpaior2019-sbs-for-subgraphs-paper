@@ -167,12 +167,17 @@ namespace
                     if (pattern_graphs.at(0).adjacent(i, j))
                         pattern_degree_tiebreak.at(j).second += pattern_degree_tiebreak.at(i).first;
 
+            int max_degree = 0;
+            for (unsigned j = 0 ; j < target_size ; ++j)
+                max_degree = std::max(max_degree, target_graphs.at(0).degree(j));
+
             if (params.biased_shuffle) {
                 for (unsigned j = 0 ; j < target_size ; ++j) {
-                    unsigned long long bias = 1ull << (1 + target_graphs.at(0).degree(j));
-                    if (0 == bias)
-                        bias = std::numeric_limits<unsigned long long>::max();
-                    target_vertex_biases.push_back(bias);
+                    int degree = target_graphs.at(0).degree(j);
+                    if (max_degree - degree >= 50)
+                        target_vertex_biases.push_back(1);
+                    else
+                        target_vertex_biases.push_back(1ull << (50 - (max_degree - degree)));
                 }
             }
         }
@@ -418,23 +423,25 @@ namespace
             // pull out the remaining values in this domain for branching
             auto remaining = branch_domain->values;
 
-            std::vector<unsigned> branch_v;
+            std::array<unsigned, n_words_ * bits_per_word + 1> branch_v;
+            unsigned branch_v_end = 0;
             for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
                 remaining.unset(f_v);
-                branch_v.push_back(f_v);
+                branch_v[branch_v_end++] = f_v;
             }
 
-            if (params.shuffle)
-                std::shuffle(branch_v.begin(), branch_v.end(), global_rand);
+            if (params.shuffle) {
+                std::shuffle(branch_v.begin(), branch_v.begin() + branch_v_end, global_rand);
+            }
             else if (params.biased_shuffle) {
                 // sum up the bias scores of every branch vertex
                 unsigned long long remaining_score = 0;
-                for (auto & v : branch_v)
-                    remaining_score += target_vertex_biases.at(v);
+                for (unsigned v = 0 ; v < branch_v_end ; ++v)
+                    remaining_score += target_vertex_biases[branch_v[v]];
 
                 // now repeatedly pick a biased-random vertex, move it to the front of branch_v,
                 // and then only consider items further to the right in the next iteration.
-                for (unsigned start = 0 ; start < branch_v.size() ; ++start) {
+                for (unsigned start = 0 ; start < branch_v_end ; ++start) {
                     // pick a random number between 1 and remaining_score inclusive
                     std::uniform_int_distribution<unsigned long long> dist(1, remaining_score);
                     unsigned long long select_score = dist(global_rand);
@@ -443,19 +450,19 @@ namespace
                     // random number
                     unsigned select_element = start;
                     for ( ; select_element < branch_v.size() ; ++select_element) {
-                        if (select_score <= target_vertex_biases.at(branch_v.at(select_element)))
+                        if (select_score <= target_vertex_biases[branch_v[select_element]])
                             break;
-                        select_score -= target_vertex_biases.at(branch_v.at(select_element));
+                        select_score -= target_vertex_biases[branch_v[select_element]];
                     }
 
                     // move to front, and update remaining_score
-                    remaining_score -= target_vertex_biases.at(branch_v.at(select_element));
-                    std::swap(branch_v.at(select_element), branch_v.at(start));
+                    remaining_score -= target_vertex_biases[branch_v[select_element]];
+                    std::swap(branch_v[select_element], branch_v[start]);
                 }
             }
 
             // for each value remaining...
-            for (auto f_v = branch_v.begin(), f_end = branch_v.end() ; f_v != f_end ; ++f_v) {
+            for (auto f_v = branch_v.begin(), f_end = branch_v.begin() + branch_v_end ; f_v != f_end ; ++f_v) {
                 // modified in-place by appending, we can restore by shrinking
                 auto assignments_size = assignments.values.size();
 
