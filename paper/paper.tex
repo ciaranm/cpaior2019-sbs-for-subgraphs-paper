@@ -20,7 +20,17 @@
 
 \definecolor{magma8}{rgb}{0.996078, 0.760784, 0.529412}
 
-\title{Value-Ordering, Discrepancies, and Restarts in Subgraph Solvers: \\ Some Half-Baked Mucking
+% cref style
+\crefname{algorithm}{Algorithm}{Algorithms}
+\Crefname{algorithm}{Algorithm}{Algorithms}
+\crefname{figure}{Figure}{Figures}
+\Crefname{figure}{Figure}{Figures}
+\crefname{table}{Table}{Tables}
+\Crefname{table}{Table}{Tables}
+\crefname{section}{Section}{Sections}
+\Crefname{section}{Section}{Sections}
+
+\title{Value Ordering, Discrepancies, and Restarts in Subgraph Solvers: \\ Some Half-Baked Mucking
 Around}
 \author{Ciaran McCreesh\thanks{This work was supported by the Engineering and Physical Sciences
     Research Council [grant number EP/026842/1]}\\ University of Glasgow, Glasgow, Scotland \\
@@ -31,37 +41,51 @@ Around}
 \maketitle
 
 \begin{abstract}
-    Modern subgraph isomorphism solvers use reasonably good value-ordering heuristics to direct
-    search, but they are not perfect, particularly for early choices. We investigate two mechanisms
-    for offsetting this weakness: discrepancy searches, and restarts. Our results suggest that
-    discrepancy search is too expensive to be effective, but that restarts with a random
-    value-ordering heuristic beat tailored heuristics. We then design a slightly-random
-    value-ordering heuristic which, when combined with restarts, performs ?? times better on
-    satisfiable instances without substantially weakening performance on unsatisfiable instances.
+    At least one modern subgraph isomorphism solver use reasonably good value-ordering heuristics to
+    direct search, but these heuristics are not perfect, particularly for early choices. We
+    investigate two mechanisms for offsetting this weakness: discrepancy searches, and restarts. Our
+    results suggest that discrepancy search is too expensive to be effective, but that restarts with
+    a random value-ordering heuristic beats the best tailored heuristic. We also introduce a
+    slightly-random value-ordering heuristic with similar behaviour to the tailored heuristic.  When
+    combined with restarts, this new heuristic is even more effective on satisfiable instances, and
+    does not substantially affect performance on unsatisfiable instances.
 \end{abstract}
 
 \section{Introduction}
 
 ?? Subgraph isomorphism is useful.
 
-The current strongest subgraph isomorphism solver uses degree as a value-ordering heuristic. This is
-much better than not having a value-ordering heuristic, but it is far from perfect, particularly for
-early branching choices. There are two reasons we suspect we can do better. Firstly, . Secondly, even if degree
-were a perfect source of information, many graphs do not have a large degree distribution, and so we
-still need to determine \emph{which} vertex of highest degree would be best.
+The current single strongest subgraph isomorphism solver uses ``highest degree first'' as a
+value-ordering heuristic.  This is much better than not having a value-ordering heuristic at all,
+but it is far from perfect, particularly for early branching choices. There are two reasons to
+suspect we could do better.  Firstly, even if degree were a perfect source of information, many
+graphs do not have a large degree distribution, and so we would still need to determine \emph{which}
+vertex of highest degree would be best.  Secondly, experiments with a parallel search strategy which
+explicitly steals early branching choices often gives strongly super-linear speedups on satisfiable
+instances.
 
-We could try to introduce tiebreaking mechanisms. However, given the extreme cost of making an
-incorrect branching choice early on in search, we believe it is more fruitful to investigate
-alternatives to simple backtracking (depth-first) search.
+We could try to introduce tiebreaking mechanisms to further refine this heuristic. However, given
+the extreme cost of making an incorrect branching choice early on in search, we believe it is more
+fruitful to investigate alternatives to simple backtracking (depth-first) search. This paper
+evaluates two such approaches: discrepancy search, and restarts.
+
+?? Quick intro to discrepancy search. Quick intro to restarts, mentioning how it's important to
+change something when restarting.
+
+?? And concludes what?
 
 \section{The Basic Algorithm}
 
 ?? Started with the Glasgow algorithm, removed parts which did not contribute hugely to speedups,
 and ended up with a simpler algorithm that performs as well in practice. In particular, large
-graphs, no ILF, and not doing supplemental graphs of length 3.
+graphs, no ILF, and not doing supplemental graphs of length 3. This is \cref{algorithm:sip},
+ignoring the shaded parts, which are introduced in the context of restarts.
+
+?? Briefly describe this, probably referring elsewhere as far as possible to save space.
 
 \newcommand{\siplabel}[1]{\label{line:sip:#1}}
-\begin{algorithm}[p]\DontPrintSemicolon\small
+\newcommand{\siplineref}[1]{line~\ref{line:sip:#1}}
+\begin{algorithm}[p]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
     \begin{tikzpicture}[remember picture,overlay]
         \coordinate (restart1sc) at ($(pic cs:restart1s) + (0, 0.15)$);
         \coordinate (restart1ec) at ($(pic cs:restart1e) + (0, 0.00)$);
@@ -106,32 +130,31 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
             \\\hspace*{4em}$\nds_P(v) \preceq \nds_T(w)\}$ \;
         }
     }
-    \nl \lIf{$\KwSty{not}~\FuncSty{propagate}(D)$}{$\KwSty{return}~\KwSty{false}$}
     \nl \While{$\KwSty{true}$}{
+        \nl \lIf{$\KwSty{not}~\FuncSty{propagate}(D)$}{$\KwSty{return}~\KwSty{false}$}
         \nl \tikzmark{restart1s}$\KwSty{global}~(R, R') \gets (0, 666 \times \textnormal{the next Luby value})$\tikzmark{restart1e} \;
         \nl $S \gets \FuncSty{search}(\{ E \in D : \left|E\right| > 1 \}, \top)$ \;
         \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
         \nl \lElseIf{$S = \KwSty{false}$}{$\KwSty{return}~\KwSty{false}$}
-        \nl \tikzmark{restart2s}Trigger nogoods containing only one clause\tikzmark{restart2e} \;
+        \nl \tikzmark{restart2s}trigger nogoods containing only one clause\tikzmark{restart2e} \;
     }
 }
-\smallskip
+\medskip
     \nl $\FuncSty{search}$ (Domains $D$, Decisions $B$) $\rightarrow$ Bool
     \tikzmark{restart8s}\KwSty{or} \KwSty{restart}\tikzmark{restart8e} \;
 \nl \Begin{
     \nl \lIf{$D = \emptyset$}{$\KwSty{return}~\KwSty{true}$}
-    \nl $D_v \gets \textnormal{a domain from}~D~\textnormal{chosen by variable heuristic}$ \siplabel{pickd} \;
+    \nl $D_v \gets \textnormal{a domain from}~D~\textnormal{chosen by variable heuristic}$\siplabel{variableordering} \;
     \nl \tikzmark{restart3s}$C \gets \emptyset$\tikzmark{restart3e} \;
-    \nl \ForEach {$v' \in D_v~\textnormal{ordered by chosen value heuristic}$\siplabel{parforeach}}{
+    \nl \ForEach {$v' \in D_v~\textnormal{ordered by value heuristic}$\siplabel{valueordering}}{
         \nl \tikzmark{restart4s}$C \gets C \cup \{ v' \}$\tikzmark{restart4e} \;
         \nl $D' \gets \FuncSty{clone}(D)$ \;
         \nl $D'_v \gets \{ v' \} $ \;
         \nl \If{\FuncSty{propagate}(D')}{
-            \nl $S \gets \FuncSty{search}(\{ E \in D' : \left|E\right| > 1 \},$ \\\hspace*{3em} $B
-            \wedge (v \mapsto v'))$ \;
+            \nl $S \gets \FuncSty{search}(\{ E \in D' : \left|E\right| > 1 \}, B \wedge (v \mapsto v'))$ \;
             \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
             \nl \tikzmark{restart5s}\ElseIf{$S = \KwSty{restart}$}{
-                \nl Post nogoods $\{B \wedge (v \mapsto c) \Rightarrow \bot : c \in C \}$\tikzmark{restart5r}\;
+                \nl post nogoods $\{B \wedge (v \mapsto c) \Rightarrow \bot : c \in C \}$\tikzmark{restart5r}\;
                 \nl $\KwSty{return}~\KwSty{restart}$\tikzmark{restart5e} \;
             }
         }
@@ -139,12 +162,12 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
     \nl \tikzmark{restart6s}\lIf{$(R \gets R + 1) = R'$}{$\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$}
     \nl $\KwSty{return}~\KwSty{false}$
 }
-\smallskip
+\medskip
 \nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
 \nl \Begin{
     \nl \While{$D_v \gets$~\textnormal{a unit domain from}~$D$}{
         \nl $v' \gets $ the single value in $D_v$ \;
-        \nl \tikzmark{restart7s}Trigger nogoods containing $(v \mapsto v')$\tikzmark{restart7e} \;
+        \nl \tikzmark{restart7s}trigger nogoods with watch $(v \mapsto v')$\tikzmark{restart7e} \;
         \nl \ForEach{$D_w \in D - D_v$}{
             \nl $D_w \gets D_w - v'$ \siplabel{removev} \;
             \nl \ForEach{$(P,\,T) \in L$}{
@@ -163,99 +186,129 @@ graphs, no ILF, and not doing supplemental graphs of length 3.
 }
 \nl $\KwSty{return}~\KwSty{true}$ \;
 }
-\caption{Subgraph isomorphism. Highlighted lines are ignored for the non-restarting algorithm.}
+\caption{Subgraph isomorphism. Shaded code is to be ignored for the non-restarting algorithm.}
+\label{algorithm:sip}
 \end{algorithm}
 
 \subsection{Ordering Heuristics}
 
-?? Variable ordering is smallest domain first with degree tiebreaking. This is not the focus of this
-paper.
+For the variable-ordering heuristic on \siplineref{variableordering} of \cref{algorithm:sip}, we use
+smallest domain first, tiebreaking on ?? degree. Variable ordering is not the focus of this
+paper---as far as possible, we will leave it intact, so as not to affect the performance of the
+algorithm on unsatisfiable instances.
 
-In our experiments, we compare five value-ordering heuristics.
+For value ordering, which occurs on \siplineref{valueordering} of \cref{algorithm:sip}, we will
+compare four strategies:
 
-\begin{description}
-    \item[Tailored] Where we select vertices from highest degree to lowest degree (which is done by
-        permuting the graph at the top of search).
-    \item[Anti] Where we select vertices from lowest degree to highest degree.
-    \item[Tiebreaking] Where we select vertices from highest degree to lowest degree,
-        tiebreaking on highest sum of neighbour degrees.
-    \item[Random] Where we select a branching vertex at random by (dynamically, that is, we shuffle
-        the vertices before entering the for loop, rather than by randomly permuting the graph once at the
-        top of search).
-    \item[Weighted] Where we shuffle the vertices before each for loop, but instead of
-        picking a vertex uniformly at random, we use a weight of
-        $2^{\left|\neighbourhood(v)\right|}$ when deciding whether to branch on vertex $v$
-        next.\footnote{Actually, we cheat a bit to avoid range issues with random number generation:
-        we give the vertex with highest degree in the entire graph weight $2^{50}$, and then give
-        lower degree vertices smaller powers, giving every vertex weight at least 1. This is a bit
-        of hack but getting it perfectly right is hard.} This scheme heavily prefer vertices of high
-        degree, but will give the same chance of being selected next to two vertices of equal
-        degree. This also introduces an element of randomness, which will be important for restarts.
-\end{description}
+\paragraph{Random} We select a vertex dynamically at random (that is, we shuffle the vertices before
+entering the $\KwSty{foreach}$ loop on \siplineref{valueordering} of \cref{algorithm:sip}). This is
+\emph{usually} effectively equivalent to picking vertices in the order in which they appear in the
+input files, although some instances from some benchmark suites are naturally in a special order
+(which may or may not be a good order for searching).
+
+\paragraph{Tailored} We select vertices from highest degree to lowest degree. This is done by
+permuting the target graph at the top of search. This heuristic is the current state of the art.
+
+\paragraph{Anti} We select vertices from lowest degree to highest degree. This heuristic is used as
+a sanity check: we expect tailored to beat random, and random to beat anti.
+
+\paragraph{Weighted} As with the random heuristic, we shuffle the vertices before we enter the
+$\KwSty{foreach}$ loop. Instead of picking a vertex uniformly at random, we use a weight of
+$2^{\left|\neighbourhood(v)\right|}$ when deciding whether to branch on vertex $v$ next.\footnote{We
+cheat slightly to avoid range issues with random number generation: we give the vertex with highest
+degree in the entire graph weight $2^{50}$, and then give lower degree vertices smaller powers,
+giving every vertex weight at least 1.  This is a bit of hack but programming is hard.} This
+heuristic heavily prefers vertices of high degree, similar to the tailored heuristic, but will give
+the same chance of being selected next to two vertices of equal degree. This heuristic also
+introduces an element of randomness, which will be important for restarts.
 
 \subsection{Discrepancy Searches}
 
-?? Not dealing with binary search. Make it binary. Other versions where we increase the discrepancy
-each time the degree changes, and where we count every ``against'' branch as one discrepancy.
+?? Talk about how we're not dealing with a binary search tree, so we could either make it binary, or
+count one discrepancy each time the degree changes, or count every ``against'' branch as being just
+one discrepancy regardless.
 
 \subsection{Restarts}
 
-?? Aimed primarily at value-ordering, not value-ordering.
-
-?? Value-ordering options
-
-?? Propagation
-
 ?? We use the Luby scheme, because everyone else does. We count the number of backtracks (that is,
-when we reach the end of the main for loop) to decide when to restart. Following established wisdom,
-we multiply each item in the sequence by a magic constant. Preliminary experiments demonstrated that
-this is useful, but we failed to determine a principled way of selecting the constant's value, so we
-fell back on divine revelation and set it to 666. As with everyone else, we are not entirely clear
-why we are doing this: it could be to allow the solver to spend more time deep in search, it could
-be to reduce the overheads from repeatedly visiting inner nodes, or it could be to keep the nogoods
-small.
+when we reach the end of the main $\KwSty{foreach}$ loop) to decide when to restart. Following
+established wisdom, we multiply each item in the Luby sequence by a magic constant. Preliminary
+experiments demonstrated that this is useful, but we failed to determine a principled way of
+selecting the constant's value, so we fell back on divine revelation and set it to 666. As with
+everyone else, we are not entirely clear why we are doing this: it could be to allow the solver to
+spend more time deep in search, it could be to reduce the overheads from repeatedly visiting inner
+nodes, or it could be to keep the nogoods small.
 
-?? Increasing nogoods etc. We are not confident enough in our programming abilities to implement
-these correctly. Cannot propagate on negative decisions.
+?? We just use two watched literals. Could use increasing nogoods etc. We are not confident enough
+in our programming abilities to implement these correctly, and we are not maintaining arc
+consistency anyway. We also really do not want to propagate on negative decisions, because we do not
+want to iterate over every removed value.
+
+?? Talk a bit about how it fits into \cref{algorithm:sip}.
 
 \section{Empirical Evaluation}
 
-\subsection{Instances}
+?? Dual Xeon E5-2697A v4 CPUs, 512GBytes RAM, running Ubuntu 17.04, implemented in C++ and compiled
+using GCC 6.3.0. Our code is heavily based upon ??.
 
-?? Other studies use a random selection of 200 of the mesh instances, partly because some earlier
-solvers find many of these instances extremely hard, and partly to avoid skewing a portfolio. We
-want larger numbers of satisfiable instances, so we include all pattern / target pairs.
+?? Deterministic RNG.
+
+?? Bitsets.
+
+?? The 5,725 instances.
+
+?? Other studies use a random selection of 200 of each of the mesh and images instances, partly
+because some earlier solvers find many of these instances extremely hard, and partly to avoid
+skewing a portfolio. We want larger numbers of satisfiable instances, so we include all pattern /
+target pairs. This gives a total of 14,621 instances, ?? of which we know are satisfiable, and ??
+unsatisfiable.
+
+?? Note that an awful lot of these instances are very easy. We are trying to tackle the remaining
+hard satisfiable instances.
 
 \subsection{Our Solver is Good}
 
-?? Non-induced, compare to Glasgow, LAD, PathLAD, SND?, VF2, using tailored
+?? Establish a baseline. Compare to older Glasgow2, Glasgow3, LAD, PathLAD, SND if we can get it to
+run on the larger set of instances, VF2, maybe SAT just to have something to cite showing how bad
+SAT is at this. Just use tailored in this plot. Possibly just use the 5,725 instances here to avoid
+pain with lousy solvers.
 
 ?? Possibly also do induced, compare to Glasgow, LAD, PathLAD, VF2, VF3, McSplit.
 
 \subsection{Value Ordering Heuristics}
 
-?? \cref{figure:value-ordering-heuristics}
+In \cref{figure:value-ordering-heuristics} we show the cumulative number of instances solved over
+time using the four different value-ordering heuristics. As expected, the tailored heuristic is much
+better (?? give aggregate speedups for both all and just satisfiable instances) than random
+ordering, which is in turn ?? times better than the anti-heuristic.
+
+The performance of the weighted and tailored heuristics is very similar: the weighted heuristic has
+slightly worse performance below a 100s timeout, and effectively equal performance above it. This
+shows that we can introduce an element of randomness into the tailored value-ordering heuristic
+without adversely affecting its performance.
 
 \begin{figure}[tb]
     \centering
     \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
 
-    \caption{Cumulative number of instances solved over time, using the five different
-    value-ordering heuristics. The top three lines are very close together, with the weighted
-    heuristic being worse for low runtimes and slightly better towards the end.}
+    \caption{Cumulative number of instances solved over time, using the four different
+    value-ordering heuristics.}
     \label{figure:value-ordering-heuristics}
 \end{figure}
 
 \subsection{Discrepancies Don't Help}
 
-?? Results for DDS counting discrepancies both ways, maybe LDS too. Also look just at satisfiable
-instances.
+?? Code up LDS and DDS and the like properly, and plot them being disappointing here.
 
 \subsection{Restarts Make it Better}
 
-?? \cref{figure:restarts}
-
-?? breakdown by family
+In \cref{figure:restarts} we show the effects of adding restarts to the algorithm. With restarts,
+the random variable-ordering heuristic comfortably beats the tailored strategy without restarts. In
+other words, although having a good variable-ordering heuristic is beneficial, introducing
+randomness into the search is better, if it is done alongside a mechanism to avoid heavy commitment
+to any particular random choice.  However, the weighted heuristic together with restarts is better
+still---that is, if we are introducing restarts, then it is better to add a small amount of
+randomness to a tailored deterministic heuristic than it is to throw away the heuristic altogether.
 
 \begin{figure}[p]
     \centering
@@ -274,16 +327,44 @@ instances.
     \includegraphics*{gen-graph-scatter-random.pdf}
 
     \caption{Instance by instance comparison of the basic algorithm with the tailored heuristic,
-    versus weighted with restarts. Below, comparing instead with simple random with restarts.}
+    versus weighted + restarts. Below, comparing instead with simple random + restarts.}
     \label{figure:scatter}
 \end{figure}
 
+Cumulative plots only show aggregate behaviour. What happens on an instance by instance basis?  In
+the top of \cref{figure:scatter} we scatter plot performance, showing satisfiable and unsatisfiable
+instances using dots and crosses respectively. On the $x$-axis we show the tailored heuristic,
+whilst on the $y$-axis we show weighted + restarts. Points on the outer axes represent instances
+which timed out with one heuristic but not the other.
+
+Nearly all of the unsatisfiable instances are on or slightly above the $x-y$ diagonal, showing that
+their performance is either unchanged or reduced slightly. On the other hand, there are ?? large
+numbers of satisfiable instances well below the diagonal line, indicating large speedups. Better
+yet, there are only ?? satisfiable instances that are more than a factor of ?? times worse.
+
+?? Figure out what's going on with the unsat instances not on the line. There are a few options.
+Could be SDF picking something else, could be the hacky all-diff missing something, could be how
+we're doing unit propagation, could be a horrible bug.
+
+For contrast, the bottom plot of \cref{figure:scatter} compares the tailored heuristic with random +
+restarts. The performance on unsatisfiable instances is the same. However, although better in
+aggregate, we see many more satisfiable instances performing substantially worse. ?? Quantify this a
+bit.
+
+?? do a more detailed breakdown by family
+
+?? Explain why this is so amazingly awesome and the most important idea ever to happen in the entire
+history of science.
 
 \section{Other Subgraph Solvers}
 
 ?? Also do this in McSplit and kdown?
 
 \section{Conclusion}
+
+?? This stuff is quite good.
+
+?? Bigger CP picture
 
 ?? Parallel
 
