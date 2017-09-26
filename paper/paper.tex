@@ -268,10 +268,22 @@ hard satisfiable instances.
 
 \subsection{Our Solver is Good}
 
-?? Establish a baseline. Compare to older Glasgow2, Glasgow3, LAD, PathLAD, SND if we can get it to
-run on the larger set of instances, VF2, maybe SAT just to have something to cite showing how bad
-SAT is at this. Just use tailored in this plot. Possibly just use the 5,725 instances here to avoid
-pain with lousy solvers.
+?? In \cref{figure:others} we show that our solver is the bestest.
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-others.pdf}
+
+    \centering
+    \includegraphics*{gen-graph-others-zoom.pdf}
+
+    \caption{Cumulative number of instances solved over time, comparing our algorithm to other
+    solvers. Below, zoomed in a bit ?? make this pretty.}
+    \label{figure:others}
+\end{figure}
+
+?? Stick in Glasgow2, Glasgow3, VF2, SND if we can get it to run on the larger set of instances,
+maybe SAT just to have something to cite showing how bad SAT is at this.
 
 ?? Possibly also do induced, compare to Glasgow, LAD, PathLAD, VF2, VF3, McSplit.
 
