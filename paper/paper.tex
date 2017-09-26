@@ -15,6 +15,9 @@
 \newcommand{\vertexset}{\operatorname{V}}
 \newcommand{\nds}{\operatorname{S}}
 
+\newcommand{\citet}[1]{\citeauthor{#1} \shortcite{#1}}
+\newcommand{\citep}[1]{\cite{#1}}
+
 \usetikzlibrary{decorations, decorations.pathreplacing, decorations.pathmorphing,
     calc, backgrounds, positioning, tikzmark, patterns, fit}
 
@@ -41,14 +44,14 @@ Around}
 \maketitle
 
 \begin{abstract}
-    At least one modern subgraph isomorphism solver use reasonably good value-ordering heuristics to
-    direct search, but these heuristics are not perfect, particularly for early choices. We
-    investigate two mechanisms for offsetting this weakness: discrepancy searches, and restarts. Our
-    results suggest that discrepancy search is too expensive to be effective, but that restarts with
-    a random value-ordering heuristic beats the best tailored heuristic. We also introduce a
-    slightly-random value-ordering heuristic with similar behaviour to the tailored heuristic.  When
-    combined with restarts, this new heuristic is even more effective on satisfiable instances, and
-    does not substantially affect performance on unsatisfiable instances.
+    Modern subgraph isomorphism solvers use strong value-ordering heuristics to direct search, but
+    these heuristics are not perfect, particularly for early choices. Our results suggest that
+    discrepancy-based searches are too expensive to be effective at offsetting this weakness.
+    However, restarts with a random value-ordering heuristic beats conventional search with the best
+    tailored heuristic. This motivates the introduction of a slightly-random value-ordering
+    heuristic with similar behaviour to the tailored heuristic: when combined with restarts, this
+    new heuristic is even more effective on satisfiable instances, whilst not significantly
+    decreasing performance on unsatisfiable instances.
 \end{abstract}
 
 \section{Introduction}
@@ -56,21 +59,19 @@ Around}
 ?? Subgraph isomorphism is useful.
 
 The current single strongest subgraph isomorphism solver uses ``highest degree first'' as a
-value-ordering heuristic.  This is much better than not having a value-ordering heuristic at all,
-but it is far from perfect, particularly for early branching choices. There are two reasons to
-suspect we could do better.  Firstly, even if degree were a perfect source of information, many
-graphs do not have a large degree distribution, and so we would still need to determine \emph{which}
-vertex of highest degree would be best.  Secondly, experiments with a parallel search strategy which
-explicitly steals early branching choices often gives strongly super-linear speedups on satisfiable
-instances.
+value-ordering heuristic \citep{dblp:conf/cp/McCreeshP15,dblp:conf/ijcai/McCreeshPT16}.  This is
+much better than not having a value-ordering heuristic at all, but it is far from perfect,
+particularly for early branching choices. There are two reasons to suspect we could do better.
+Firstly, even if degree were a perfect source of information, many graphs do not have a large degree
+distribution, and so we would still need to determine \emph{which} vertex of highest degree would be
+best.  Secondly, experiments with a parallel search strategy which explicitly steals early branching
+choices often gives strongly super-linear speedups on satisfiable instances
+\citep{dblp:conf/cp/McCreeshP15}.
 
 We could try to introduce tiebreaking mechanisms to further refine this heuristic. However, given
 the extreme cost of making an incorrect branching choice early on in search, we believe it is more
 fruitful to investigate alternatives to simple backtracking (depth-first) search. This paper
 evaluates two such approaches: discrepancy search, and restarts.
-
-?? Quick intro to discrepancy search. Quick intro to restarts, mentioning how it's important to
-change something when restarting.
 
 ?? And concludes what?
 
@@ -193,7 +194,7 @@ ignoring the shaded parts, which are introduced in the context of restarts.
 \subsection{Ordering Heuristics}
 
 For the variable-ordering heuristic on \siplineref{variableordering} of \cref{algorithm:sip}, we use
-smallest domain first, tiebreaking on ?? degree. Variable ordering is not the focus of this
+smallest domain first, tiebreaking on highest degree. Variable ordering is not the focus of this
 paper---as far as possible, we will leave it intact, so as not to affect the performance of the
 algorithm on unsatisfiable instances.
 
@@ -212,34 +213,47 @@ permuting the target graph at the top of search. This heuristic is the current s
 \paragraph{Anti} We select vertices from lowest degree to highest degree. This heuristic is used as
 a sanity check: we expect tailored to beat random, and random to beat anti.
 
-\paragraph{Weighted} As with the random heuristic, we shuffle the vertices before we enter the
+\paragraph{Biased} As with the random heuristic, we shuffle the vertices before we enter the
 $\KwSty{foreach}$ loop. Instead of picking a vertex uniformly at random, we use a weight of
-$2^{\left|\neighbourhood(v)\right|}$ when deciding whether to branch on vertex $v$ next.\footnote{We
-cheat slightly to avoid range issues with random number generation: we give the vertex with highest
-degree in the entire graph weight $2^{50}$, and then give lower degree vertices smaller powers,
-giving every vertex weight at least 1.  This is a bit of hack but programming is hard.} This
-heuristic heavily prefers vertices of high degree, similar to the tailored heuristic, but will give
-the same chance of being selected next to two vertices of equal degree. This heuristic also
-introduces an element of randomness, which will be important for restarts.
+$2^{\left|\neighbourhood(v)\right|}$ when deciding whether to branch on vertex $v$ next. (We cheat
+slightly to avoid range issues with random number generation: we give the vertex with highest degree
+in the entire graph weight $2^{50}$, and then give lower degree vertices smaller powers, giving
+every vertex weight at least 1.  This is a bit of hack but programming is hard.) This heuristic
+heavily prefers vertices of high degree, similar to the tailored heuristic, but will give the same
+chance of being selected next to two vertices of equal degree. This heuristic also introduces an
+element of randomness, and so can be used with restarts.
 
 \subsection{Discrepancy Searches}
 
+?? Quick intro to discrepancy search
+\citep{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97,DBLP:conf/cpaior/KarouiHLN07,DBLP:journals/jea/ProsserU11}.
+Discrepancy search is about value ordering.
+
 ?? Talk about how we're not dealing with a binary search tree, so we could either make it binary, or
 count one discrepancy each time the degree changes, or count every ``against'' branch as being just
-one discrepancy regardless.
+one discrepancy regardless. ?? Has anyone done a proper job of this?
 
 \subsection{Restarts}
 
-?? We use the Luby scheme, because everyone else does. We count the number of backtracks (that is,
-when we reach the end of the main $\KwSty{foreach}$ loop) to decide when to restart. Following
-established wisdom, we multiply each item in the Luby sequence by a magic constant. Preliminary
-experiments demonstrated that this is useful, but we failed to determine a principled way of
-selecting the constant's value, so we fell back on divine revelation and set it to 666. As with
-everyone else, we are not entirely clear why we are doing this: it could be to allow the solver to
-spend more time deep in search, it could be to reduce the overheads from repeatedly visiting inner
-nodes, or it could be to keep the nogoods small.
+?? Quick intro to restarts, mentioning how it's important to change something when restarting.
+Interestingly usually that thing is variable-ordering heuristics, not value-ordering
+\citep{DBLP:conf/ijcai/LecoutreSTV07,DBLP:journals/jsat/LecoutreSTV07,DBLP:conf/cp/GayHLS15,DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}.
+?? Does anyone at all do this on value ordering explicitly? And if not, why not? There's
+\citet{DBLP:conf/flairs/RazgonOP07} at least. ?? There's a connection here to confidence-based work
+stealing \citep{DBLP:conf/cp/ChuSS09} too. But what? They talk about confidence in a heuristic, but
+not that different values could be ranked differently.
 
-?? We just use two watched literals. Could use increasing nogoods etc. We are not confident enough
+?? We use the Luby scheme \citep{DBLP:journals/ipl/LubySZ93}, because everyone else does. We count
+the number of backtracks (that is, when we reach the end of the main $\KwSty{foreach}$ loop) to
+decide when to restart. Following established wisdom, we multiply each item in the Luby sequence by
+a magic constant. Preliminary experiments demonstrated that this is useful, but we failed to
+determine a principled way of selecting the constant's value, so we fell back on divine revelation
+and set it to 666. As with everyone else, we are not entirely clear why we are doing this: it could
+be to allow the solver to spend more time deep in search, it could be to reduce the overheads from
+repeatedly visiting inner nodes, or it could be to keep the nogoods small.
+
+?? We just use two watched literals \citep{DBLP:conf/dac/MoskewiczMZZM01}. Could use increasing
+nogoods \citep{DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17} etc, but we are not confident enough
 in our programming abilities to implement these correctly, and we are not maintaining arc
 consistency anyway. We also really do not want to propagate on negative decisions, because we do not
 want to iterate over every removed value.
@@ -249,13 +263,13 @@ want to iterate over every removed value.
 \section{Empirical Evaluation}
 
 ?? Dual Xeon E5-2697A v4 CPUs, 512GBytes RAM, running Ubuntu 17.04, implemented in C++ and compiled
-using GCC 6.3.0. Our code is heavily based upon ??.
+using GCC 6.3.0. Our code is heavily based upon \citet{dblp:conf/cp/McCreeshP15}.
 
 ?? Deterministic RNG.
 
 ?? Bitsets.
 
-?? The 5,725 instances.
+?? The 5,725 instances \citep{dblp:conf/lion/KotthoffMS16}.
 
 ?? Other studies use a random selection of 200 of each of the mesh and images instances, partly
 because some earlier solvers find many of these instances extremely hard, and partly to avoid
@@ -294,7 +308,7 @@ time using the four different value-ordering heuristics. As expected, the tailor
 better (?? give aggregate speedups for both all and just satisfiable instances) than random
 ordering, which is in turn ?? times better than the anti-heuristic.
 
-The performance of the weighted and tailored heuristics is very similar: the weighted heuristic has
+The performance of the biased and tailored heuristics is very similar: the biased heuristic has
 slightly worse performance below a 100s timeout, and effectively equal performance above it. This
 shows that we can introduce an element of randomness into the tailored value-ordering heuristic
 without adversely affecting its performance.
@@ -318,7 +332,7 @@ In \cref{figure:restarts} we show the effects of adding restarts to the algorith
 the random variable-ordering heuristic comfortably beats the tailored strategy without restarts. In
 other words, although having a good variable-ordering heuristic is beneficial, introducing
 randomness into the search is better, if it is done alongside a mechanism to avoid heavy commitment
-to any particular random choice.  However, the weighted heuristic together with restarts is better
+to any particular random choice.  However, the biased heuristic together with restarts is better
 still---that is, if we are introducing restarts, then it is better to add a small amount of
 randomness to a tailored deterministic heuristic than it is to throw away the heuristic altogether.
 
@@ -339,14 +353,14 @@ randomness to a tailored deterministic heuristic than it is to throw away the he
     \includegraphics*{gen-graph-scatter-random.pdf}
 
     \caption{Instance by instance comparison of the basic algorithm with the tailored heuristic,
-    versus weighted + restarts. Below, comparing instead with simple random + restarts.}
+    versus biased + restarts. Below, comparing instead with simple random + restarts.}
     \label{figure:scatter}
 \end{figure}
 
 Cumulative plots only show aggregate behaviour. What happens on an instance by instance basis?  In
 the top of \cref{figure:scatter} we scatter plot performance, showing satisfiable and unsatisfiable
 instances using dots and crosses respectively. On the $x$-axis we show the tailored heuristic,
-whilst on the $y$-axis we show weighted + restarts. Points on the outer axes represent instances
+whilst on the $y$-axis we show biased + restarts. Points on the outer axes represent instances
 which timed out with one heuristic but not the other.
 
 Nearly all of the unsatisfiable instances are on or slightly above the $x-y$ diagonal, showing that
@@ -365,6 +379,9 @@ bit.
 
 ?? do a more detailed breakdown by family
 
+?? maybe some engineering aspects: look at performance with restarts on tailored, and at restarts
+without nogood recording
+
 ?? Explain why this is so amazingly awesome and the most important idea ever to happen in the entire
 history of science.
 
@@ -376,7 +393,12 @@ history of science.
 
 ?? This stuff is quite good.
 
-?? Bigger CP picture
+?? We can keep good value-ordering heuristics, and get large improvement. Importantly, we can do
+this with almost no effect on unsatisfiable instances, and rare to make satisfiable much worse.
+
+?? Variable ordering
+
+?? Bigger CP picture.
 
 ?? Parallel
 

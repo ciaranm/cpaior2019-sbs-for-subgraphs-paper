@@ -18,7 +18,7 @@ set yrange [13600:14400]
 set key bottom right
 
 plot \
-    "runtimes.data" u ($7>=1e6?1e6:$7):($7>=1e6?1e-10:1) smooth cumulative w l ti 'Weighted' ls 1, \
+    "runtimes.data" u ($7>=1e6?1e6:$7):($7>=1e6?1e-10:1) smooth cumulative w l ti 'Biased' ls 1, \
     "runtimes.data" u ($5>=1e6?1e6:$5):($5>=1e6?1e-10:1) smooth cumulative w l ti 'Tailored' ls 3, \
     "runtimes.data" u ($8>=1e6?1e6:$8):($8>=1e6?1e-10:1) smooth cumulative w l ti 'Random' ls 6, \
     "runtimes.data" u ($9>=1e6?1e6:$9):($9>=1e6?1e-10:1) smooth cumulative w l ti 'Anti' ls 8

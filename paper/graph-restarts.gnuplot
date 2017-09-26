@@ -18,9 +18,9 @@ set yrange [13600:14400]
 set key bottom right
 
 plot \
-    "runtimes.data" u ($10>=1e6?1e6:$10):($10>=1e6?1e-10:1) smooth cumulative w l ti 'Weighted + Restarts' ls 1 dt ".", \
+    "runtimes.data" u ($10>=1e6?1e6:$10):($10>=1e6?1e-10:1) smooth cumulative w l ti 'Biased + Restarts' ls 1 dt ".", \
     "runtimes.data" u ($11>=1e6?1e6:$11):($11>=1e6?1e-10:1) smooth cumulative w l ti 'Random + Restarts' ls 6 dt ".", \
-    "runtimes.data" u ($7>=1e6?1e6:$7):($7>=1e6?1e-10:1) smooth cumulative w l ti 'Weighted' ls 1, \
+    "runtimes.data" u ($7>=1e6?1e6:$7):($7>=1e6?1e-10:1) smooth cumulative w l ti 'Biased' ls 1, \
     "runtimes.data" u ($5>=1e6?1e6:$5):($5>=1e6?1e-10:1) smooth cumulative w l ti 'Tailored' ls 3, \
     "runtimes.data" u ($8>=1e6?1e6:$8):($8>=1e6?1e-10:1) smooth cumulative w l ti 'Random' ls 6, \
 
