@@ -71,11 +71,19 @@ choices often gives strongly super-linear speedups on satisfiable instances
 We could try to introduce tiebreaking mechanisms to further refine this heuristic. However, given
 the extreme cost of making an incorrect branching choice early on in search, we believe it is more
 fruitful to investigate alternatives to simple backtracking (depth-first) search. This paper
-evaluates two such approaches: discrepancy search, and restarts.
+evaluates two such approaches: discrepancy search (which perform poorly), and restarts (which are
+extremely beneficial). To make restarts work, we introduce a new value-ordering heuristic, which is
+nearly the same as ``highest degree first'' except with small amounts of heavily biased randomness.
+The effects of the changes we propose are shown in the top plot of \cref{figure:scatter}: we can
+make a state-of-the-art algorithm's perform much better on a large number of satisfiable instances,
+without substantially degrading its performance on unsatisfiable or the remaining satisfiable
+instances.
 
-?? And concludes what?
+?? And concludes what? 
 
 \section{The Basic Algorithm}
+
+?? Notation: $\vertexset(G)$, $\neighbourhood_G(v)$, $\nds_G(v)$, $\preceq$, $\sim_G$, $G^{a,b}$, $\mapsto$.
 
 ?? Started with the Glasgow algorithm, removed parts which did not contribute hugely to speedups,
 and ended up with a simpler algorithm that performs as well in practice. In particular, large
@@ -231,7 +239,7 @@ Discrepancy search is about value ordering.
 
 ?? Talk about how we're not dealing with a binary search tree, so we could either make it binary, or
 count one discrepancy each time the degree changes, or count every ``against'' branch as being just
-one discrepancy regardless. ?? Has anyone done a proper job of this?
+one discrepancy regardless.
 
 \subsection{Restarts}
 
@@ -282,7 +290,13 @@ hard satisfiable instances.
 
 \subsection{Our Solver is Good}
 
-?? In \cref{figure:others} we show that our solver is the bestest.
+?? In \cref{figure:others} we show that our solver is the bestest. For each algorithm, the $y$ value
+gives the cumulative number of instances which (individually) can be solved in no more than $x$
+milliseconds.  The vertical distance between two lines therefore shows how many more instances can
+be solved by one solver than another, if every instance is run separately with the chosen $x$
+timeout; the horizontal distance shows how many times longer the per-instance timeout would need to
+be to allow the rightmost algorithm to succeed on $y$ out of the 14,621 instances (bearing in mind
+that the two sets of $y$ instances solved by the two algorithms could be completely different).
 
 \begin{figure}[tb]
     \centering
@@ -296,7 +310,7 @@ hard satisfiable instances.
     \label{figure:others}
 \end{figure}
 
-?? Stick in Glasgow2, Glasgow3, VF2, SND if we can get it to run on the larger set of instances,
+?? Add in Glasgow2, Glasgow3, SND if we can get it to run on the larger set of instances,
 maybe SAT just to have something to cite showing how bad SAT is at this.
 
 ?? Possibly also do induced, compare to Glasgow, LAD, PathLAD, VF2, VF3, McSplit.
@@ -329,7 +343,7 @@ without adversely affecting its performance.
 \subsection{Restarts Make it Better}
 
 In \cref{figure:restarts} we show the effects of adding restarts to the algorithm. With restarts,
-the random variable-ordering heuristic comfortably beats the tailored strategy without restarts. In
+the random value-ordering heuristic comfortably beats the tailored strategy without restarts. In
 other words, although having a good variable-ordering heuristic is beneficial, introducing
 randomness into the search is better, if it is done alongside a mechanism to avoid heavy commitment
 to any particular random choice.  However, the biased heuristic together with restarts is better
