@@ -75,7 +75,7 @@ evaluates two such approaches: discrepancy search (which perform poorly), and re
 extremely beneficial). To make restarts work, we introduce a new value-ordering heuristic, which is
 nearly the same as ``highest degree first'' except with small amounts of heavily biased randomness.
 The effects of the changes we propose are shown in the top plot of \cref{figure:scatter}: we can
-make a state-of-the-art algorithm's perform much better on a large number of satisfiable instances,
+make a state-of-the-art algorithm perform much better on a large number of satisfiable instances,
 without substantially degrading its performance on unsatisfiable or the remaining satisfiable
 instances.
 
@@ -86,9 +86,10 @@ instances.
 ?? Notation: $\vertexset(G)$, $\neighbourhood_G(v)$, $\nds_G(v)$, $\preceq$, $\sim_G$, $G^{a,b}$, $\mapsto$.
 
 ?? Started with the Glasgow algorithm, removed parts which did not contribute hugely to speedups,
-and ended up with a simpler algorithm that performs as well in practice. In particular, large
-graphs, no ILF, and not doing supplemental graphs of length 3. This is \cref{algorithm:sip},
-ignoring the shaded parts, which are introduced in the context of restarts.
+and ended up with a simpler algorithm that performs as well in practice. In particular, because we
+will be working with reasonably large target graphs, no ILF, and not doing supplemental graphs of
+length 3. This is \cref{algorithm:sip}, ignoring the shaded parts, which are introduced in the
+context of restarts.
 
 ?? Briefly describe this, probably referring elsewhere as far as possible to save space.
 
@@ -195,7 +196,7 @@ ignoring the shaded parts, which are introduced in the context of restarts.
 }
 \nl $\KwSty{return}~\KwSty{true}$ \;
 }
-\caption{Subgraph isomorphism. Shaded code is to be ignored for the non-restarting algorithm.}
+\caption{Non-induced subgraph isomorphism. Shaded code is added for the restarting variant.}
 \label{algorithm:sip}
 \end{algorithm}
 
