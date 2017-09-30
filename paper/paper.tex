@@ -299,6 +299,12 @@ timeout; the horizontal distance shows how many times longer the per-instance ti
 be to allow the rightmost algorithm to succeed on $y$ out of the 14,621 instances (bearing in mind
 that the two sets of $y$ instances solved by the two algorithms could be completely different).
 
+?? These results show our algorithm clearly beating PathLAD and VF2, except for very low choices of
+timeout. Our algorithm also beats Glasgow2 and Glasgow3, despite being slightly simpler---on an
+instance by instance basis, sometimes the additional inference performed by these algorithms pays
+off, but in aggregate, there is no difference for longer choices of timeout, and a clear gain for
+shorter choices.
+
 \begin{figure}[tb]
     \centering
     \includegraphics*{gen-graph-others.pdf}
@@ -311,8 +317,8 @@ that the two sets of $y$ instances solved by the two algorithms could be complet
     \label{figure:others}
 \end{figure}
 
-?? Add in Glasgow2, Glasgow3, SND if we can get it to run on the larger set of instances,
-maybe SAT just to have something to cite showing how bad SAT is at this.
+?? Add in SND if we can get it to run on the larger set of instances, maybe SAT just to have
+something to cite showing how bad SAT is at this.
 
 ?? Possibly also do induced, compare to Glasgow, LAD, PathLAD, VF2, VF3, McSplit.
 
