@@ -7,6 +7,8 @@
 \usepackage{amsmath}
 \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{tikz}
+
+\usepackage{hyperref}
 \usepackage{cleveref}
 
 % \usepackage{showframe}
@@ -291,6 +293,20 @@ hard satisfiable instances.
 
 \subsection{Our Solver is Good}
 
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-others.pdf}
+
+    \bigskip
+
+    \centering
+    \includegraphics*{gen-graph-others-zoom.pdf}
+
+    \caption{Cumulative number of instances solved over time, comparing our algorithm to other
+    solvers. Below, zoomed in a bit ?? make this pretty.}
+    \label{figure:others}
+\end{figure}
+
 ?? In \cref{figure:others} we show that our solver is the bestest. For each algorithm, the $y$ value
 gives the cumulative number of instances which (individually) can be solved in no more than $x$
 milliseconds.  The vertical distance between two lines therefore shows how many more instances can
@@ -305,18 +321,6 @@ instance by instance basis, sometimes the additional inference performed by thes
 off, but in aggregate, there is no difference for longer choices of timeout, and a clear gain for
 shorter choices.
 
-\begin{figure}[tb]
-    \centering
-    \includegraphics*{gen-graph-others.pdf}
-
-    \centering
-    \includegraphics*{gen-graph-others-zoom.pdf}
-
-    \caption{Cumulative number of instances solved over time, comparing our algorithm to other
-    solvers. Below, zoomed in a bit ?? make this pretty.}
-    \label{figure:others}
-\end{figure}
-
 ?? Add in SND if we can get it to run on the larger set of instances, maybe SAT just to have
 something to cite showing how bad SAT is at this.
 
@@ -324,24 +328,37 @@ something to cite showing how bad SAT is at this.
 
 \subsection{Value Ordering Heuristics}
 
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
+
+    \caption{The cumulative number of instances solved over time, using the four different
+    value-ordering heuristics.}
+    \label{figure:value-ordering-heuristics}
+\end{figure}
+
 In \cref{figure:value-ordering-heuristics} we show the cumulative number of instances solved over
 time using the four different value-ordering heuristics. As expected, the tailored heuristic is much
 better (?? give aggregate speedups for both all and just satisfiable instances) than random
 ordering, which is in turn ?? times better than the anti-heuristic.
 
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-scatter-heuristics.pdf}
+
+    \caption{An instance by instance comparison of the tailored and biased heuristics.}
+    \label{figure:scatter-heuristics}
+\end{figure}
+
 The performance of the biased and tailored heuristics is very similar: the biased heuristic has
 slightly worse performance below a 100s timeout, and effectively equal performance above it. This
 shows that we can introduce an element of randomness into the tailored value-ordering heuristic
-without adversely affecting its performance.
-
-\begin{figure}[tb]
-    \centering
-    \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
-
-    \caption{Cumulative number of instances solved over time, using the four different
-    value-ordering heuristics.}
-    \label{figure:value-ordering-heuristics}
-\end{figure}
+without adversely affecting its performance \emph{in aggregate}. \Cref{figure:scatter-heuristics}
+gives a more detailed look at these results. In this plot, satisfiable and unsatisfiable instances
+are shown using dots and crosses respectively. On the $x$-axis we measure the tailored heuristic,
+whilst on the $y$-axis we measure random + restarts. Points on the outer axes represent instances
+which timed out with one heuristic but not the other. This plot shows that on a case by case basis,
+randomness can make a large difference to individual satisfiable instances.
 
 \subsection{Discrepancies Don't Help}
 
@@ -353,9 +370,9 @@ In \cref{figure:restarts} we show the effects of adding restarts to the algorith
 the random value-ordering heuristic comfortably beats the tailored strategy without restarts. In
 other words, although having a good variable-ordering heuristic is beneficial, introducing
 randomness into the search is better, if it is done alongside a mechanism to avoid heavy commitment
-to any particular random choice.  However, the biased heuristic together with restarts is better
-still---that is, if we are introducing restarts, then it is better to add a small amount of
-randomness to a tailored deterministic heuristic than it is to throw away the heuristic altogether.
+to any particular random choice. \Cref{figure:scatter-random} looks at this in more detail.  The
+performance on unsatisfiable instances is the same. However, although better in aggregate, we see
+many satisfiable instances performing substantially worse. ?? Quantify this a bit.
 
 \begin{figure}[p]
     \centering
@@ -367,36 +384,35 @@ randomness to a tailored deterministic heuristic than it is to throw away the he
 
 \begin{figure}[p]
     \centering
+    \includegraphics*{gen-graph-scatter-random.pdf}
+    \caption{Instance by instance comparison of the basic algorithm with the tailored heuristic,
+    versus random + restarts.}
+    \label{figure:scatter-random}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
     \includegraphics*{gen-graph-scatter.pdf}
 
-    \bigskip
-    \centering
-    \includegraphics*{gen-graph-scatter-random.pdf}
-
     \caption{Instance by instance comparison of the basic algorithm with the tailored heuristic,
-    versus biased + restarts. Below, comparing instead with simple random + restarts.}
+    versus biased + restarts.}
     \label{figure:scatter}
 \end{figure}
 
-Cumulative plots only show aggregate behaviour. What happens on an instance by instance basis?  In
-the top of \cref{figure:scatter} we scatter plot performance, showing satisfiable and unsatisfiable
-instances using dots and crosses respectively. On the $x$-axis we show the tailored heuristic,
-whilst on the $y$-axis we show biased + restarts. Points on the outer axes represent instances
-which timed out with one heuristic but not the other.
-
-Nearly all of the unsatisfiable instances are on or slightly above the $x-y$ diagonal, showing that
+\Cref{figure:restarts} shows that the biased heuristic together with restarts is better
+still---that is, if we are introducing restarts, then it is better to add a small amount of
+randomness to a tailored deterministic heuristic than it is to throw away the heuristic altogether.
+In the more detailed view in \cref{figure:scatter},
+nearly all of the unsatisfiable instances are on or slightly above the $x-y$ diagonal, showing that
 their performance is either unchanged or reduced slightly. On the other hand, there are ?? large
 numbers of satisfiable instances well below the diagonal line, indicating large speedups. Better
 yet, there are only ?? satisfiable instances that are more than a factor of ?? times worse.
 
+?? This has made up the consistency we lost from introducing randomness.
+
 ?? Figure out what's going on with the unsat instances not on the line. There are a few options.
 Could be SDF picking something else, could be the hacky all-diff missing something, could be how
 we're doing unit propagation, could be a horrible bug.
-
-For contrast, the bottom plot of \cref{figure:scatter} compares the tailored heuristic with random +
-restarts. The performance on unsatisfiable instances is the same. However, although better in
-aggregate, we see many more satisfiable instances performing substantially worse. ?? Quantify this a
-bit.
 
 ?? do a more detailed breakdown by family
 
