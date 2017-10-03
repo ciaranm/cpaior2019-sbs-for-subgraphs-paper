@@ -124,6 +124,9 @@ context of restarts.
         \coordinate (restart8sc) at ($(pic cs:restart8s) + (0.05, 0.15)$);
         \coordinate (restart8ec) at ($(pic cs:restart8e) + (0, 0.00)$);
         \node [fill=magma8, rounded corners, fit=(restart8sc) (restart8ec)] { };
+        \coordinate (restart9sc) at ($(pic cs:restart9s) + (0, 0.15)$);
+        \coordinate (restart9ec) at ($(pic cs:restart9e) + (-0.15, 0.00)$);
+        \node [fill=magma8, rounded corners, fit=(restart9sc) (restart9ec)] { };
     \end{tikzpicture}
 
     \nl $\FuncSty{subgraphIsomorphism}$ (Graph $\mathcal{P}$, Graph $\mathcal{T}$) $\rightarrow$ Bool \;
@@ -146,12 +149,11 @@ context of restarts.
         \nl \lIf{$\KwSty{not}~\FuncSty{propagate}(D)$}{$\KwSty{return}~\KwSty{false}$}
         \nl \tikzmark{restart1s}$\KwSty{global}~(R, R') \gets (0, 666 \times \textnormal{the next Luby value})$\tikzmark{restart1e} \;
         \nl $S \gets \FuncSty{search}(\{ E \in D : \left|E\right| > 1 \}, \top)$ \;
-        \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
-        \nl \lElseIf{$S = \KwSty{false}$}{$\KwSty{return}~\KwSty{false}$}
+        \nl \tikzmark{restart9s}\lIf{$S \ne \KwSty{restart}$}{\tikzmark{restart9e}$\KwSty{return}~S$}
         \nl \tikzmark{restart2s}trigger nogoods containing only one clause\tikzmark{restart2e} \;
     }
 }
-\medskip
+\bigskip
     \nl $\FuncSty{search}$ (Domains $D$, Decisions $B$) $\rightarrow$ Bool
     \tikzmark{restart8s}\KwSty{or} \KwSty{restart}\tikzmark{restart8e} \;
 \nl \Begin{
@@ -174,7 +176,7 @@ context of restarts.
     \nl \tikzmark{restart6s}\lIf{$(R \gets R + 1) = R'$}{$\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$}
     \nl $\KwSty{return}~\KwSty{false}$
 }
-\medskip
+\bigskip
 \nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
 \nl \Begin{
     \nl \While{$D_v \gets$~\textnormal{a unit domain from}~$D$}{
