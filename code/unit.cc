@@ -481,7 +481,7 @@ namespace
                     // go over the list until we've used up bias values totalling our
                     // random number
                     unsigned select_element = start;
-                    for ( ; select_element < branch_v.size() ; ++select_element) {
+                    for ( ; select_element < branch_v_end ; ++select_element) {
                         if (select_score <= target_vertex_biases[branch_v[select_element]])
                             break;
                         select_score -= target_vertex_biases[branch_v[select_element]];
@@ -489,6 +489,30 @@ namespace
 
                     // move to front, and update remaining_score
                     remaining_score -= target_vertex_biases[branch_v[select_element]];
+                    std::swap(branch_v[select_element], branch_v[start]);
+                }
+            }
+            else if (params.position_shuffle) {
+                // repeatedly pick a position-biased vertex, move it to the front of branch_v,
+                // and then only consider items further to the right in the next iteration.
+                for (unsigned start = 0 ; start < branch_v_end ; ++start) {
+                    // pick a random number between 0 and 1 inclusive
+                    std::uniform_real_distribution<double> dist(0, 1);
+                    double select_score = dist(global_rand);
+
+                    // this divides by two on each iteration, so we're twice as
+                    // likely to take the first vertex as the second and so on
+                    double select_if_score_ge = 1.0;
+
+                    // go over the list until we hit the score
+                    unsigned select_element = start;
+                    for ( ; select_element + 1 < branch_v_end ; ++select_element) {
+                        select_if_score_ge /= 2.0;
+                        if (select_score >= select_if_score_ge)
+                            break;
+                    }
+
+                    // move to front
                     std::swap(branch_v[select_element], branch_v[start]);
                 }
             }
@@ -832,7 +856,7 @@ namespace
                         }
                     }
                 }
-                else if (params.shuffle || params.biased_shuffle) {
+                else if (params.shuffle || params.biased_shuffle || params.position_shuffle) {
                     // still need to use the restarts variant
                     long long backtracks_until_restart = -1;
                     switch (restarting_search(assignments, domains, result.nodes, 0, backtracks_until_restart)) {
