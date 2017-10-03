@@ -88,16 +88,17 @@ auto main(int argc, char * argv[]) -> int
     try {
         po::options_description display_options{ "Program options" };
         display_options.add_options()
-            ("help",                                  "Display help information")
-            ("timeout",            po::value<int>(),  "Abort after this many seconds")
+            ("help",                                         "Display help information")
+            ("timeout",            po::value<int>(),         "Abort after this many seconds")
             ("format",             po::value<std::string>(), "Specify the format of the input")
-            ("dds",                                   "Use depth-bounded discrepancy search")
-            ("restarts",                              "Use restarts (not with dds)")
-            ("shuffle",                               "Use shuffling (not with dds)")
-            ("biased-shuffle",                        "Use biased shuffling")
-            ("antiheuristic",                         "Use antiheuristic")
-            ("tiebreaking",                           "Use tiebreaking")
-            ("input-order",                           "Use input order")
+            ("dds",                                          "Use depth-bounded discrepancy search")
+            ("restarts",                                     "Use restarts (not with dds)")
+            ("shuffle",                                      "Use shuffling (not with dds)")
+            ("biased-shuffle",                               "Use biased shuffling")
+            ("antiheuristic",                                "Use antiheuristic")
+            ("tiebreaking",                                  "Use tiebreaking")
+            ("input-order",                                  "Use input order")
+            ("luby-multiplier",    po::value<unsigned>(),    "Specify a Luby multiplier")
             ;
 
         po::options_description all_options{ "All options" };
@@ -162,6 +163,9 @@ auto main(int argc, char * argv[]) -> int
         params.antiheuristic = options_vars.count("antiheuristic");
         params.tiebreaking = options_vars.count("tiebreaking");
         params.input_order = options_vars.count("input-order");
+
+        if (options_vars.count("luby-multiplier"))
+            params.luby_multiplier = options_vars["luby-multiplier"].as<unsigned>();
 
         /* Read in the graphs */
         auto graphs = std::make_pair(

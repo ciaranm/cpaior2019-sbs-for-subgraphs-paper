@@ -14,8 +14,6 @@
 
 namespace
 {
-    constexpr long long dodgy_magic_luby_multiplier = 666; // chosen by divine revelation
-
     enum class Search
     {
         Aborted,
@@ -789,7 +787,7 @@ namespace
                     std::list<long long> luby = {{ 1 }};
                     auto current_luby = luby.begin();
                     while (! done) {
-                        long long backtracks_until_restart = *current_luby * dodgy_magic_luby_multiplier;
+                        long long backtracks_until_restart = *current_luby * params.luby_multiplier;
                         if (std::next(current_luby) == luby.end()) {
                             luby.insert(luby.end(), luby.begin(), luby.end());
                             luby.push_back(*luby.rbegin() * 2);
