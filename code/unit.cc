@@ -8,8 +8,6 @@
 #include <numeric>
 #include <limits>
 #include <random>
-#include <set>
-#include <map>
 #include <list>
 
 #include <iostream>
@@ -79,13 +77,45 @@ namespace
         }
     };
 
+    // A nogood, aways of the form (list of assignments) -> false, where the
+    // last part is implicit. If there are at least two assignments, then the
+    // first two assignments are the watches (and the literals are permuted
+    // when the watches are updates).
     struct Nogood
     {
         std::vector<Assignment> literals;
     };
 
+    // nogoods stored here
     using Nogoods = std::list<Nogood>;
-    using Watches = std::map<Assignment, std::list<Nogoods::iterator> >;
+
+    // Two watched literals for our nogoods store.
+    struct Watches
+    {
+        // for each watched literal, we have a list of watched things, each of
+        // which is an iterator into the global watch list (so we can reorder
+        // the literal to keep the watches as the first two elements)
+        using WatchList = std::list<Nogoods::iterator>;
+
+        // two dimensional array, indexed by (target_size * p + t)
+        std::vector<WatchList> data;
+
+        unsigned pattern_size = 0, target_size = 0;
+
+        // not a ctor to avoid annoyingness with isolated vertices altering the
+        // pattern size
+        void initialise(unsigned p, unsigned t)
+        {
+            pattern_size = p;
+            target_size = t;
+            data.resize(p * t);
+        }
+
+        WatchList & operator[] (const Assignment & a)
+        {
+            return data[target_size * a.first + a.second];
+        }
+    };
 
     template <unsigned n_words_, int k_, int l_>
     struct SequentialSubgraphIsomorphism
@@ -147,6 +177,10 @@ namespace
 
             // determine ordering for target graph vertices
             std::iota(target_order.begin(), target_order.end(), 0);
+
+            // set up space for watches
+            if (params.restarts)
+                watches.initialise(pattern_size, target_size);
 
             if (params.tiebreaking)
                 tiebreaking_degree_sort(target, target_order, params.antiheuristic);
@@ -235,9 +269,9 @@ namespace
                 this_is_a_decision = false;
 
                 // propagate watches
-                auto watches_to_update = watches.find(current_assignment);
-                if (watches_to_update != watches.end()) {
-                    for (auto watch_to_update = watches_to_update->second.begin() ; watch_to_update != watches_to_update->second.end() ; ) {
+                if (params.restarts) {
+                    auto & watches_to_update = watches[current_assignment];
+                    for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ) {
                         Nogood & nogood = **watch_to_update;
 
                         // make the first watch the thing we just triggered
@@ -255,10 +289,10 @@ namespace
                                 std::swap(nogood.literals[0], *new_literal);
 
                                 // start watching it
-                                watches.try_emplace(nogood.literals[0]).first->second.push_back(*watch_to_update);
+                                watches[nogood.literals[0]].push_back(*watch_to_update);
 
                                 // remove the current watch, and update the loop iterator
-                                watches_to_update->second.erase(watch_to_update++);
+                                watches_to_update.erase(watch_to_update++);
 
                                 break;
                             }
@@ -778,8 +812,8 @@ namespace
                                     }
                             }
                             else {
-                                watches.try_emplace(n->literals[0]).first->second.push_back(n);
-                                watches.try_emplace(n->literals[1]).first->second.push_back(n);
+                                watches[n->literals[0]].push_back(n);
+                                watches[n->literals[1]].push_back(n);
                             }
                         }
                         need_to_watch.clear();
