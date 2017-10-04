@@ -38,6 +38,9 @@ struct Params
     /// Use antiheuristic? (For science purposes)
     bool antiheuristic = false;
 
+    /// Don't use nogoods?
+    bool goods = false;
+
     /// Default chosen by divine revelation
     static constexpr unsigned long long dodgy_default_magic_luby_multiplier = 666;
 

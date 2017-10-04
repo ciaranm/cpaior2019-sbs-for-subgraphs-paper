@@ -100,6 +100,7 @@ auto main(int argc, char * argv[]) -> int
             ("tiebreaking",                                  "Use tiebreaking")
             ("input-order",                                  "Use input order")
             ("luby-multiplier",    po::value<unsigned>(),    "Specify a Luby multiplier")
+            ("goods",                                        "No nogoods")
             ;
 
         po::options_description all_options{ "All options" };
@@ -165,6 +166,7 @@ auto main(int argc, char * argv[]) -> int
         params.antiheuristic = options_vars.count("antiheuristic");
         params.tiebreaking = options_vars.count("tiebreaking");
         params.input_order = options_vars.count("input-order");
+        params.goods = options_vars.count("goods");
 
         if (options_vars.count("luby-multiplier"))
             params.luby_multiplier = options_vars["luby-multiplier"].as<unsigned>();

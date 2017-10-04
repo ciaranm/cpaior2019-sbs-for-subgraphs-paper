@@ -425,6 +425,9 @@ namespace
         auto post_nogood(
                 const Assignments & assignments)
         {
+            if (params.goods)
+                return;
+
             Nogood nogood;
 
             for (auto & a : assignments.values)
