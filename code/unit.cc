@@ -825,8 +825,6 @@ namespace
                     }
                     ++current_luby;
 
-                    auto assignments_copy = assignments;
-
                     // start watching new nogoods. we're not backjumping so this is a bit icky.
                     for (auto & n : need_to_watch) {
                         if (n->literals.empty()) {
@@ -848,6 +846,8 @@ namespace
                     need_to_watch.clear();
 
                     if (propagate(domains, assignments)) {
+                        auto assignments_copy = assignments;
+
                         switch (restarting_search(assignments_copy, domains, result.nodes, 0, backtracks_until_restart)) {
                             case RestartingSearch::Satisfiable:
                                 save_result(assignments_copy, result);
