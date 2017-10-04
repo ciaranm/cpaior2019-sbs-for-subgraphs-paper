@@ -804,48 +804,50 @@ namespace
 
             Assignments assignments;
             assignments.values.reserve(pattern_size);
-            if (propagate(domains, assignments)) {
-                if (params.dds) {
+            if (params.dds) {
+                if (propagate(domains, assignments)) {
                     for (unsigned discrepancies_allowed = 0 ; discrepancies_allowed <= pattern_size ; ++discrepancies_allowed)
                         if (dds_search(assignments, domains, result.nodes, 0, discrepancies_allowed) == Search::Satisfiable) {
                             save_result(assignments, result);
                             break;
                         }
                 }
-                else if (params.restarts) {
-                    bool done = false;
-                    std::list<long long> luby = {{ 1 }};
-                    auto current_luby = luby.begin();
-                    while (! done) {
-                        long long backtracks_until_restart = *current_luby * params.luby_multiplier;
-                        if (std::next(current_luby) == luby.end()) {
-                            luby.insert(luby.end(), luby.begin(), luby.end());
-                            luby.push_back(*luby.rbegin() * 2);
+            }
+            else if (params.restarts) {
+                bool done = false;
+                std::list<long long> luby = {{ 1 }};
+                auto current_luby = luby.begin();
+                while (! done) {
+                    long long backtracks_until_restart = *current_luby * params.luby_multiplier;
+                    if (std::next(current_luby) == luby.end()) {
+                        luby.insert(luby.end(), luby.begin(), luby.end());
+                        luby.push_back(*luby.rbegin() * 2);
+                    }
+                    ++current_luby;
+
+                    auto assignments_copy = assignments;
+
+                    // start watching new nogoods. we're not backjumping so this is a bit icky.
+                    for (auto & n : need_to_watch) {
+                        if (n->literals.empty()) {
+                            done = true;
+                            break;
                         }
-                        ++current_luby;
-
-                        auto assignments_copy = assignments;
-
-                        // start watching new nogoods. we're not backjumping so this is a bit icky.
-                        for (auto & n : need_to_watch) {
-                            if (n->literals.empty()) {
-                                done = true;
-                                break;
-                            }
-                            else if (1 == n->literals.size()) {
-                                for (auto & d : domains)
-                                    if (d.v == n->literals[0].first) {
-                                        d.values.unset(n->literals[0].second);
-                                        d.popcount = d.values.popcount();
-                                    }
-                            }
-                            else {
-                                watches[n->literals[0]].push_back(n);
-                                watches[n->literals[1]].push_back(n);
-                            }
+                        else if (1 == n->literals.size()) {
+                            for (auto & d : domains)
+                                if (d.v == n->literals[0].first) {
+                                    d.values.unset(n->literals[0].second);
+                                    d.popcount = d.values.popcount();
+                                }
                         }
-                        need_to_watch.clear();
+                        else {
+                            watches[n->literals[0]].push_back(n);
+                            watches[n->literals[1]].push_back(n);
+                        }
+                    }
+                    need_to_watch.clear();
 
+                    if (propagate(domains, assignments)) {
                         switch (restarting_search(assignments_copy, domains, result.nodes, 0, backtracks_until_restart)) {
                             case RestartingSearch::Satisfiable:
                                 save_result(assignments_copy, result);
@@ -862,7 +864,9 @@ namespace
                         }
                     }
                 }
-                else if (params.shuffle || params.biased_shuffle || params.position_shuffle) {
+            }
+            else if (params.shuffle || params.biased_shuffle || params.position_shuffle) {
+                if (propagate(domains, assignments)) {
                     // still need to use the restarts variant
                     long long backtracks_until_restart = -1;
                     switch (restarting_search(assignments, domains, result.nodes, 0, backtracks_until_restart)) {
@@ -876,7 +880,9 @@ namespace
                             break;
                     }
                 }
-                else {
+            }
+            else {
+                if (propagate(domains, assignments)) {
                     switch (search(assignments, domains, result.nodes, 0)) {
                         case Search::Satisfiable:
                             save_result(assignments, result);
