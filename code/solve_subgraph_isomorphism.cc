@@ -210,7 +210,7 @@ auto main(int argc, char * argv[]) -> int
                 for (int j = 0 ; j < graphs.first.size() ; ++j) {
                     if (graphs.first.adjacent(i, j)) {
                         if (! graphs.second.adjacent(result.isomorphism.find(i)->second, result.isomorphism.find(j)->second)) {
-                            std::cerr << "Oops! not an isomorphism" << std::endl;
+                            std::cerr << "Oops! not an isomorphism: " << i << ", " << j << std::endl;
                             return EXIT_FAILURE;
                         }
                     }
