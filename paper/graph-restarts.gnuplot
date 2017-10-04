@@ -3,7 +3,7 @@
 set terminal tikz standalone color size 8cm,5cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-restarts.tex"
 
-load "paired.pal"
+load "inferno.pal"
 
 set xlabel "Runtime (ms)"
 set ylabel "Number of Instances Solved"
@@ -18,11 +18,11 @@ set yrange [13600:14400]
 set key bottom right
 
 plot \
-    "runtimes.data" u ($10>=1e6?1e6:$10):($10>=1e6?1e-10:1) smooth cumulative w l ti 'Degree-Biased + Restarts' ls 1 dt ".", \
-    "runtimes.data" u ($12>=1e6?1e6:$10):($12>=1e6?1e-10:1) smooth cumulative w l ti 'Position-Biased + Restarts' ls 2 dt ".", \
-    "runtimes.data" u ($11>=1e6?1e6:$11):($11>=1e6?1e-10:1) smooth cumulative w l ti 'Random + Restarts' ls 6 dt ".", \
+    "runtimes.data" u ($10>=1e6?1e6:$10):($10>=1e6?1e-10:1) smooth cumulative w l notitle ls 1 dt ".", \
+    "runtimes.data" u ($12>=1e6?1e6:$10):($12>=1e6?1e-10:1) smooth cumulative w l notitle ls 4 dt ".", \
+    "runtimes.data" u ($11>=1e6?1e6:$11):($11>=1e6?1e-10:1) smooth cumulative w l notitle ls 7 dt ".", \
     "runtimes.data" u ($7>=1e6?1e6:$7):($7>=1e6?1e-10:1) smooth cumulative w l ti 'Degree-Biased' ls 1, \
-    "runtimes.data" u ($6>=1e6?1e6:$7):($6>=1e6?1e-10:1) smooth cumulative w l ti 'Position-Biased' ls 2, \
-    "runtimes.data" u ($5>=1e6?1e6:$5):($5>=1e6?1e-10:1) smooth cumulative w l ti 'Degree' ls 3, \
-    "runtimes.data" u ($8>=1e6?1e6:$8):($8>=1e6?1e-10:1) smooth cumulative w l ti 'Random' ls 6, \
+    "runtimes.data" u ($6>=1e6?1e6:$6):($6>=1e6?1e-10:1) smooth cumulative w l ti 'Position-Biased' ls 4, \
+    "runtimes.data" u ($5>=1e6?1e6:$5):($5>=1e6?1e-10:1) smooth cumulative w l ti 'Degree' ls 6, \
+    "runtimes.data" u ($8>=1e6?1e6:$8):($8>=1e6?1e-10:1) smooth cumulative w l ti 'Random' ls 7, \
 

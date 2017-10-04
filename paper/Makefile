@@ -10,7 +10,9 @@ GRAPHS = \
 	 gen-graph-scatter-random.pdf \
 	 gen-graph-others.pdf \
 	 gen-graph-others-zoom.pdf \
-	 gen-graph-scatter-heuristics.pdf
+	 gen-graph-scatter-heuristics.pdf \
+	 gen-graph-scatter-nogoods.pdf \
+	 gen-graph-scatter-overheads.pdf
 
 tables : $(TABLES)
 

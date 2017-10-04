@@ -3,7 +3,7 @@
 set terminal tikz standalone color size 7cm,7cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-scatter-heuristics.tex"
 
-load "magma.pal"
+load "inferno.pal"
 
 set xlabel "Degree Runtime (ms)"
 set ylabel "Degree-Biased Runtime (ms)"
