@@ -5,8 +5,8 @@ set output "gen-graph-scatter-heuristics.tex"
 
 load "magma.pal"
 
-set xlabel "Tailored Runtime (ms)"
-set ylabel "Biased Runtime (ms)"
+set xlabel "Degree Runtime (ms)"
+set ylabel "Degree-Biased Runtime (ms)"
 set border 3
 set grid x y
 set xtics nomirror

@@ -212,7 +212,7 @@ paper---as far as possible, we will leave it intact, so as not to affect the per
 algorithm on unsatisfiable instances.
 
 For value ordering, which occurs on \siplineref{valueordering} of \cref{algorithm:sip}, we will
-compare four strategies:
+compare five strategies:
 
 \paragraph{Random} We select a vertex dynamically at random (that is, we shuffle the vertices before
 entering the $\KwSty{foreach}$ loop on \siplineref{valueordering} of \cref{algorithm:sip}). This is
@@ -220,21 +220,26 @@ entering the $\KwSty{foreach}$ loop on \siplineref{valueordering} of \cref{algor
 input files, although some instances from some benchmark suites are naturally in a special order
 (which may or may not be a good order for searching).
 
-\paragraph{Tailored} We select vertices from highest degree to lowest degree. This is done by
+\paragraph{Degree} We select vertices from highest degree to lowest degree. This is done by
 permuting the target graph at the top of search. This heuristic is the current state of the art.
 
 \paragraph{Anti} We select vertices from lowest degree to highest degree. This heuristic is used as
-a sanity check: we expect tailored to beat random, and random to beat anti.
+a sanity check: we expect degree to beat random, and random to beat anti.
 
-\paragraph{Biased} As with the random heuristic, we shuffle the vertices before we enter the
-$\KwSty{foreach}$ loop. Instead of picking a vertex uniformly at random, we use a weight of
+\paragraph{Position-biased} We permute the graph at the top of search, as in the degree heuristic.
+Then, as with the random heuristic, we shuffle the vertices before we enter the $\KwSty{foreach}$
+loop. Instead of picking a vertex uniformly at random, we select select the first (that is, highest
+degree) vertex with probability 0.5, the second vertex with probability 0.25, and the $n$th with
+probability $2^{-n}$.  This heuristic heavily prefers vertices of high degree, similar to the
+degree heuristic, but also introduces an element of randomness, and so can be used with restarts.
+
+\paragraph{Degree-biased} Refining position-biased, we shuffle the vertices, using a weight of
 $2^{\left|\neighbourhood(v)\right|}$ when deciding whether to branch on vertex $v$ next. (We cheat
 slightly to avoid range issues with random number generation: we give the vertex with highest degree
 in the entire graph weight $2^{50}$, and then give lower degree vertices smaller powers, giving
 every vertex weight at least 1.  This is a bit of hack but programming is hard.) This heuristic
-heavily prefers vertices of high degree, similar to the tailored heuristic, but will give the same
-chance of being selected next to two vertices of equal degree. This heuristic also introduces an
-element of randomness, and so can be used with restarts.
+continues to prefer vertices of high degree, but will give the same chance of being selected next to
+two vertices of equal degree.
 
 \subsection{Discrepancy Searches}
 
@@ -340,7 +345,7 @@ something to cite showing how bad SAT is at this.
 \end{figure}
 
 In \cref{figure:value-ordering-heuristics} we show the cumulative number of instances solved over
-time using the four different value-ordering heuristics. As expected, the tailored heuristic is much
+time using the four different value-ordering heuristics. As expected, the degree heuristic is much
 better (?? give aggregate speedups for both all and just satisfiable instances) than random
 ordering, which is in turn ?? times better than the anti-heuristic.
 
@@ -348,16 +353,18 @@ ordering, which is in turn ?? times better than the anti-heuristic.
     \centering
     \includegraphics*{gen-graph-scatter-heuristics.pdf}
 
-    \caption{An instance by instance comparison of the tailored and biased heuristics.}
+    \caption{An instance by instance comparison of the degree and degree-biased heuristics.}
     \label{figure:scatter-heuristics}
 \end{figure}
 
-The performance of the biased and tailored heuristics is very similar: the biased heuristic has
+?? Also talk about position-biased
+
+The performance of the degree-biased and degree heuristics is very similar: the degree-biased heuristic has
 slightly worse performance below a 100s timeout, and effectively equal performance above it. This
-shows that we can introduce an element of randomness into the tailored value-ordering heuristic
+shows that we can introduce an element of randomness into the degree value-ordering heuristic
 without adversely affecting its performance \emph{in aggregate}. \Cref{figure:scatter-heuristics}
 gives a more detailed look at these results. In this plot, satisfiable and unsatisfiable instances
-are shown using dots and crosses respectively. On the $x$-axis we measure the tailored heuristic,
+are shown using dots and crosses respectively. On the $x$-axis we measure the degree heuristic,
 whilst on the $y$-axis we measure random + restarts. Points on the outer axes represent instances
 which timed out with one heuristic but not the other. This plot shows that on a case by case basis,
 randomness can make a large difference to individual satisfiable instances.
@@ -369,7 +376,7 @@ randomness can make a large difference to individual satisfiable instances.
 \subsection{Restarts Make it Better}
 
 In \cref{figure:restarts} we show the effects of adding restarts to the algorithm. With restarts,
-the random value-ordering heuristic comfortably beats the tailored strategy without restarts. In
+the random value-ordering heuristic comfortably beats the degree strategy without restarts. In
 other words, although having a good variable-ordering heuristic is beneficial, introducing
 randomness into the search is better, if it is done alongside a mechanism to avoid heavy commitment
 to any particular random choice. \Cref{figure:scatter-random} looks at this in more detail.  The
@@ -387,7 +394,7 @@ many satisfiable instances performing substantially worse. ?? Quantify this a bi
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-random.pdf}
-    \caption{Instance by instance comparison of the basic algorithm with the tailored heuristic,
+    \caption{Instance by instance comparison of the basic algorithm with the degree heuristic,
     versus random + restarts.}
     \label{figure:scatter-random}
 \end{figure}
@@ -396,19 +403,22 @@ many satisfiable instances performing substantially worse. ?? Quantify this a bi
     \centering
     \includegraphics*{gen-graph-scatter.pdf}
 
-    \caption{Instance by instance comparison of the basic algorithm with the tailored heuristic,
-    versus biased + restarts.}
+    \caption{Instance by instance comparison of the basic algorithm with the degree heuristic,
+    versus degree-biased + restarts.}
     \label{figure:scatter}
 \end{figure}
 
-\Cref{figure:restarts} shows that the biased heuristic together with restarts is better
+\Cref{figure:restarts} shows that either biased heuristic together with restarts is better
 still---that is, if we are introducing restarts, then it is better to add a small amount of
 randomness to a tailored deterministic heuristic than it is to throw away the heuristic altogether.
-In the more detailed view in \cref{figure:scatter},
-nearly all of the unsatisfiable instances are on or slightly above the $x-y$ diagonal, showing that
-their performance is either unchanged or reduced slightly. On the other hand, there are ?? large
-numbers of satisfiable instances well below the diagonal line, indicating large speedups. Better
-yet, there are only ?? satisfiable instances that are more than a factor of ?? times worse.
+The degree-biased heuristics is stronger than position-biased, showing that exploiting ties and
+relative sizes in the heuristic ordering is also worthwhile.
+
+In the more detailed view in \cref{figure:scatter}, comparing the basic algorithm with the degree
+heuristic to the degree-biased algorithm with restarts, nearly all of the unsatisfiable instances
+are on the $x-y$ diagonal, showing that their performance is unchanged. On the other hand, there are
+?? large numbers of satisfiable instances well below the diagonal line, indicating large speedups.
+Better yet, there are only ?? satisfiable instances that are more than a factor of ?? times worse.
 
 ?? This has made up the consistency we lost from introducing randomness.
 
@@ -418,7 +428,7 @@ we're doing unit propagation, could be a horrible bug.
 
 ?? do a more detailed breakdown by family
 
-?? maybe some engineering aspects: look at performance with restarts on tailored, and at restarts
+?? maybe some engineering aspects: look at performance with restarts on degree, and at restarts
 without nogood recording
 
 ?? Explain why this is so amazingly awesome and the most important idea ever to happen in the entire

@@ -5,7 +5,7 @@ set output "gen-graph-scatter-random.tex"
 
 load "magma.pal"
 
-set xlabel "Tailored Runtime (ms)"
+set xlabel "Degree Runtime (ms)"
 set ylabel "Random + Restarts Runtime (ms)"
 set border 3
 set grid x y
