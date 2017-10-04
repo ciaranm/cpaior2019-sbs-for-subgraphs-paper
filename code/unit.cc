@@ -863,6 +863,8 @@ namespace
                                 break;
                         }
                     }
+                    else
+                        done = true;
                 }
             }
             else if (params.shuffle || params.biased_shuffle || params.position_shuffle) {
