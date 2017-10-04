@@ -252,8 +252,6 @@ namespace
 
         auto propagate(Domains & new_domains, Assignments & assignments) -> bool
         {
-            bool this_is_a_decision = true;
-
             // whilst we've got a unit domain...
             for (typename Domains::iterator branch_domain = find_unit_domain(new_domains) ;
                     branch_domain != new_domains.end() ;
@@ -263,8 +261,7 @@ namespace
 
                 // ok, make the assignment
                 branch_domain->fixed = true;
-                assignments.values.push_back({ { current_assignment.first, current_assignment.second }, this_is_a_decision });
-                this_is_a_decision = false;
+                assignments.values.push_back({ { current_assignment.first, current_assignment.second }, false });
 
                 // propagate watches
                 if (params.restarts) {
@@ -402,6 +399,7 @@ namespace
                 remaining.unset(f_v);
 
                 auto assignments_size = assignments.values.size();
+                assignments.values.push_back({ { branch_domain->v, f_v }, true });
 
                 /* set up new domains */
                 Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
@@ -525,6 +523,9 @@ namespace
                 // modified in-place by appending, we can restore by shrinking
                 auto assignments_size = assignments.values.size();
 
+                // make the assignment
+                assignments.values.push_back({ { branch_domain->v, *f_v }, true });
+
                 // set up new domains
                 Domains new_domains = prepare_domains(domains, branch_domain->v, *f_v);
 
@@ -599,6 +600,8 @@ namespace
                         || (1 == discrepancies_allowed && 0 != count)
                         || (discrepancies_allowed > 1)) {
                     auto assignments_size = assignments.values.size();
+
+                    assignments.values.push_back({ { branch_domain->v, f_v }, true });
 
                     /* set up new domains */
                     Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
