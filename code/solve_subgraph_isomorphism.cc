@@ -99,7 +99,8 @@ auto main(int argc, char * argv[]) -> int
             ("antiheuristic",                                "Use antiheuristic")
             ("tiebreaking",                                  "Use tiebreaking")
             ("input-order",                                  "Use input order")
-            ("luby-multiplier",    po::value<unsigned>(),    "Specify a Luby multiplier")
+            ("luby-multiplier",      po::value<unsigned>(),  "Specify a Luby multiplier")
+            ("geometric-multiplier", po::value<double>(),    "Use geometric restarts with this multiplier instead")
             ("goods",                                        "No nogoods")
             ;
 
@@ -170,6 +171,8 @@ auto main(int argc, char * argv[]) -> int
 
         if (options_vars.count("luby-multiplier"))
             params.luby_multiplier = options_vars["luby-multiplier"].as<unsigned>();
+        if (options_vars.count("geometric-multiplier"))
+            params.geometric_multiplier = options_vars["geometric-multiplier"].as<double>();
 
         /* Read in the graphs */
         auto graphs = std::make_pair(

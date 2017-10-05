@@ -47,6 +47,8 @@ struct Params
     /// Multiplier for Luby sequence
     unsigned long long luby_multiplier = dodgy_default_magic_luby_multiplier;
 
+    /// If non-zero, use geometric restarts with this multiplier.
+    double geometric_multiplier = 0.0;
 };
 
 #endif
