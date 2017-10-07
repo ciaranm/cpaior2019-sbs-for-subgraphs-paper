@@ -250,6 +250,87 @@ namespace
                     });
         }
 
+        auto propagate_watches(Domains & new_domains, Assignments & assignments, const Assignment & current_assignment) -> bool
+        {
+            auto & watches_to_update = watches[current_assignment];
+            for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ) {
+                Nogood & nogood = **watch_to_update;
+
+                // make the first watch the thing we just triggered
+                if (nogood.literals[0] != current_assignment)
+                    std::swap(nogood.literals[0], nogood.literals[1]);
+
+                // can we find something else to watch?
+                bool success = false;
+                for (auto new_literal = std::next(nogood.literals.begin(), 2) ; new_literal != nogood.literals.end() ; ++new_literal) {
+                    if (! assignments.contains(*new_literal)) {
+                        // we can watch new_literal instead of current_assignment in this nogood
+                        success = true;
+
+                        // move the new watch to be the first item in the nogood
+                        std::swap(nogood.literals[0], *new_literal);
+
+                        // start watching it
+                        watches[nogood.literals[0]].push_back(*watch_to_update);
+
+                        // remove the current watch, and update the loop iterator
+                        watches_to_update.erase(watch_to_update++);
+
+                        break;
+                    }
+                }
+
+                // found something new? nothing to propagate (and we've already updated our loop iterator in the erase)
+                if (success)
+                    continue;
+
+                // no new watch, this nogood will now propagate. do a linear scan to find the variable for now... note
+                // that it might not exist if we've assigned it something other value anyway.
+                for (auto & d : new_domains) {
+                    if (d.fixed)
+                        continue;
+
+                    if (d.v == nogood.literals[1].first) {
+                        d.values.unset(nogood.literals[1].second);
+                        break;
+                    }
+                }
+
+                // step the loop variable, only if we've not already erased it
+                ++watch_to_update;
+            }
+
+            return true;
+        }
+
+        auto propagate_simple_constraints(Domains & new_domains, const Assignment & current_assignment) -> bool
+        {
+            // propagate for each remaining domain...
+            for (auto & d : new_domains) {
+                if (d.fixed)
+                    continue;
+
+                // all different
+                d.values.unset(current_assignment.second);
+
+                // for each graph pair...
+                for (int g = 0 ; g < max_graphs ; ++g) {
+                    // if we're adjacent...
+                    if (pattern_graphs.at(g).adjacent(current_assignment.first, d.v)) {
+                        // ...then we can only be mapped to adjacent vertices
+                        target_graphs.at(g).intersect_with_row(current_assignment.second, d.values);
+                    }
+                }
+
+                // we might have removed values
+                d.popcount = d.values.popcount();
+                if (0 == d.popcount)
+                    return false;
+            }
+
+            return true;
+        }
+
         auto propagate(Domains & new_domains, Assignments & assignments) -> bool
         {
             // whilst we've got a unit domain...
@@ -264,78 +345,13 @@ namespace
                 assignments.values.push_back({ { current_assignment.first, current_assignment.second }, false });
 
                 // propagate watches
-                if (params.restarts) {
-                    auto & watches_to_update = watches[current_assignment];
-                    for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ) {
-                        Nogood & nogood = **watch_to_update;
-
-                        // make the first watch the thing we just triggered
-                        if (nogood.literals[0] != current_assignment)
-                            std::swap(nogood.literals[0], nogood.literals[1]);
-
-                        // can we find something else to watch?
-                        bool success = false;
-                        for (auto new_literal = std::next(nogood.literals.begin(), 2) ; new_literal != nogood.literals.end() ; ++new_literal) {
-                            if (! assignments.contains(*new_literal)) {
-                                // we can watch new_literal instead of current_assignment in this nogood
-                                success = true;
-
-                                // move the new watch to be the first item in the nogood
-                                std::swap(nogood.literals[0], *new_literal);
-
-                                // start watching it
-                                watches[nogood.literals[0]].push_back(*watch_to_update);
-
-                                // remove the current watch, and update the loop iterator
-                                watches_to_update.erase(watch_to_update++);
-
-                                break;
-                            }
-                        }
-
-                        // found something new? nothing to propagate (and we've already updated our loop iterator in the erase)
-                        if (success)
-                            continue;
-
-                        // no new watch, this nogood will now propagate. do a linear scan to find the variable for now... note
-                        // that it might not exist if we've assigned it something other value anyway.
-                        for (auto & d : new_domains) {
-                            if (d.fixed)
-                                continue;
-
-                            if (d.v == nogood.literals[1].first) {
-                                d.values.unset(nogood.literals[1].second);
-                                break;
-                            }
-                        }
-
-                        // step the loop variable, only if we've not already erased it
-                        ++watch_to_update;
-                    }
-                }
-
-                // propagate for each remaining domain...
-                for (auto & d : new_domains) {
-                    if (d.fixed)
-                        continue;
-
-                    // all different
-                    d.values.unset(current_assignment.second);
-
-                    // for each graph pair...
-                    for (int g = 0 ; g < max_graphs ; ++g) {
-                        // if we're adjacent...
-                        if (pattern_graphs.at(g).adjacent(current_assignment.first, d.v)) {
-                            // ...then we can only be mapped to adjacent vertices
-                            target_graphs.at(g).intersect_with_row(current_assignment.second, d.values);
-                        }
-                    }
-
-                    // we might have removed values
-                    d.popcount = d.values.popcount();
-                    if (0 == d.popcount)
+                if (params.restarts)
+                    if (! propagate_watches(new_domains, assignments, current_assignment))
                         return false;
-                }
+
+                // propagate simple all different and adjacency
+                if (! propagate_simple_constraints(new_domains, current_assignment))
+                    return false;
             }
 
             // all unit domains done, try all different (and don't bother fixedpointing)

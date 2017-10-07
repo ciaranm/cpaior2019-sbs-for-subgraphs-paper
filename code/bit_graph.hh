@@ -43,30 +43,11 @@ class FixedBitSet
         }
 
         /**
-         * Set a given bit 'on'.
-         */
-        auto set_atomic(int a) -> void
-        {
-            // we don't have std::atomic_concurrent_view yet...
-            __sync_or_and_fetch(&_bits[a / bits_per_word], (BitWord{ 1 } << (a % bits_per_word)));
-        }
-
-        /**
          * Set a given bit 'off'.
          */
         auto unset(int a) -> void
         {
             _bits[a / bits_per_word] &= ~(BitWord{ 1 } << (a % bits_per_word));
-        }
-
-        /**
-         * Set all bits on.
-         */
-        auto set_up_to(int size) -> void
-        {
-            unset_all();
-            for (int i = 0 ; i < size ; ++i)
-                set(i);
         }
 
         /**
@@ -148,34 +129,6 @@ class FixedBitSet
             }
             return -1;
         }
-
-        /**
-         * Return the index of the last set ('on') bit, or -1 if we are
-         * empty.
-         */
-        auto last_set_bit() const -> int
-        {
-            for (int i = _bits.size() - 1 ; i >= 0 ; --i) {
-                if (0 == _bits[i])
-                    continue;
-
-                int b = __builtin_clzll(_bits[i]);
-                return (i + 1) * bits_per_word - b - 1;
-            }
-            return -1;
-        }
-
-        auto operator== (const FixedBitSet<words_> & other) const -> bool
-        {
-            if (_bits.size() != other._bits.size())
-                return false;
-
-            for (typename Bits::size_type i = 0 ; i < _bits.size() ; ++i)
-                if (_bits[i] != other._bits[i])
-                    return false;
-
-            return true;
-        }
 };
 
 /**
@@ -219,15 +172,6 @@ class FixedBitGraph
         {
             _adjacency[a].set(b);
             _adjacency[b].set(a);
-        }
-
-        /**
-         * Add an edge from a to b (and from b to a).
-         */
-        auto add_edge_atomic(int a, int b) -> void
-        {
-            _adjacency[a].set_atomic(b);
-            _adjacency[b].set_atomic(a);
         }
 
         /**
