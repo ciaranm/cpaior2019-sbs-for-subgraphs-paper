@@ -38,6 +38,9 @@ struct Params
     /// Use antiheuristic? (For science purposes)
     bool antiheuristic = false;
 
+    /// Also muck around with variable ordering?
+    bool biased_variable_ordering = false;
+
     /// Don't use nogoods?
     bool goods = false;
 

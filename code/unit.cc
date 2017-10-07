@@ -363,12 +363,14 @@ namespace
 
         auto find_branch_domain(const Domains & domains) -> const Domain *
         {
+            std::uniform_real_distribution<double> dist(0, 1);
             const Domain * result = nullptr;
             for (auto & d : domains)
                 if (! d.fixed)
                     if ((! result) ||
                             (d.popcount < result->popcount) ||
-                            (d.popcount == result->popcount && pattern_degree_tiebreak.at(d.v) > pattern_degree_tiebreak.at(result->v)))
+                            (d.popcount == result->popcount && pattern_degree_tiebreak.at(d.v) > pattern_degree_tiebreak.at(result->v)) ||
+                            (params.biased_variable_ordering && d.popcount == result->popcount && pattern_degree_tiebreak.at(d.v) == pattern_degree_tiebreak.at(result->v) && dist(global_rand) > 0.5))
                         result = &d;
             return result;
         }

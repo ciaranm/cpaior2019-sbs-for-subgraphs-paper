@@ -102,6 +102,7 @@ auto main(int argc, char * argv[]) -> int
             ("luby-multiplier",      po::value<unsigned>(),  "Specify a Luby multiplier")
             ("geometric-multiplier", po::value<double>(),    "Use geometric restarts with this multiplier instead")
             ("goods",                                        "No nogoods")
+            ("biased-variable-ordering",                     "Muck around with variable ordering")
             ;
 
         po::options_description all_options{ "All options" };
@@ -168,6 +169,7 @@ auto main(int argc, char * argv[]) -> int
         params.tiebreaking = options_vars.count("tiebreaking");
         params.input_order = options_vars.count("input-order");
         params.goods = options_vars.count("goods");
+        params.biased_variable_ordering = options_vars.count("biased-variable-ordering");
 
         if (options_vars.count("luby-multiplier"))
             params.luby_multiplier = options_vars["luby-multiplier"].as<unsigned>();
