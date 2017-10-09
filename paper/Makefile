@@ -12,7 +12,9 @@ GRAPHS = \
 	 gen-graph-others-zoom.pdf \
 	 gen-graph-scatter-heuristics.pdf \
 	 gen-graph-scatter-nogoods.pdf \
-	 gen-graph-scatter-overheads.pdf
+	 gen-graph-scatter-overheads.pdf \
+	 gen-graph-restart-policies.pdf \
+	 gen-graph-scatter-geometric.pdf
 
 tables : $(TABLES)
 

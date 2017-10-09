@@ -19,7 +19,7 @@ set key bottom right
 
 plot \
     "runtimes.data" u ($5>=1e6?1e6:$5):($5>=1e6?1e-10:1) smooth cumulative w l ti 'Algorithm 1' ls 1, \
-    "runtimes.data" u ($18>=1e6?1e6:$18):($18>=1e6?1e-10:1) smooth cumulative w l ti 'Glasgow2' ls 4, \
-    "runtimes.data" u ($19>=1e6?1e6:$19):($19>=1e6?1e-10:1) smooth cumulative w l ti 'Glasgow3' ls 6, \
-    "runtimes.data" u ($16>=1e6?1e6:$16):($16>=1e6?1e-10:1) smooth cumulative w l ti 'PathLAD' ls 7
+    "runtimes.data" u ($22>=1e6?1e6:$22):($22>=1e6?1e-10:1) smooth cumulative w l ti 'Glasgow2' ls 4, \
+    "runtimes.data" u ($23>=1e6?1e6:$23):($23>=1e6?1e-10:1) smooth cumulative w l ti 'Glasgow3' ls 6, \
+    "runtimes.data" u ($20>=1e6?1e6:$20):($20>=1e6?1e-10:1) smooth cumulative w l ti 'PathLAD' ls 7
 

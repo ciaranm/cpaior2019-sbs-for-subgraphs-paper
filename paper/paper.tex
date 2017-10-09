@@ -22,7 +22,7 @@
 \usetikzlibrary{decorations, decorations.pathreplacing, decorations.pathmorphing,
     calc, backgrounds, positioning, tikzmark, patterns, fit}
 
-\definecolor{inferno9}{rgb}{0.992157, 0.929412, 0.501961}
+\definecolor{inferno7}{rgb}{0.976471, 0.584314, 0.039216}
 
 % cref style
 \crefname{algorithm}{Algorithm}{Algorithms}
@@ -100,32 +100,32 @@ context of restarts.
     \begin{tikzpicture}[remember picture,overlay]
         \coordinate (restart1sc) at ($(pic cs:restart1s) + (0, 0.15)$);
         \coordinate (restart1ec) at ($(pic cs:restart1e) + (0, 0.00)$);
-        \node [fill=inferno9, rounded corners, fit=(restart1sc) (restart1ec)] { };
+        \node [fill=inferno7, rounded corners, fit=(restart1sc) (restart1ec)] { };
         \coordinate (restart2sc) at ($(pic cs:restart2s) + (0, 0.15)$);
         \coordinate (restart2ec) at ($(pic cs:restart2e) + (0, 0.00)$);
-        \node [fill=inferno9, rounded corners, fit=(restart2sc) (restart2ec)] { };
+        \node [fill=inferno7, rounded corners, fit=(restart2sc) (restart2ec)] { };
         \coordinate (restart3sc) at ($(pic cs:restart3s) + (0, 0.15)$);
         \coordinate (restart3ec) at ($(pic cs:restart3e) + (0, 0.00)$);
-        \node [fill=inferno9, rounded corners, fit=(restart3sc) (restart3ec)] { };
+        \node [fill=inferno7, rounded corners, fit=(restart3sc) (restart3ec)] { };
         \coordinate (restart4sc) at ($(pic cs:restart4s) + (0, 0.15)$);
         \coordinate (restart4ec) at ($(pic cs:restart4e) + (0, 0.00)$);
-        \node [fill=inferno9, rounded corners, fit=(restart4sc) (restart4ec)] { };
+        \node [fill=inferno7, rounded corners, fit=(restart4sc) (restart4ec)] { };
         \coordinate (restart5sc) at ($(pic cs:restart5s) + (0, 0.15)$);
         \coordinate (restart5ec) at ($(pic cs:restart5e) - (0, 0.10)$);
         \coordinate (restart5rc) at ($(pic cs:restart5r) + (0, 0.00)$);
-        \node [fill=inferno9, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
+        \node [fill=inferno7, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
         \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
         \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
-        \node [fill=inferno9, rounded corners, fit=(restart6sc) (restart6ec)] { };
+        \node [fill=inferno7, rounded corners, fit=(restart6sc) (restart6ec)] { };
         \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
         \coordinate (restart7ec) at ($(pic cs:restart7e) + (0, 0.00)$);
-        \node [fill=inferno9, rounded corners, fit=(restart7sc) (restart7ec)] { };
+        \node [fill=inferno7, rounded corners, fit=(restart7sc) (restart7ec)] { };
         \coordinate (restart8sc) at ($(pic cs:restart8s) + (0.05, 0.15)$);
         \coordinate (restart8ec) at ($(pic cs:restart8e) + (0, 0.00)$);
-        \node [fill=inferno9, rounded corners, fit=(restart8sc) (restart8ec)] { };
+        \node [fill=inferno7, rounded corners, fit=(restart8sc) (restart8ec)] { };
         \coordinate (restart9sc) at ($(pic cs:restart9s) + (0, 0.15)$);
         \coordinate (restart9ec) at ($(pic cs:restart9e) + (-0.15, 0.00)$);
-        \node [fill=inferno9, rounded corners, fit=(restart9sc) (restart9ec)] { };
+        \node [fill=inferno7, rounded corners, fit=(restart9sc) (restart9ec)] { };
     \end{tikzpicture}
 
     \nl $\FuncSty{subgraphIsomorphism}$ (Graph $\mathcal{P}$, Graph $\mathcal{T}$) $\rightarrow$ Bool \;
@@ -415,16 +415,12 @@ relative sizes in the heuristic ordering is also worthwhile. Interestingly, the 
 and position-based is much larger when using restarts than it is when not using them.
 
 In the more detailed view in \cref{figure:scatter}, comparing the basic algorithm with the degree
-heuristic to the degree-biased algorithm with restarts, nearly all of the unsatisfiable instances
+heuristic to the degree-biased algorithm with restarts, all of the unsatisfiable instances
 are on the $x-y$ diagonal, showing that their performance is unchanged. On the other hand, there are
 ?? large numbers of satisfiable instances well below the diagonal line, indicating large speedups.
 Better yet, there are only ?? satisfiable instances that are more than a factor of ?? times worse.
 
 ?? This has made up the consistency we lost from introducing randomness.
-
-?? Figure out what's going on with the unsat instances not on the line. There are a few options.
-Could be SDF picking something else, could be the hacky all-diff missing something, could be how
-we're doing unit propagation, could be a horrible bug.
 
 ?? do a more detailed breakdown by family
 
@@ -445,6 +441,22 @@ without nogood recording, and what happens without nogoods in \cref{figure:scatt
 
     \caption{Is nogood recording and restarting expensive?}
     \label{figure:scatter-overhead}
+\end{figure}
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-restart-policies.pdf}
+
+    \caption{Different restart policies}
+    \label{figure:restart-policies}
+\end{figure}
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-scatter-geometric.pdf}
+
+    \caption{Geometric instead of Luby}
+    \label{figure:scatter-geometric}
 \end{figure}
 
 ?? Explain why this is so amazingly awesome and the most important idea ever to happen in the entire
