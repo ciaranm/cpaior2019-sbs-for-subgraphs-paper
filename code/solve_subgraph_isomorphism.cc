@@ -95,6 +95,7 @@ auto main(int argc, char * argv[]) -> int
             ("restarts",                                     "Use restarts (not with dds)")
             ("shuffle",                                      "Use shuffling (not with dds)")
             ("biased-shuffle",                               "Use biased shuffling")
+            ("magic-shuffle",                                "Use magic shuffling")
             ("position-shuffle",                             "Use position shuffling")
             ("antiheuristic",                                "Use antiheuristic")
             ("tiebreaking",                                  "Use tiebreaking")

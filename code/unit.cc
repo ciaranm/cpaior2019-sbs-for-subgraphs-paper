@@ -9,6 +9,7 @@
 #include <limits>
 #include <random>
 #include <list>
+#include <cmath>
 
 #include <iostream>
 
@@ -139,6 +140,8 @@ namespace
         std::vector<int> pattern_order, target_order, isolated_vertices;
         std::vector<std::pair<int, int> > pattern_degree_tiebreak;
 
+        std::vector<int> pattern_degrees, target_degrees;
+
         Nogoods nogoods;
         Watches watches;
         std::list<typename Nogoods::iterator> need_to_watch;
@@ -199,11 +202,11 @@ namespace
                     if (pattern_graphs.at(0).adjacent(i, j))
                         pattern_degree_tiebreak.at(j).second += pattern_degree_tiebreak.at(i).first;
 
-            int max_degree = 0;
-            for (unsigned j = 0 ; j < target_size ; ++j)
-                max_degree = std::max(max_degree, target_graphs.at(0).degree(j));
-
             if (params.biased_shuffle) {
+                int max_degree = 0;
+                for (unsigned j = 0 ; j < target_size ; ++j)
+                    max_degree = std::max(max_degree, target_graphs.at(0).degree(j));
+
                 for (unsigned j = 0 ; j < target_size ; ++j) {
                     int degree = target_graphs.at(0).degree(j);
                     if (max_degree - degree >= 50)
@@ -211,6 +214,15 @@ namespace
                     else
                         target_vertex_biases.push_back(1ull << (50 - (max_degree - degree)));
                 }
+            }
+
+            if (params.magic_shuffle) {
+                pattern_degrees.resize(pattern_size);
+                target_degrees.resize(target_size);
+                for (unsigned i = 0 ; i < pattern_size ; ++i)
+                    pattern_degrees.at(i) = pattern_graphs.at(0).degree(i);
+                for (unsigned i = 0 ; i < target_size ; ++i)
+                    target_degrees.at(i) = target_graphs.at(0).degree(i);
             }
         }
 
@@ -493,7 +505,7 @@ namespace
                 // now repeatedly pick a biased-random vertex, move it to the front of branch_v,
                 // and then only consider items further to the right in the next iteration.
                 for (unsigned start = 0 ; start < branch_v_end ; ++start) {
-                    // pick a random number between 1 and remaining_score inclusive
+                    // pick a random number between 0 and remaining_score inclusive
                     std::uniform_int_distribution<unsigned long long> dist(1, remaining_score);
                     unsigned long long select_score = dist(global_rand);
 
@@ -508,6 +520,33 @@ namespace
 
                     // move to front, and update remaining_score
                     remaining_score -= target_vertex_biases[branch_v[select_element]];
+                    std::swap(branch_v[select_element], branch_v[start]);
+                }
+            }
+            else if (params.magic_shuffle) {
+                // sum up the bias scores of every branch vertex
+                double remaining_score = 0.0;
+                for (unsigned v = 0 ; v < branch_v_end ; ++v)
+                    remaining_score += std::pow(pattern_degrees[branch_domain->v], target_degrees[branch_v[v]]);
+
+                // now repeatedly pick a biased-random vertex, move it to the front of branch_v,
+                // and then only consider items further to the right in the next iteration.
+                for (unsigned start = 0 ; start < branch_v_end ; ++start) {
+                    // pick a random number between 1 and remaining_score inclusive
+                    std::uniform_real_distribution<double> dist(0, remaining_score);
+                    double select_score = dist(global_rand);
+
+                    // go over the list until we've used up bias values totalling our
+                    // random number
+                    unsigned select_element = start;
+                    for ( ; select_element < branch_v_end - 1 ; ++select_element) {
+                        select_score -= std::pow(pattern_degrees[branch_domain->v], target_degrees[branch_v[select_element]]);
+                        if (select_score <= 0.0)
+                            break;
+                    }
+
+                    // move to front, and update remaining_score
+                    remaining_score -= std::pow(pattern_degrees[branch_domain->v], target_degrees[branch_v[select_element]]);
                     std::swap(branch_v[select_element], branch_v[start]);
                 }
             }
@@ -895,7 +934,7 @@ namespace
                         done = true;
                 }
             }
-            else if (params.shuffle || params.biased_shuffle || params.position_shuffle) {
+            else if (params.shuffle || params.biased_shuffle || params.position_shuffle || params.magic_shuffle) {
                 if (propagate(domains, assignments)) {
                     // still need to use the restarts variant
                     long long backtracks_until_restart = -1;
