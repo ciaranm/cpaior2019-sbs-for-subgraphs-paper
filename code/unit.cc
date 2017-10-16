@@ -756,6 +756,8 @@ namespace
             if (! initialise_domains(domains))
                 return result;
 
+            result.times.push_back(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - params.start_time));
+
             Assignments assignments;
             assignments.values.reserve(pattern_size);
             if (params.restarts) {
