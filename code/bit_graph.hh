@@ -79,17 +79,6 @@ class FixedBitSet
         }
 
         /**
-         * Are any bits on?
-         */
-        auto empty() const -> bool
-        {
-            for (auto & p : _bits)
-                if (0 != p)
-                    return false;
-            return true;
-        }
-
-        /**
          * Intersect (bitwise-and) with another set.
          */
         auto intersect_with(const FixedBitSet<words_> & other) -> void
@@ -126,6 +115,20 @@ class FixedBitSet
                 int b = __builtin_ffsll(_bits[i]);
                 if (0 != b)
                     return i * bits_per_word + b - 1;
+            }
+            return -1;
+        }
+
+        /**
+         * Return the index of the first set ('on') bit, or -1 if we are
+         * empty. Start at word offset, which is updated.
+         */
+        auto first_set_bit_from(unsigned & offset) const -> int
+        {
+            for ( ; offset < _bits.size() ; ++offset) {
+                int b = __builtin_ffsll(_bits[offset]);
+                if (0 != b)
+                    return offset * bits_per_word + b - 1;
             }
             return -1;
         }

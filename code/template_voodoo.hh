@@ -28,19 +28,11 @@ struct GraphSizes<n_>
     using Rest = NoMoreGraphSizes;
 };
 
-template <unsigned n_>
-struct IndexSizes
-{
-    using Type = typename std::conditional<n_ * bits_per_word <= 1ul << (8 * sizeof(unsigned char)), unsigned char,
-          typename std::conditional<n_ * bits_per_word <= 1ul << (8 * sizeof(unsigned short)), unsigned short,
-            std::false_type>::type>::type;
-};
-
-template <template <unsigned, typename> class Algorithm_, typename Result_, typename Graph_, unsigned... sizes_, typename... Params_>
+template <template <unsigned> class Algorithm_, typename Result_, typename Graph_, unsigned... sizes_, typename... Params_>
 auto select_graph_size(const GraphSizes<sizes_...> &, const Graph_ & graph, Params_ && ... params) -> Result_
 {
     if (graph.size() < GraphSizes<sizes_...>::n * bits_per_word) {
-        Algorithm_<GraphSizes<sizes_...>::n, typename IndexSizes<GraphSizes<sizes_...>::n>::Type> algorithm{
+        Algorithm_<GraphSizes<sizes_...>::n> algorithm{
             graph, std::forward<Params_>(params)... };
         return algorithm.run();
     }
@@ -48,7 +40,7 @@ auto select_graph_size(const GraphSizes<sizes_...> &, const Graph_ & graph, Para
         return select_graph_size<Algorithm_, Result_, Graph_>(typename GraphSizes<sizes_...>::Rest(), graph, std::forward<Params_>(params)...);
 }
 
-template <template <unsigned, typename> class Algorithm_, typename Result_, typename Graph_, typename... Params_>
+template <template <unsigned> class Algorithm_, typename Result_, typename Graph_, typename... Params_>
 auto select_graph_size(const NoMoreGraphSizes &, const Graph_ &, Params_ && ...) -> Result_
 {
     throw GraphTooBig();

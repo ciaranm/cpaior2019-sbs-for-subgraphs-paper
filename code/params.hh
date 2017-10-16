@@ -14,10 +14,7 @@ struct Params
     /// The start time of the algorithm.
     std::chrono::time_point<std::chrono::steady_clock> start_time;
 
-    /// Use dds?
-    bool dds = false;
-
-    /// Use restarts? (Not with dds)
+    /// Use restarts?
     bool restarts = false;
 
     /// Use no heuristic?
@@ -29,20 +26,11 @@ struct Params
     /// Use biased shuffles?
     bool biased_shuffle = false;
 
-    /// Use magic shuffles?
-    bool magic_shuffle = false;
-
     /// Use position shuffle?
     bool position_shuffle = false;
 
-    /// Use tiebreaking for value ordering?
-    bool tiebreaking = false;
-
     /// Use antiheuristic? (For science purposes)
     bool antiheuristic = false;
-
-    /// Also muck around with variable ordering?
-    bool biased_variable_ordering = false;
 
     /// Don't use nogoods?
     bool goods = false;
@@ -52,9 +40,6 @@ struct Params
 
     /// Multiplier for Luby sequence
     unsigned long long luby_multiplier = dodgy_default_magic_luby_multiplier;
-
-    /// If non-zero, use geometric restarts with this multiplier.
-    double geometric_multiplier = 0.0;
 };
 
 #endif

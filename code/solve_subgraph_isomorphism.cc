@@ -91,19 +91,15 @@ auto main(int argc, char * argv[]) -> int
             ("help",                                         "Display help information")
             ("timeout",            po::value<int>(),         "Abort after this many seconds")
             ("format",             po::value<std::string>(), "Specify the format of the input")
-            ("dds",                                          "Use depth-bounded discrepancy search")
-            ("restarts",                                     "Use restarts (not with dds)")
-            ("shuffle",                                      "Use shuffling (not with dds)")
+            ("restarts",                                     "Use restarts")
+            ("shuffle",                                      "Use shuffling")
             ("biased-shuffle",                               "Use biased shuffling")
             ("magic-shuffle",                                "Use magic shuffling")
             ("position-shuffle",                             "Use position shuffling")
             ("antiheuristic",                                "Use antiheuristic")
-            ("tiebreaking",                                  "Use tiebreaking")
             ("input-order",                                  "Use input order")
             ("luby-multiplier",      po::value<unsigned>(),  "Specify a Luby multiplier")
-            ("geometric-multiplier", po::value<double>(),    "Use geometric restarts with this multiplier instead")
             ("goods",                                        "No nogoods")
-            ("biased-variable-ordering",                     "Muck around with variable ordering")
             ;
 
         po::options_description all_options{ "All options" };
@@ -161,21 +157,16 @@ auto main(int argc, char * argv[]) -> int
         /* Figure out what our options should be. */
         Params params;
 
-        params.dds = options_vars.count("dds");
         params.restarts = options_vars.count("restarts");
         params.shuffle = options_vars.count("shuffle");
         params.biased_shuffle = options_vars.count("biased-shuffle");
         params.position_shuffle = options_vars.count("position-shuffle");
         params.antiheuristic = options_vars.count("antiheuristic");
-        params.tiebreaking = options_vars.count("tiebreaking");
         params.input_order = options_vars.count("input-order");
         params.goods = options_vars.count("goods");
-        params.biased_variable_ordering = options_vars.count("biased-variable-ordering");
 
         if (options_vars.count("luby-multiplier"))
             params.luby_multiplier = options_vars["luby-multiplier"].as<unsigned>();
-        if (options_vars.count("geometric-multiplier"))
-            params.geometric_multiplier = options_vars["geometric-multiplier"].as<double>();
 
         /* Read in the graphs */
         auto graphs = std::make_pair(

@@ -11,8 +11,6 @@
 #include <list>
 #include <cmath>
 
-#include <iostream>
-
 namespace
 {
     enum class Search
@@ -37,24 +35,6 @@ namespace
 
         for (int v = 0 ; v < graph.size() ; ++v)
             degrees.push_back(graph.degree(v));
-
-        // sort on degree
-        std::sort(p.begin(), p.end(),
-                [&] (int a, int b) { return (! reverse) ^ (degrees[a] < degrees[b] || (degrees[a] == degrees[b] && a > b)); });
-    }
-
-    auto tiebreaking_degree_sort(const Graph & graph, std::vector<int> & p, bool reverse) -> void
-    {
-        // pre-calculate degrees
-        std::vector<std::pair<int, int> > degrees;
-
-        for (int v = 0 ; v < graph.size() ; ++v)
-            degrees.push_back(std::make_pair(graph.degree(v), 0));
-
-        for (int v = 0 ; v < graph.size() ; ++v)
-            for (int w = 0 ; w < graph.size() ; ++w)
-                if (graph.adjacent(v, w))
-                    degrees.at(v).second += degrees.at(w).first;
 
         // sort on degree
         std::sort(p.begin(), p.end(),
@@ -116,8 +96,8 @@ namespace
         }
     };
 
-    template <unsigned n_words_, int k_, int l_>
-    struct SequentialSubgraphIsomorphism
+    template <unsigned n_words_>
+    struct SIP
     {
         struct Domain
         {
@@ -133,32 +113,31 @@ namespace
 
         unsigned pattern_size, full_pattern_size, target_size;
 
-        static constexpr int max_graphs = 1 + (l_ - 1) * k_;
+        static constexpr int max_graphs = 5;
         std::vector<FixedBitGraph<n_words_> > target_graphs;
         std::vector<FixedBitGraph<n_words_> > pattern_graphs;
 
-        std::vector<int> pattern_order, target_order, isolated_vertices;
-        std::vector<std::pair<int, int> > pattern_degree_tiebreak;
-
-        std::vector<int> pattern_degrees, target_degrees;
+        std::vector<int> pattern_permutation, target_permutation, isolated_vertices;
+        std::vector<std::vector<int> > patterns_degrees, targets_degrees;
 
         Nogoods nogoods;
         Watches watches;
         std::list<typename Nogoods::iterator> need_to_watch;
 
-        std::mt19937 global_rand;
-
         std::vector<unsigned long long> target_vertex_biases;
 
-        SequentialSubgraphIsomorphism(const Graph & target, const Graph & pattern, const Params & a) :
+        std::mt19937 global_rand;
+
+        SIP(const Graph & target, const Graph & pattern, const Params & a) :
             params(a),
             pattern_size(pattern.size()),
             full_pattern_size(pattern.size()),
             target_size(target.size()),
             target_graphs(max_graphs),
             pattern_graphs(max_graphs),
-            target_order(target.size()),
-            pattern_degree_tiebreak(pattern_size)
+            target_permutation(target.size()),
+            patterns_degrees(max_graphs),
+            targets_degrees(max_graphs)
         {
             // strip out isolated vertices in the pattern
             for (unsigned v = 0 ; v < full_pattern_size ; ++v)
@@ -167,41 +146,33 @@ namespace
                     --pattern_size;
                 }
                 else
-                    pattern_order.push_back(v);
+                    pattern_permutation.push_back(v);
 
             // recode pattern to a bit graph
             pattern_graphs.at(0).resize(pattern_size);
             for (unsigned i = 0 ; i < pattern_size ; ++i)
                 for (unsigned j = 0 ; j < pattern_size ; ++j)
-                    if (pattern.adjacent(pattern_order.at(i), pattern_order.at(j)))
+                    if (pattern.adjacent(pattern_permutation.at(i), pattern_permutation.at(j)))
                         pattern_graphs.at(0).add_edge(i, j);
 
             // determine ordering for target graph vertices
-            std::iota(target_order.begin(), target_order.end(), 0);
+            std::iota(target_permutation.begin(), target_permutation.end(), 0);
 
             // set up space for watches
-            if (params.restarts)
+            if (params.restarts && ! params.goods)
                 watches.initialise(pattern_size, target_size);
 
-            if (params.tiebreaking)
-                tiebreaking_degree_sort(target, target_order, params.antiheuristic);
-            else if (! params.input_order)
-                degree_sort(target, target_order, params.antiheuristic);
+            if (! params.input_order)
+                degree_sort(target, target_permutation, params.antiheuristic);
 
             // recode target to a bit graph
             target_graphs.at(0).resize(target_size);
             for (unsigned i = 0 ; i < target_size ; ++i)
-                for (unsigned j = 0 ; j < target_size ; ++j)
-                    if (target.adjacent(target_order.at(i), target_order.at(j)))
+                for (unsigned j = i ; j < target_size ; ++j)
+                    if (target.adjacent(target_permutation.at(i), target_permutation.at(j)))
                         target_graphs.at(0).add_edge(i, j);
 
-            for (unsigned j = 0 ; j < pattern_size ; ++j)
-                pattern_degree_tiebreak.at(j).first = pattern_graphs.at(0).degree(j);
-            for (unsigned i = 0 ; i < pattern_size ; ++i)
-                for (unsigned j = 0 ; j < pattern_size ; ++j)
-                    if (pattern_graphs.at(0).adjacent(i, j))
-                        pattern_degree_tiebreak.at(j).second += pattern_degree_tiebreak.at(i).first;
-
+            // build up vertex selection biases
             if (params.biased_shuffle) {
                 int max_degree = 0;
                 for (unsigned j = 0 ; j < target_size ; ++j)
@@ -215,15 +186,6 @@ namespace
                         target_vertex_biases.push_back(1ull << (50 - (max_degree - degree)));
                 }
             }
-
-            if (params.magic_shuffle) {
-                pattern_degrees.resize(pattern_size);
-                target_degrees.resize(target_size);
-                for (unsigned i = 0 ; i < pattern_size ; ++i)
-                    pattern_degrees.at(i) = pattern_graphs.at(0).degree(i);
-                for (unsigned i = 0 ; i < target_size ; ++i)
-                    target_degrees.at(i) = target_graphs.at(0).degree(i);
-            }
         }
 
         auto build_supplemental_graphs(std::vector<FixedBitGraph<n_words_> > & graphs, unsigned size) -> void
@@ -231,26 +193,35 @@ namespace
             for (int g = 1 ; g < max_graphs ; ++g)
                 graphs.at(g).resize(size);
 
-            if (l_ >= 2) {
-                for (unsigned v = 0 ; v < size ; ++v) {
-                    auto nv = graphs.at(0).neighbourhood(v);
-                    for (int c = nv.first_set_bit() ; c != -1 ; c = nv.first_set_bit()) {
-                        nv.unset(c);
-                        auto nc = graphs.at(0).neighbourhood(c);
-                        for (int w = nc.first_set_bit() ; w != -1 && unsigned(w) <= v ; w = nc.first_set_bit()) {
-                            nc.unset(w);
-                            if (k_ >= 5 && graphs.at(4).adjacent(v, w))
-                                graphs.at(5).add_edge(v, w);
-                            else if (k_ >= 4 && graphs.at(3).adjacent(v, w))
-                                graphs.at(4).add_edge(v, w);
-                            else if (k_ >= 3 && graphs.at(2).adjacent(v, w))
-                                graphs.at(3).add_edge(v, w);
-                            else if (k_ >= 2 && graphs.at(1).adjacent(v, w))
-                                graphs.at(2).add_edge(v, w);
-                            else if (k_ >= 1)
-                                graphs.at(1).add_edge(v, w);
-                        }
+            std::vector<std::vector<unsigned> > path_counts(size, std::vector<unsigned>(size, 0));
+
+            // count number of paths from w to v (only w >= v, so not v to w)
+            for (unsigned v = 0 ; v < size ; ++v) {
+                auto nv = graphs.at(0).neighbourhood(v);
+                unsigned cp = 0;
+                for (int c = nv.first_set_bit_from(cp) ; c != -1 ; c = nv.first_set_bit_from(cp)) {
+                    nv.unset(c);
+                    auto nc = graphs.at(0).neighbourhood(c);
+                    unsigned wp = 0;
+                    for (int w = nc.first_set_bit_from(wp) ; w != -1 && w <= int(v) ; w = nc.first_set_bit_from(wp)) {
+                        nc.unset(w);
+                        ++path_counts[v][w];
                     }
+                }
+            }
+
+            for (unsigned v = 0 ; v < size ; ++v) {
+                for (unsigned w = v ; w < size ; ++w) {
+                    // w to v, not v to w, see above
+                    unsigned path_count = path_counts[w][v];
+                    if (path_count >= 4)
+                        graphs.at(4).add_edge(v, w);
+                    if (path_count >= 3)
+                        graphs.at(3).add_edge(v, w);
+                    if (path_count >= 2)
+                        graphs.at(2).add_edge(v, w);
+                    if (path_count >= 1)
+                         graphs.at(1).add_edge(v, w);
                 }
             }
         }
@@ -381,8 +352,7 @@ namespace
                 if (! d.fixed)
                     if ((! result) ||
                             (d.popcount < result->popcount) ||
-                            (d.popcount == result->popcount && pattern_degree_tiebreak.at(d.v) > pattern_degree_tiebreak.at(result->v)) ||
-                            (params.biased_variable_ordering && d.popcount == result->popcount && pattern_degree_tiebreak.at(d.v) == pattern_degree_tiebreak.at(result->v) && dist(global_rand) > 0.5))
+                            (d.popcount == result->popcount && patterns_degrees[0][d.v] > patterns_degrees[0][result->v]))
                         result = &d;
             return result;
         }
@@ -523,33 +493,6 @@ namespace
                     std::swap(branch_v[select_element], branch_v[start]);
                 }
             }
-            else if (params.magic_shuffle) {
-                // sum up the bias scores of every branch vertex
-                double remaining_score = 0.0;
-                for (unsigned v = 0 ; v < branch_v_end ; ++v)
-                    remaining_score += std::pow(pattern_degrees[branch_domain->v], target_degrees[branch_v[v]]);
-
-                // now repeatedly pick a biased-random vertex, move it to the front of branch_v,
-                // and then only consider items further to the right in the next iteration.
-                for (unsigned start = 0 ; start < branch_v_end ; ++start) {
-                    // pick a random number between 1 and remaining_score inclusive
-                    std::uniform_real_distribution<double> dist(0, remaining_score);
-                    double select_score = dist(global_rand);
-
-                    // go over the list until we've used up bias values totalling our
-                    // random number
-                    unsigned select_element = start;
-                    for ( ; select_element < branch_v_end - 1 ; ++select_element) {
-                        select_score -= std::pow(pattern_degrees[branch_domain->v], target_degrees[branch_v[select_element]]);
-                        if (select_score <= 0.0)
-                            break;
-                    }
-
-                    // move to front, and update remaining_score
-                    remaining_score -= std::pow(pattern_degrees[branch_domain->v], target_degrees[branch_v[select_element]]);
-                    std::swap(branch_v[select_element], branch_v[start]);
-                }
-            }
             else if (params.position_shuffle) {
                 // repeatedly pick a position-biased vertex, move it to the front of branch_v,
                 // and then only consider items further to the right in the next iteration.
@@ -632,59 +575,8 @@ namespace
                 return RestartingSearch::Unsatisfiable;
         }
 
-        auto dds_search(
-                Assignments & assignments,
-                const Domains & domains,
-                unsigned long long & nodes,
-                int depth,
-                int discrepancies_allowed) -> Search
-        {
-            if (params.abort->load())
-                return Search::Aborted;
-
-            ++nodes;
-
-            const Domain * branch_domain = find_branch_domain(domains);
-            if (! branch_domain)
-                return Search::Satisfiable;
-
-            auto remaining = branch_domain->values;
-
-            for (int f_v = remaining.first_set_bit(), count = 0 ; f_v != -1 ; f_v = remaining.first_set_bit(), ++count) {
-                remaining.unset(f_v);
-
-                if ((0 == discrepancies_allowed && 0 == count)
-                        || (1 == discrepancies_allowed && 0 != count)
-                        || (discrepancies_allowed > 1)) {
-                    auto assignments_size = assignments.values.size();
-
-                    assignments.values.push_back({ { branch_domain->v, f_v }, true });
-
-                    /* set up new domains */
-                    Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
-
-                    if (propagate(new_domains, assignments)) {
-                        auto search_result = dds_search(assignments, new_domains, nodes, depth + 1, discrepancies_allowed > 1 ? discrepancies_allowed - 1 : 0);
-
-                        switch (search_result) {
-                            case Search::Satisfiable:    return Search::Satisfiable;
-                            case Search::Aborted:        return Search::Aborted;
-                            case Search::Unsatisfiable:  break;
-                        }
-                    }
-
-                    assignments.values.resize(assignments_size);
-                }
-            }
-
-            return Search::Unsatisfiable;
-        }
-
         auto initialise_domains(Domains & domains) -> bool
         {
-            std::vector<std::vector<int> > patterns_degrees(max_graphs);
-            std::vector<std::vector<int> > targets_degrees(max_graphs);
-
             for (int g = 0 ; g < max_graphs ; ++g) {
                 patterns_degrees.at(g).resize(pattern_size);
                 targets_degrees.at(g).resize(target_size);
@@ -710,17 +602,21 @@ namespace
 
             for (int g = 0 ; g < max_graphs ; ++g) {
                 for (unsigned i = 0 ; i < pattern_size ; ++i) {
-                    for (unsigned j = 0 ; j < pattern_size ; ++j) {
-                        if (pattern_graphs.at(g).adjacent(i, j))
-                            patterns_ndss.at(g).at(i).push_back(patterns_degrees.at(g).at(j));
+                    auto ni = pattern_graphs.at(g).neighbourhood(i);
+                    unsigned np = 0;
+                    for (int j = ni.first_set_bit_from(np) ; j != -1 ; j = ni.first_set_bit_from(np)) {
+                        ni.unset(j);
+                        patterns_ndss.at(g).at(i).push_back(patterns_degrees.at(g).at(j));
                     }
                     std::sort(patterns_ndss.at(g).at(i).begin(), patterns_ndss.at(g).at(i).end(), std::greater<int>());
                 }
 
                 for (unsigned i = 0 ; i < target_size ; ++i) {
-                    for (unsigned j = 0 ; j < target_size ; ++j) {
-                        if (target_graphs.at(g).adjacent(i, j))
-                            targets_ndss.at(g).at(i).push_back(targets_degrees.at(g).at(j));
+                    auto ni = target_graphs.at(g).neighbourhood(i);
+                    unsigned np = 0;
+                    for (int j = ni.first_set_bit_from(np) ; j != -1 ; j = ni.first_set_bit_from(np)) {
+                        ni.unset(j);
+                        targets_ndss.at(g).at(i).push_back(targets_degrees.at(g).at(j));
                     }
                     std::sort(targets_ndss.at(g).at(i).begin(), targets_ndss.at(g).at(i).end(), std::greater<int>());
                 }
@@ -830,8 +726,9 @@ namespace
         auto save_result(const Assignments & assignments, Result & result) -> void
         {
             for (auto & a : assignments.values)
-                result.isomorphism.emplace(pattern_order.at(a.first.first), target_order.at(a.first.second));
+                result.isomorphism.emplace(pattern_permutation.at(a.first.first), target_permutation.at(a.first.second));
 
+            // re-add isolated vertices
             int t = 0;
             for (auto & v : isolated_vertices) {
                 while (result.isomorphism.end() != std::find_if(result.isomorphism.begin(), result.isomorphism.end(),
@@ -861,36 +758,18 @@ namespace
 
             Assignments assignments;
             assignments.values.reserve(pattern_size);
-            if (params.dds) {
-                if (propagate(domains, assignments)) {
-                    for (unsigned discrepancies_allowed = 0 ; discrepancies_allowed <= pattern_size ; ++discrepancies_allowed)
-                        if (dds_search(assignments, domains, result.nodes, 0, discrepancies_allowed) == Search::Satisfiable) {
-                            save_result(assignments, result);
-                            break;
-                        }
-                }
-            }
-            else if (params.restarts) {
+            if (params.restarts) {
                 bool done = false;
                 std::list<long long> luby = {{ 1 }};
                 auto current_luby = luby.begin();
-                double current_geometric = 10.0;
 
                 while (! done) {
-                    long long backtracks_until_restart;
-
-                    if (params.geometric_multiplier != 0.0) {
-                        backtracks_until_restart = static_cast<long long>(current_geometric);
-                        current_geometric *= params.geometric_multiplier;
+                    long long backtracks_until_restart = *current_luby * params.luby_multiplier;
+                    if (std::next(current_luby) == luby.end()) {
+                        luby.insert(luby.end(), luby.begin(), luby.end());
+                        luby.push_back(*luby.rbegin() * 2);
                     }
-                    else {
-                        backtracks_until_restart = *current_luby * params.luby_multiplier;
-                        if (std::next(current_luby) == luby.end()) {
-                            luby.insert(luby.end(), luby.begin(), luby.end());
-                            luby.push_back(*luby.rbegin() * 2);
-                        }
-                        ++current_luby;
-                    }
+                    ++current_luby;
 
                     // start watching new nogoods. we're not backjumping so this is a bit icky.
                     for (auto & n : need_to_watch) {
@@ -934,7 +813,7 @@ namespace
                         done = true;
                 }
             }
-            else if (params.shuffle || params.biased_shuffle || params.position_shuffle || params.magic_shuffle) {
+            else if (params.shuffle || params.biased_shuffle || params.position_shuffle) {
                 if (propagate(domains, assignments)) {
                     // still need to use the restarts variant
                     long long backtracks_until_restart = -1;
@@ -966,19 +845,13 @@ namespace
             return result;
         }
     };
-
-    template <template <unsigned, int, int> class SGI_, int n_, int m_>
-    struct Apply
-    {
-        template <unsigned size_, typename> using Type = SGI_<size_, n_, m_>;
-    };
 }
 
 auto unit_subgraph_isomorphism(const std::pair<Graph, Graph> & graphs, const Params & params) -> Result
 {
     if (graphs.first.size() > graphs.second.size())
         return Result{ };
-    return select_graph_size<Apply<SequentialSubgraphIsomorphism, 4, 2>::template Type, Result>(
-            AllGraphSizes(), graphs.second, graphs.first, params);
+
+    return select_graph_size<SIP, Result>(AllGraphSizes(), graphs.second, graphs.first, params);
 }
 
