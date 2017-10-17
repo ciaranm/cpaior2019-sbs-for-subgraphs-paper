@@ -764,14 +764,23 @@ namespace
                 bool done = false;
                 std::list<long long> luby = {{ 1 }};
                 auto current_luby = luby.begin();
+                double current_geometric = 10;
 
                 while (! done) {
-                    long long backtracks_until_restart = *current_luby * params.luby_multiplier;
-                    if (std::next(current_luby) == luby.end()) {
-                        luby.insert(luby.end(), luby.begin(), luby.end());
-                        luby.push_back(*luby.rbegin() * 2);
+                    long long backtracks_until_restart;
+
+                    if (0.0 != params.geometric_multiplier) {
+                        backtracks_until_restart = current_geometric;
+                        current_geometric *= params.geometric_multiplier;
                     }
-                    ++current_luby;
+                    else {
+                        backtracks_until_restart = *current_luby * params.luby_multiplier;
+                        if (std::next(current_luby) == luby.end()) {
+                            luby.insert(luby.end(), luby.begin(), luby.end());
+                            luby.push_back(*luby.rbegin() * 2);
+                        }
+                        ++current_luby;
+                    }
 
                     // start watching new nogoods. we're not backjumping so this is a bit icky.
                     for (auto & n : need_to_watch) {
