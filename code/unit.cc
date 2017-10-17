@@ -328,7 +328,7 @@ namespace
                 assignments.values.push_back({ { current_assignment.first, current_assignment.second }, false });
 
                 // propagate watches
-                if (params.restarts)
+                if (params.restarts && ! params.goods)
                     if (! propagate_watches(new_domains, assignments, current_assignment))
                         return false;
 
