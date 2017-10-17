@@ -1,7 +1,10 @@
 /* vim: set sw=4 sts=4 et foldmethod=syntax : */
 
 #include "graph.hh"
+
 #include <algorithm>
+
+using std::count_if;
 
 Graph::Graph(int size)
 {
@@ -38,7 +41,7 @@ auto Graph::size() const -> int
 
 auto Graph::degree(int a) const -> int
 {
-    return std::count_if(
+    return count_if(
             _adjacency.begin() + a * _size,
             _adjacency.begin() + (a + 1) * _size,
             [] (int x) { return !!x; });

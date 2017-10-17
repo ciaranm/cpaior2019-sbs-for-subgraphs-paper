@@ -5,7 +5,10 @@
 
 #include <fstream>
 
-GraphFileError::GraphFileError(const std::string & filename, const std::string & message) throw () :
+using std::ifstream;
+using std::string;
+
+GraphFileError::GraphFileError(const string & filename, const string & message) throw () :
     _what("Error reading graph file '" + filename + "': " + message)
 {
 }
@@ -17,7 +20,7 @@ auto GraphFileError::what() const throw () -> const char *
 
 namespace
 {
-    auto read_word(std::ifstream & infile) -> int
+    auto read_word(ifstream & infile) -> int
     {
         int x;
         infile >> x;
@@ -25,11 +28,11 @@ namespace
     }
 }
 
-auto read_lad(const std::string & filename) -> Graph
+auto read_lad(const string & filename) -> Graph
 {
     Graph result(0);
 
-    std::ifstream infile{ filename };
+    ifstream infile{ filename };
     if (! infile)
         throw GraphFileError{ filename, "unable to open file" };
 
@@ -52,7 +55,7 @@ auto read_lad(const std::string & filename) -> Graph
         }
     }
 
-    std::string rest;
+    string rest;
     if (infile >> rest)
         throw GraphFileError{ filename, "EOF not reached, next text is \"" + rest + "\"" };
     if (! infile.eof())

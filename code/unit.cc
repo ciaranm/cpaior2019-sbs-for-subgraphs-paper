@@ -5,11 +5,34 @@
 #include "template_voodoo.hh"
 
 #include <algorithm>
-#include <numeric>
+#include <array>
+#include <functional>
 #include <limits>
-#include <random>
 #include <list>
-#include <cmath>
+#include <numeric>
+#include <random>
+#include <utility>
+
+using std::array;
+using std::iota;
+using std::fill;
+using std::find_if;
+using std::greater;
+using std::list;
+using std::max;
+using std::move;
+using std::mt19937;
+using std::next;
+using std::pair;
+using std::sort;
+using std::swap;
+using std::uniform_int_distribution;
+using std::uniform_real_distribution;
+using std::vector;
+
+using std::chrono::duration_cast;
+using std::chrono::milliseconds;
+using std::chrono::steady_clock;
 
 namespace
 {
@@ -28,29 +51,29 @@ namespace
         Restart
     };
 
-    auto degree_sort(const Graph & graph, std::vector<int> & p, bool reverse) -> void
+    auto degree_sort(const Graph & graph, vector<int> & p, bool reverse) -> void
     {
         // pre-calculate degrees
-        std::vector<int> degrees;
+        vector<int> degrees;
 
         for (int v = 0 ; v < graph.size() ; ++v)
             degrees.push_back(graph.degree(v));
 
         // sort on degree
-        std::sort(p.begin(), p.end(),
+        sort(p.begin(), p.end(),
                 [&] (int a, int b) { return (! reverse) ^ (degrees[a] < degrees[b] || (degrees[a] == degrees[b] && a > b)); });
     }
 
-    using Assignment = std::pair<unsigned, unsigned>;
+    using Assignment = pair<unsigned, unsigned>;
 
     struct Assignments
     {
-        std::vector<std::pair<Assignment, bool> > values;
+        vector<pair<Assignment, bool> > values;
 
         bool contains(const Assignment & assignment) const
         {
             // this should not be a linear scan...
-            return values.end() != std::find_if(values.begin(), values.end(), [&] (const auto & a) {
+            return values.end() != find_if(values.begin(), values.end(), [&] (const auto & a) {
                     return a.first == assignment;
                     });
         }
@@ -62,11 +85,11 @@ namespace
     // when the watches are updates).
     struct Nogood
     {
-        std::vector<Assignment> literals;
+        vector<Assignment> literals;
     };
 
     // nogoods stored here
-    using Nogoods = std::list<Nogood>;
+    using Nogoods = list<Nogood>;
 
     // Two watched literals for our nogoods store.
     struct Watches
@@ -74,10 +97,10 @@ namespace
         // for each watched literal, we have a list of watched things, each of
         // which is an iterator into the global watch list (so we can reorder
         // the literal to keep the watches as the first two elements)
-        using WatchList = std::list<Nogoods::iterator>;
+        using WatchList = list<Nogoods::iterator>;
 
         // two dimensional array, indexed by (target_size * p + t)
-        std::vector<WatchList> data;
+        vector<WatchList> data;
 
         unsigned pattern_size = 0, target_size = 0;
 
@@ -107,26 +130,26 @@ namespace
             FixedBitSet<n_words_> values;
         };
 
-        using Domains = std::vector<Domain>;
+        using Domains = vector<Domain>;
 
         const Params & params;
 
         unsigned pattern_size, full_pattern_size, target_size;
 
         static constexpr int max_graphs = 5;
-        std::vector<FixedBitGraph<n_words_> > target_graphs;
-        std::vector<FixedBitGraph<n_words_> > pattern_graphs;
+        vector<FixedBitGraph<n_words_> > target_graphs;
+        vector<FixedBitGraph<n_words_> > pattern_graphs;
 
-        std::vector<int> pattern_permutation, target_permutation, isolated_vertices;
-        std::vector<std::vector<int> > patterns_degrees, targets_degrees;
+        vector<int> pattern_permutation, target_permutation, isolated_vertices;
+        vector<vector<int> > patterns_degrees, targets_degrees;
 
         Nogoods nogoods;
         Watches watches;
-        std::list<typename Nogoods::iterator> need_to_watch;
+        list<typename Nogoods::iterator> need_to_watch;
 
-        std::vector<unsigned long long> target_vertex_biases;
+        vector<unsigned long long> target_vertex_biases;
 
-        std::mt19937 global_rand;
+        mt19937 global_rand;
 
         SIP(const Graph & target, const Graph & pattern, const Params & a) :
             params(a),
@@ -156,7 +179,7 @@ namespace
                         pattern_graphs.at(0).add_edge(i, j);
 
             // determine ordering for target graph vertices
-            std::iota(target_permutation.begin(), target_permutation.end(), 0);
+            iota(target_permutation.begin(), target_permutation.end(), 0);
 
             // set up space for watches
             if (params.restarts && ! params.goods)
@@ -176,7 +199,7 @@ namespace
             if (params.biased_shuffle) {
                 int max_degree = 0;
                 for (unsigned j = 0 ; j < target_size ; ++j)
-                    max_degree = std::max(max_degree, target_graphs.at(0).degree(j));
+                    max_degree = max(max_degree, target_graphs.at(0).degree(j));
 
                 for (unsigned j = 0 ; j < target_size ; ++j) {
                     int degree = target_graphs.at(0).degree(j);
@@ -188,12 +211,12 @@ namespace
             }
         }
 
-        auto build_supplemental_graphs(std::vector<FixedBitGraph<n_words_> > & graphs, unsigned size) -> void
+        auto build_supplemental_graphs(vector<FixedBitGraph<n_words_> > & graphs, unsigned size) -> void
         {
             for (int g = 1 ; g < max_graphs ; ++g)
                 graphs.at(g).resize(size);
 
-            std::vector<std::vector<unsigned> > path_counts(size, std::vector<unsigned>(size, 0));
+            vector<vector<unsigned> > path_counts(size, vector<unsigned>(size, 0));
 
             // count number of paths from w to v (only w >= v, so not v to w)
             for (unsigned v = 0 ; v < size ; ++v) {
@@ -228,7 +251,7 @@ namespace
 
         auto find_unit_domain(Domains & domains) -> typename Domains::iterator
         {
-            return std::find_if(domains.begin(), domains.end(), [] (Domain & d) {
+            return find_if(domains.begin(), domains.end(), [] (Domain & d) {
                     return (! d.fixed) && 1 == d.popcount;
                     });
         }
@@ -241,17 +264,17 @@ namespace
 
                 // make the first watch the thing we just triggered
                 if (nogood.literals[0] != current_assignment)
-                    std::swap(nogood.literals[0], nogood.literals[1]);
+                    swap(nogood.literals[0], nogood.literals[1]);
 
                 // can we find something else to watch?
                 bool success = false;
-                for (auto new_literal = std::next(nogood.literals.begin(), 2) ; new_literal != nogood.literals.end() ; ++new_literal) {
+                for (auto new_literal = next(nogood.literals.begin(), 2) ; new_literal != nogood.literals.end() ; ++new_literal) {
                     if (! assignments.contains(*new_literal)) {
                         // we can watch new_literal instead of current_assignment in this nogood
                         success = true;
 
                         // move the new watch to be the first item in the nogood
-                        std::swap(nogood.literals[0], *new_literal);
+                        swap(nogood.literals[0], *new_literal);
 
                         // start watching it
                         watches[nogood.literals[0]].push_back(*watch_to_update);
@@ -346,7 +369,7 @@ namespace
 
         auto find_branch_domain(const Domains & domains) -> const Domain *
         {
-            std::uniform_real_distribution<double> dist(0, 1);
+            uniform_real_distribution<double> dist(0, 1);
             const Domain * result = nullptr;
             for (auto & d : domains)
                 if (! d.fixed)
@@ -432,8 +455,8 @@ namespace
                 if (a.second)
                     nogood.literals.emplace_back(a.first);
 
-            nogoods.emplace_back(std::move(nogood));
-            need_to_watch.emplace_back(std::prev(nogoods.end()));
+            nogoods.emplace_back(move(nogood));
+            need_to_watch.emplace_back(prev(nogoods.end()));
         }
 
         auto restarting_search(
@@ -456,7 +479,7 @@ namespace
             // pull out the remaining values in this domain for branching
             auto remaining = branch_domain->values;
 
-            std::array<unsigned, n_words_ * bits_per_word + 1> branch_v;
+            array<unsigned, n_words_ * bits_per_word + 1> branch_v;
             unsigned branch_v_end = 0;
             for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
                 remaining.unset(f_v);
@@ -464,7 +487,7 @@ namespace
             }
 
             if (params.shuffle) {
-                std::shuffle(branch_v.begin(), branch_v.begin() + branch_v_end, global_rand);
+                shuffle(branch_v.begin(), branch_v.begin() + branch_v_end, global_rand);
             }
             else if (params.biased_shuffle) {
                 // sum up the bias scores of every branch vertex
@@ -476,7 +499,7 @@ namespace
                 // and then only consider items further to the right in the next iteration.
                 for (unsigned start = 0 ; start < branch_v_end ; ++start) {
                     // pick a random number between 0 and remaining_score inclusive
-                    std::uniform_int_distribution<unsigned long long> dist(1, remaining_score);
+                    uniform_int_distribution<unsigned long long> dist(1, remaining_score);
                     unsigned long long select_score = dist(global_rand);
 
                     // go over the list until we've used up bias values totalling our
@@ -490,7 +513,7 @@ namespace
 
                     // move to front, and update remaining_score
                     remaining_score -= target_vertex_biases[branch_v[select_element]];
-                    std::swap(branch_v[select_element], branch_v[start]);
+                    swap(branch_v[select_element], branch_v[start]);
                 }
             }
             else if (params.position_shuffle) {
@@ -498,7 +521,7 @@ namespace
                 // and then only consider items further to the right in the next iteration.
                 for (unsigned start = 0 ; start < branch_v_end ; ++start) {
                     // pick a random number between 0 and 1 inclusive
-                    std::uniform_real_distribution<double> dist(0, 1);
+                    uniform_real_distribution<double> dist(0, 1);
                     double select_score = dist(global_rand);
 
                     // this divides by two on each iteration, so we're twice as
@@ -514,7 +537,7 @@ namespace
                     }
 
                     // move to front
-                    std::swap(branch_v[select_element], branch_v[start]);
+                    swap(branch_v[select_element], branch_v[start]);
                 }
             }
 
@@ -592,8 +615,8 @@ namespace
             }
 
             /* pattern and target neighbourhood degree sequences */
-            std::vector<std::vector<std::vector<int> > > patterns_ndss(max_graphs);
-            std::vector<std::vector<std::vector<int> > > targets_ndss(max_graphs);
+            vector<vector<vector<int> > > patterns_ndss(max_graphs);
+            vector<vector<vector<int> > > targets_ndss(max_graphs);
 
             for (int g = 0 ; g < max_graphs ; ++g) {
                 patterns_ndss.at(g).resize(pattern_size);
@@ -608,7 +631,7 @@ namespace
                         ni.unset(j);
                         patterns_ndss.at(g).at(i).push_back(patterns_degrees.at(g).at(j));
                     }
-                    std::sort(patterns_ndss.at(g).at(i).begin(), patterns_ndss.at(g).at(i).end(), std::greater<int>());
+                    sort(patterns_ndss.at(g).at(i).begin(), patterns_ndss.at(g).at(i).end(), greater<int>());
                 }
 
                 for (unsigned i = 0 ; i < target_size ; ++i) {
@@ -618,7 +641,7 @@ namespace
                         ni.unset(j);
                         targets_ndss.at(g).at(i).push_back(targets_degrees.at(g).at(j));
                     }
-                    std::sort(targets_ndss.at(g).at(i).begin(), targets_ndss.at(g).at(i).end(), std::greater<int>());
+                    sort(targets_ndss.at(g).at(i).begin(), targets_ndss.at(g).at(i).end(), greater<int>());
                 }
             }
 
@@ -675,10 +698,10 @@ namespace
             // int the "popcount==domains.size()" bucket.
             // The "first" array is sized to be able to hold domains.size()+1
             // elements
-            std::array<int, n_words_ * bits_per_word + 1> first;
-            std::array<int, n_words_ * bits_per_word> next;
-            std::fill(first.begin(), first.begin() + domains.size() + 1, -1);
-            std::fill(next.begin(), next.begin() + domains.size(), -1);
+            array<int, n_words_ * bits_per_word + 1> first;
+            array<int, n_words_ * bits_per_word> next;
+            fill(first.begin(), first.begin() + domains.size() + 1, -1);
+            fill(next.begin(), next.begin() + domains.size(), -1);
             // Iterate backwards, because we insert elements at the head of
             // lists and we want the sort to be stable
             for (int i = int(domains.size()) - 1 ; i >= 0; --i) {
@@ -731,8 +754,8 @@ namespace
             // re-add isolated vertices
             int t = 0;
             for (auto & v : isolated_vertices) {
-                while (result.isomorphism.end() != std::find_if(result.isomorphism.begin(), result.isomorphism.end(),
-                            [&t] (const std::pair<int, int> & p) { return p.second == t; }))
+                while (result.isomorphism.end() != find_if(result.isomorphism.begin(), result.isomorphism.end(),
+                            [&t] (const pair<int, int> & p) { return p.second == t; }))
                         ++t;
                 result.isomorphism.emplace(v, t);
             }
@@ -756,13 +779,13 @@ namespace
             if (! initialise_domains(domains))
                 return result;
 
-            result.times.push_back(std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - params.start_time));
+            result.times.push_back(duration_cast<milliseconds>(steady_clock::now() - params.start_time));
 
             Assignments assignments;
             assignments.values.reserve(pattern_size);
             if (params.restarts) {
                 bool done = false;
-                std::list<long long> luby = {{ 1 }};
+                list<long long> luby = {{ 1 }};
                 auto current_luby = luby.begin();
                 double current_geometric = 10;
 
@@ -775,7 +798,7 @@ namespace
                     }
                     else {
                         backtracks_until_restart = *current_luby * params.luby_multiplier;
-                        if (std::next(current_luby) == luby.end()) {
+                        if (next(current_luby) == luby.end()) {
                             luby.insert(luby.end(), luby.begin(), luby.end());
                             luby.push_back(*luby.rbegin() * 2);
                         }
@@ -858,7 +881,7 @@ namespace
     };
 }
 
-auto unit_subgraph_isomorphism(const std::pair<Graph, Graph> & graphs, const Params & params) -> Result
+auto unit_subgraph_isomorphism(const pair<Graph, Graph> & graphs, const Params & params) -> Result
 {
     if (graphs.first.size() > graphs.second.size())
         return Result{ };

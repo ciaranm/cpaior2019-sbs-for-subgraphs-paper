@@ -15,6 +15,22 @@
 
 namespace po = boost::program_options;
 
+using std::atomic;
+using std::boolalpha;
+using std::cerr;
+using std::condition_variable;
+using std::cout;
+using std::cv_status;
+using std::endl;
+using std::exception;
+using std::function;
+using std::make_pair;
+using std::mutex;
+using std::string;
+using std::thread;
+using std::unique_lock;
+
+using std::chrono::seconds;
 using std::chrono::steady_clock;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
@@ -22,27 +38,27 @@ using std::chrono::milliseconds;
 /* Helper: return a function that runs the specified algorithm, dealing
  * with timing information and timeouts. */
 template <typename Result_, typename Params_, typename Data_>
-auto run_this_wrapped(const std::function<Result_ (const Data_ &, const Params_ &)> & func)
-    -> std::function<Result_ (const Data_ &, Params_ &, bool &, int)>
+auto run_this_wrapped(const function<Result_ (const Data_ &, const Params_ &)> & func)
+    -> function<Result_ (const Data_ &, Params_ &, bool &, int)>
 {
     return [func] (const Data_ & data, Params_ & params, bool & aborted, int timeout) -> Result_ {
         /* For a timeout, we use a thread and a timed CV. We also wake the
          * CV up if we're done, so the timeout thread can terminate. */
-        std::thread timeout_thread;
-        std::mutex timeout_mutex;
-        std::condition_variable timeout_cv;
-        std::atomic<bool> abort;
+        thread timeout_thread;
+        mutex timeout_mutex;
+        condition_variable timeout_cv;
+        atomic<bool> abort;
         abort.store(false);
         params.abort = &abort;
         if (0 != timeout) {
-            timeout_thread = std::thread([&] {
-                    auto abort_time = std::chrono::steady_clock::now() + std::chrono::seconds(timeout);
+            timeout_thread = thread([&] {
+                    auto abort_time = steady_clock::now() + seconds(timeout);
                     {
                         /* Sleep until either we've reached the time limit,
                          * or we've finished all the work. */
-                        std::unique_lock<std::mutex> guard(timeout_mutex);
+                        unique_lock<mutex> guard(timeout_mutex);
                         while (! abort.load()) {
-                            if (std::cv_status::timeout == timeout_cv.wait_until(guard, abort_time)) {
+                            if (cv_status::timeout == timeout_cv.wait_until(guard, abort_time)) {
                                 /* We've woken up, and it's due to a timeout. */
                                 aborted = true;
                                 break;
@@ -54,13 +70,13 @@ auto run_this_wrapped(const std::function<Result_ (const Data_ &, const Params_ 
         }
 
         /* Start the clock */
-        params.start_time = std::chrono::steady_clock::now();
+        params.start_time = steady_clock::now();
         auto result = func(data, params);
 
         /* Clean up the timeout thread */
         if (timeout_thread.joinable()) {
             {
-                std::unique_lock<std::mutex> guard(timeout_mutex);
+                unique_lock<mutex> guard(timeout_mutex);
                 abort.store(true);
                 timeout_cv.notify_all();
             }
@@ -74,15 +90,15 @@ auto run_this_wrapped(const std::function<Result_ (const Data_ &, const Params_ 
 /* Helper: return a function that runs the specified algorithm, dealing
  * with timing information and timeouts. */
 template <typename Result_, typename Params_, typename Data_>
-auto run_this(Result_ func(const Data_ &, const Params_ &)) -> std::function<Result_ (const Data_ &, Params_ &, bool &, int)>
+auto run_this(Result_ func(const Data_ &, const Params_ &)) -> function<Result_ (const Data_ &, Params_ &, bool &, int)>
 {
-    return run_this_wrapped(std::function<Result_ (const Data_ &, const Params_ &)>(func));
+    return run_this_wrapped(function<Result_ (const Data_ &, const Params_ &)>(func));
 }
 
 auto main(int argc, char * argv[]) -> int
 {
     auto subgraph_isomorphism_algorithms = {
-        std::make_pair( std::string{ "unit" },                         unit_subgraph_isomorphism )
+        make_pair( string{ "unit" },                         unit_subgraph_isomorphism )
     };
 
     try {
@@ -90,7 +106,7 @@ auto main(int argc, char * argv[]) -> int
         display_options.add_options()
             ("help",                                         "Display help information")
             ("timeout",            po::value<int>(),         "Abort after this many seconds")
-            ("format",             po::value<std::string>(), "Specify the format of the input")
+            ("format",             po::value<string>(),      "Specify the format of the input")
             ("restarts",                                     "Use restarts")
             ("shuffle",                                      "Use shuffling")
             ("biased-shuffle",                               "Use biased shuffling")
@@ -128,30 +144,30 @@ auto main(int argc, char * argv[]) -> int
 
         /* --help? Show a message, and exit. */
         if (options_vars.count("help")) {
-            std::cout << "Usage: " << argv[0] << " [options] algorithm pattern target" << std::endl;
-            std::cout << std::endl;
-            std::cout << display_options << std::endl;
+            cout << "Usage: " << argv[0] << " [options] algorithm pattern target" << endl;
+            cout << endl;
+            cout << display_options << endl;
             return EXIT_SUCCESS;
         }
 
         /* No algorithm or no input file specified? Show a message and exit. */
         if (! options_vars.count("algorithm") || ! options_vars.count("pattern-file") || ! options_vars.count("target-file")) {
-            std::cout << "Usage: " << argv[0] << " [options] algorithm pattern target" << std::endl;
+            cout << "Usage: " << argv[0] << " [options] algorithm pattern target" << endl;
             return EXIT_FAILURE;
         }
 
         /* Turn an algorithm string name into a runnable function. */
         auto algorithm = subgraph_isomorphism_algorithms.begin(), algorithm_end = subgraph_isomorphism_algorithms.end();
         for ( ; algorithm != algorithm_end ; ++algorithm)
-            if (algorithm->first == options_vars["algorithm"].as<std::string>())
+            if (algorithm->first == options_vars["algorithm"].as<string>())
                 break;
 
         /* Unknown algorithm? Show a message and exit. */
         if (algorithm == algorithm_end) {
-            std::cerr << "Unknown algorithm " << options_vars["algorithm"].as<std::string>() << ", choose from:";
+            cerr << "Unknown algorithm " << options_vars["algorithm"].as<string>() << ", choose from:";
             for (auto a : subgraph_isomorphism_algorithms)
-                std::cerr << " " << a.first;
-            std::cerr << std::endl;
+                cerr << " " << a.first;
+            cerr << endl;
             return EXIT_FAILURE;
         }
 
@@ -172,9 +188,9 @@ auto main(int argc, char * argv[]) -> int
             params.geometric_multiplier = options_vars["geometric-multiplier"].as<double>();
 
         /* Read in the graphs */
-        auto graphs = std::make_pair(
-            read_lad(options_vars["pattern-file"].as<std::string>()),
-            read_lad(options_vars["target-file"].as<std::string>()));
+        auto graphs = make_pair(
+            read_lad(options_vars["pattern-file"].as<string>()),
+            read_lad(options_vars["target-file"].as<string>()));
 
         /* Do the actual run. */
         bool aborted = false;
@@ -188,29 +204,29 @@ auto main(int argc, char * argv[]) -> int
         auto overall_time = duration_cast<milliseconds>(steady_clock::now() - params.start_time);
 
         /* Display the results. */
-        std::cout << std::boolalpha << ! result.isomorphism.empty() << " " << result.nodes;
+        cout << boolalpha << ! result.isomorphism.empty() << " " << result.nodes;
 
         if (aborted)
-            std::cout << " aborted";
-        std::cout << std::endl;
+            cout << " aborted";
+        cout << endl;
 
         for (auto v : result.isomorphism)
-            std::cout << "(" << v.first << " -> " << v.second << ") ";
-        std::cout << std::endl;
+            cout << "(" << v.first << " -> " << v.second << ") ";
+        cout << endl;
 
-        std::cout << overall_time.count();
+        cout << overall_time.count();
         if (! result.times.empty()) {
             for (auto t : result.times)
-                std::cout << " " << t.count();
+                cout << " " << t.count();
         }
-        std::cout << std::endl;
+        cout << endl;
 
         if (! result.isomorphism.empty()) {
             for (int i = 0 ; i < graphs.first.size() ; ++i) {
                 for (int j = 0 ; j < graphs.first.size() ; ++j) {
                     if (graphs.first.adjacent(i, j)) {
                         if (! graphs.second.adjacent(result.isomorphism.find(i)->second, result.isomorphism.find(j)->second)) {
-                            std::cerr << "Oops! not an isomorphism: " << i << ", " << j << std::endl;
+                            cerr << "Oops! not an isomorphism: " << i << ", " << j << endl;
                             return EXIT_FAILURE;
                         }
                     }
@@ -221,12 +237,12 @@ auto main(int argc, char * argv[]) -> int
         return EXIT_SUCCESS;
     }
     catch (const po::error & e) {
-        std::cerr << "Error: " << e.what() << std::endl;
-        std::cerr << "Try " << argv[0] << " --help" << std::endl;
+        cerr << "Error: " << e.what() << endl;
+        cerr << "Try " << argv[0] << " --help" << endl;
         return EXIT_FAILURE;
     }
-    catch (const std::exception & e) {
-        std::cerr << "Error: " << e.what() << std::endl;
+    catch (const exception & e) {
+        cerr << "Error: " << e.what() << endl;
         return EXIT_FAILURE;
     }
 }
