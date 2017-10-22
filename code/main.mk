@@ -10,7 +10,7 @@ TARGET := solve_subgraph_isomorphism
 
 SOURCES := \
     unit.cc \
-    bit_graph.cc \
+    fixed_bit_set.cc \
     graph.cc \
     lad.cc \
     solve_subgraph_isomorphism.cc

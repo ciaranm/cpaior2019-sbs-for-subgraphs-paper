@@ -1,7 +1,7 @@
 /* vim: set sw=4 sts=4 et foldmethod=syntax : */
 
 #include "unit.hh"
-#include "bit_graph.hh"
+#include "fixed_bit_set.hh"
 #include "template_voodoo.hh"
 
 #include <algorithm>
@@ -137,8 +137,10 @@ namespace
         unsigned pattern_size, full_pattern_size, target_size;
 
         static constexpr int max_graphs = 5;
-        vector<FixedBitGraph<n_words_> > target_graphs;
-        vector<FixedBitGraph<n_words_> > pattern_graphs;
+
+        vector<uint8_t> pattern_adjacencies_bits;
+        vector<FixedBitSet<n_words_> > pattern_graph_rows;
+        vector<FixedBitSet<n_words_> > target_graph_rows;
 
         vector<int> pattern_permutation, target_permutation, isolated_vertices;
         vector<vector<int> > patterns_degrees, targets_degrees;
@@ -156,8 +158,6 @@ namespace
             pattern_size(pattern.size()),
             full_pattern_size(pattern.size()),
             target_size(target.size()),
-            target_graphs(max_graphs),
-            pattern_graphs(max_graphs),
             target_permutation(target.size()),
             patterns_degrees(max_graphs),
             targets_degrees(max_graphs)
@@ -172,11 +172,11 @@ namespace
                     pattern_permutation.push_back(v);
 
             // recode pattern to a bit graph
-            pattern_graphs.at(0).resize(pattern_size);
+            pattern_graph_rows.resize(pattern_size * max_graphs);
             for (unsigned i = 0 ; i < pattern_size ; ++i)
                 for (unsigned j = 0 ; j < pattern_size ; ++j)
                     if (pattern.adjacent(pattern_permutation.at(i), pattern_permutation.at(j)))
-                        pattern_graphs.at(0).add_edge(i, j);
+                        pattern_graph_rows[i * max_graphs + 0].set(j);
 
             // determine ordering for target graph vertices
             iota(target_permutation.begin(), target_permutation.end(), 0);
@@ -189,20 +189,20 @@ namespace
                 degree_sort(target, target_permutation, params.antiheuristic);
 
             // recode target to a bit graph
-            target_graphs.at(0).resize(target_size);
+            target_graph_rows.resize(target_size * max_graphs);
             for (unsigned i = 0 ; i < target_size ; ++i)
-                for (unsigned j = i ; j < target_size ; ++j)
+                for (unsigned j = 0 ; j < target_size ; ++j)
                     if (target.adjacent(target_permutation.at(i), target_permutation.at(j)))
-                        target_graphs.at(0).add_edge(i, j);
+                        target_graph_rows[i * max_graphs + 0].set(j);
 
             // build up vertex selection biases
             if (params.biased_shuffle) {
-                int max_degree = 0;
+                unsigned max_degree = 0;
                 for (unsigned j = 0 ; j < target_size ; ++j)
-                    max_degree = max(max_degree, target_graphs.at(0).degree(j));
+                    max_degree = max(max_degree, target_graph_rows[j * max_graphs + 0].popcount());
 
                 for (unsigned j = 0 ; j < target_size ; ++j) {
-                    int degree = target_graphs.at(0).degree(j);
+                    unsigned degree = target_graph_rows[j * max_graphs + 0].popcount();
                     if (max_degree - degree >= 50)
                         target_vertex_biases.push_back(1);
                     else
@@ -211,20 +211,17 @@ namespace
             }
         }
 
-        auto build_supplemental_graphs(vector<FixedBitGraph<n_words_> > & graphs, unsigned size) -> void
+        auto build_supplemental_graphs(vector<FixedBitSet<n_words_> > & graph_rows, unsigned size) -> void
         {
-            for (int g = 1 ; g < max_graphs ; ++g)
-                graphs.at(g).resize(size);
-
             vector<vector<unsigned> > path_counts(size, vector<unsigned>(size, 0));
 
             // count number of paths from w to v (only w >= v, so not v to w)
             for (unsigned v = 0 ; v < size ; ++v) {
-                auto nv = graphs.at(0).neighbourhood(v);
+                auto nv = graph_rows[v * max_graphs + 0];
                 unsigned cp = 0;
                 for (int c = nv.first_set_bit_from(cp) ; c != -1 ; c = nv.first_set_bit_from(cp)) {
                     nv.unset(c);
-                    auto nc = graphs.at(0).neighbourhood(c);
+                    auto nc = graph_rows[c * max_graphs + 0];
                     unsigned wp = 0;
                     for (int w = nc.first_set_bit_from(wp) ; w != -1 && w <= int(v) ; w = nc.first_set_bit_from(wp)) {
                         nc.unset(w);
@@ -237,14 +234,12 @@ namespace
                 for (unsigned w = v ; w < size ; ++w) {
                     // w to v, not v to w, see above
                     unsigned path_count = path_counts[w][v];
-                    if (path_count >= 4)
-                        graphs.at(4).add_edge(v, w);
-                    if (path_count >= 3)
-                        graphs.at(3).add_edge(v, w);
-                    if (path_count >= 2)
-                        graphs.at(2).add_edge(v, w);
-                    if (path_count >= 1)
-                         graphs.at(1).add_edge(v, w);
+                    for (unsigned p = 1 ; p <= 4 ; ++p) {
+                        if (path_count >= p) {
+                            graph_rows[v * max_graphs + p].set(w);
+                            graph_rows[w * max_graphs + p].set(v);
+                        }
+                    }
                 }
             }
         }
@@ -319,12 +314,14 @@ namespace
                 // all different
                 d.values.unset(current_assignment.second);
 
+                auto pattern_adjacency_bits = pattern_adjacencies_bits[pattern_size * current_assignment.first + d.v];
+
                 // for each graph pair...
                 for (int g = 0 ; g < max_graphs ; ++g) {
                     // if we're adjacent...
-                    if (pattern_graphs.at(g).adjacent(current_assignment.first, d.v)) {
+                    if (pattern_adjacency_bits & (1u << g)) {
                         // ...then we can only be mapped to adjacent vertices
-                        target_graphs.at(g).intersect_with_row(current_assignment.second, d.values);
+                        d.values.intersect_with(target_graph_rows[current_assignment.second * max_graphs + g]);
                     }
                 }
 
@@ -608,10 +605,10 @@ namespace
             /* pattern and target degree sequences */
             for (int g = 0 ; g < max_graphs ; ++g) {
                 for (unsigned i = 0 ; i < pattern_size ; ++i)
-                    patterns_degrees.at(g).at(i) = pattern_graphs.at(g).degree(i);
+                    patterns_degrees.at(g).at(i) = pattern_graph_rows[i * max_graphs + g].popcount();
 
                 for (unsigned i = 0 ; i < target_size ; ++i)
-                    targets_degrees.at(g).at(i) = target_graphs.at(g).degree(i);
+                    targets_degrees.at(g).at(i) = target_graph_rows[i * max_graphs + g].popcount();
             }
 
             /* pattern and target neighbourhood degree sequences */
@@ -625,7 +622,7 @@ namespace
 
             for (int g = 0 ; g < max_graphs ; ++g) {
                 for (unsigned i = 0 ; i < pattern_size ; ++i) {
-                    auto ni = pattern_graphs.at(g).neighbourhood(i);
+                    auto ni = pattern_graph_rows[i * max_graphs + g];
                     unsigned np = 0;
                     for (int j = ni.first_set_bit_from(np) ; j != -1 ; j = ni.first_set_bit_from(np)) {
                         ni.unset(j);
@@ -635,7 +632,7 @@ namespace
                 }
 
                 for (unsigned i = 0 ; i < target_size ; ++i) {
-                    auto ni = target_graphs.at(g).neighbourhood(i);
+                    auto ni = target_graph_rows[i * max_graphs + g];
                     unsigned np = 0;
                     for (int j = ni.first_set_bit_from(np) ; j != -1 ; j = ni.first_set_bit_from(np)) {
                         ni.unset(j);
@@ -653,11 +650,16 @@ namespace
                     bool ok = true;
 
                     for (int g = 0 ; g < max_graphs ; ++g) {
-                        if (pattern_graphs.at(g).adjacent(i, i) && ! target_graphs.at(g).adjacent(j, j))
+                        if (pattern_graph_rows[i * max_graphs + g].test(i) && ! target_graph_rows[j * max_graphs + g].test(j)) {
+                            // not ok, loops
                             ok = false;
-                        else if (targets_ndss.at(g).at(j).size() < patterns_ndss.at(g).at(i).size())
+                        }
+                        else if (targets_ndss.at(g).at(j).size() < patterns_ndss.at(g).at(i).size()) {
+                            // not ok, degrees differ
                             ok = false;
+                        }
                         else {
+                            // full compare of neighbourhood degree sequences
                             for (unsigned x = 0 ; ok && x < patterns_ndss.at(g).at(i).size() ; ++x) {
                                 if (targets_ndss.at(g).at(j).at(x) < patterns_ndss.at(g).at(i).at(x))
                                     ok = false;
@@ -771,8 +773,15 @@ namespace
                 return result;
             }
 
-            build_supplemental_graphs(pattern_graphs, pattern_size);
-            build_supplemental_graphs(target_graphs, target_size);
+            build_supplemental_graphs(pattern_graph_rows, pattern_size);
+            build_supplemental_graphs(target_graph_rows, target_size);
+
+            pattern_adjacencies_bits.resize(pattern_size * pattern_size);
+            for (int g = 0 ; g < max_graphs ; ++g)
+                for (unsigned i = 0 ; i < pattern_size ; ++i)
+                    for (unsigned j = 0 ; j < pattern_size ; ++j)
+                        if (pattern_graph_rows[i * max_graphs + g].test(j))
+                            pattern_adjacencies_bits[i * pattern_size + j] |= (1u << g);
 
             Domains domains(pattern_size);
 
