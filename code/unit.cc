@@ -133,10 +133,9 @@ namespace
         using Domains = vector<Domain>;
 
         const Params & params;
+        const int max_graphs;
 
         unsigned pattern_size, full_pattern_size, target_size;
-
-        static constexpr int max_graphs = 5;
 
         vector<uint8_t> pattern_adjacencies_bits;
         vector<FixedBitSet<n_words_> > pattern_graph_rows;
@@ -155,6 +154,7 @@ namespace
 
         SIP(const Graph & target, const Graph & pattern, const Params & a) :
             params(a),
+            max_graphs(5 + (params.induced ? 1 : 0)),
             pattern_size(pattern.size()),
             full_pattern_size(pattern.size()),
             target_size(target.size()),
@@ -304,6 +304,11 @@ namespace
             return true;
         }
 
+        // The max_graphs_ template parameter is so that the for each graph
+        // pair loop gets unrolled, which makes an annoyingly large difference
+        // to performance. Note that for larger target graphs, half of the
+        // total runtime is spent in the middle bit of this function.
+        template <int max_graphs_>
         auto propagate_simple_constraints(Domains & new_domains, const Assignment & current_assignment) -> bool
         {
             // propagate for each remaining domain...
@@ -317,11 +322,11 @@ namespace
                 auto pattern_adjacency_bits = pattern_adjacencies_bits[pattern_size * current_assignment.first + d.v];
 
                 // for each graph pair...
-                for (int g = 0 ; g < max_graphs ; ++g) {
+                for (int g = 0 ; g < max_graphs_ ; ++g) {
                     // if we're adjacent...
                     if (pattern_adjacency_bits & (1u << g)) {
                         // ...then we can only be mapped to adjacent vertices
-                        d.values.intersect_with(target_graph_rows[current_assignment.second * max_graphs + g]);
+                        d.values.intersect_with(target_graph_rows[current_assignment.second * max_graphs_ + g]);
                     }
                 }
 
@@ -353,8 +358,20 @@ namespace
                         return false;
 
                 // propagate simple all different and adjacency
-                if (! propagate_simple_constraints(new_domains, current_assignment))
-                    return false;
+                switch (max_graphs) {
+                    case 5:
+                        if (! propagate_simple_constraints<5>(new_domains, current_assignment))
+                            return false;
+                        break;
+
+                    case 6:
+                        if (! propagate_simple_constraints<6>(new_domains, current_assignment))
+                            return false;
+                        break;
+
+                    default:
+                        throw "you need to update the hacky max_graphs switch";
+                }
             }
 
             // all unit domains done, try all different (and don't bother fixedpointing)
