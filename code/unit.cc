@@ -597,20 +597,6 @@ namespace
 
         auto initialise_domains(Domains & domains) -> bool
         {
-            for (int g = 0 ; g < max_graphs ; ++g) {
-                patterns_degrees.at(g).resize(pattern_size);
-                targets_degrees.at(g).resize(target_size);
-            }
-
-            /* pattern and target degree sequences */
-            for (int g = 0 ; g < max_graphs ; ++g) {
-                for (unsigned i = 0 ; i < pattern_size ; ++i)
-                    patterns_degrees.at(g).at(i) = pattern_graph_rows[i * max_graphs + g].popcount();
-
-                for (unsigned i = 0 ; i < target_size ; ++i)
-                    targets_degrees.at(g).at(i) = target_graph_rows[i * max_graphs + g].popcount();
-            }
-
             /* pattern and target neighbourhood degree sequences */
             vector<vector<vector<int> > > patterns_ndss(max_graphs);
             vector<vector<vector<int> > > targets_ndss(max_graphs);
@@ -776,6 +762,21 @@ namespace
             build_supplemental_graphs(pattern_graph_rows, pattern_size);
             build_supplemental_graphs(target_graph_rows, target_size);
 
+            // pattern and target degrees, including supplemental graphs
+            for (int g = 0 ; g < max_graphs ; ++g) {
+                patterns_degrees.at(g).resize(pattern_size);
+                targets_degrees.at(g).resize(target_size);
+            }
+
+            for (int g = 0 ; g < max_graphs ; ++g) {
+                for (unsigned i = 0 ; i < pattern_size ; ++i)
+                    patterns_degrees.at(g).at(i) = pattern_graph_rows[i * max_graphs + g].popcount();
+
+                for (unsigned i = 0 ; i < target_size ; ++i)
+                    targets_degrees.at(g).at(i) = target_graph_rows[i * max_graphs + g].popcount();
+            }
+
+            // pattern adjacencies, compressed
             pattern_adjacencies_bits.resize(pattern_size * pattern_size);
             for (int g = 0 ; g < max_graphs ; ++g)
                 for (unsigned i = 0 ; i < pattern_size ; ++i)
@@ -783,15 +784,19 @@ namespace
                         if (pattern_graph_rows[i * max_graphs + g].test(j))
                             pattern_adjacencies_bits[i * pattern_size + j] |= (1u << g);
 
+            // domains
             Domains domains(pattern_size);
-
             if (! initialise_domains(domains))
                 return result;
 
-            result.times.push_back(duration_cast<milliseconds>(steady_clock::now() - params.start_time));
-
+            // assignments
             Assignments assignments;
             assignments.values.reserve(pattern_size);
+
+            // start search timer
+            result.times.push_back(duration_cast<milliseconds>(steady_clock::now() - params.start_time));
+
+            // do the appropriate search variant
             if (params.restarts) {
                 bool done = false;
                 list<long long> luby = {{ 1 }};
