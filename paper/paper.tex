@@ -422,12 +422,23 @@ Better yet, there are only ?? satisfiable instances that are more than a factor 
 
 ?? This has made up the consistency we lost from introducing randomness.
 
-?? do a more detailed breakdown by family
-
-?? maybe some engineering aspects: look at performance with restarts on degree, and at restarts
-without nogood recording, and what happens without nogoods in \cref{figure:scatter-nogoods}.
-
 \begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-scatter-by-family.pdf}
+
+    \caption{Instance by instance comparison of the basic algorithm with the degree heuristic,
+    versus degree-biased + restarts, showing only satisfiable instances, on a family by family
+    basis.}
+    \label{figure:scatter-by-family}
+\end{figure}
+
+?? do a more detailed breakdown by family, \cref{figure:scatter-by-family}
+
+?? maybe some engineering aspects: look at what happens without nogoods in
+\cref{figure:scatter-nogoods}, and at performance with restarts on degree in
+\cref{figure:scatter-overheads}.
+
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-nogoods.pdf}
 
@@ -435,28 +446,20 @@ without nogood recording, and what happens without nogoods in \cref{figure:scatt
     \label{figure:scatter-nogoods}
 \end{figure}
 
-\begin{figure}[tb]
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-overheads.pdf}
 
-    \caption{Is nogood recording and restarting expensive?}
-    \label{figure:scatter-overhead}
+    \caption{Is nogood recording expensive?}
+    \label{figure:scatter-overheads}
 \end{figure}
 
-\begin{figure}[tb]
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-restart-policies.pdf}
 
-    \caption{Different restart policies}
+    \caption{Different restart policies.}
     \label{figure:restart-policies}
-\end{figure}
-
-\begin{figure}[tb]
-    \centering
-    \includegraphics*{gen-graph-scatter-geometric.pdf}
-
-    \caption{Geometric instead of Luby}
-    \label{figure:scatter-geometric}
 \end{figure}
 
 ?? Explain why this is so amazingly awesome and the most important idea ever to happen in the entire

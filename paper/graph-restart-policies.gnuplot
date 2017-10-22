@@ -22,6 +22,5 @@ plot \
     "runtimes.data" u ($15>=1e6?1e6:$10):($15>=1e6?1e-10:1) smooth cumulative w l ls 4 ti 'Geometric 1.1', \
     "runtimes.data" u ($16>=1e6?1e6:$16):($16>=1e6?1e-10:1) smooth cumulative w l ls 7 ti 'Luby 10', \
     "runtimes.data" u ($17>=1e6?1e6:$17):($17>=1e6?1e-10:1) smooth cumulative w l ls 8 ti 'Luby 100', \
-    "runtimes.data" u ($18>=1e6?1e6:$18):($18>=1e6?1e-10:1) smooth cumulative w l ls 9 ti 'luby 1000', \
-    "runtimes.data" u ($19>=1e6?1e6:$19):($19>=1e6?1e-10:1) smooth cumulative w l ls 1 dt "." ti 'Variable'
+    "runtimes.data" u ($18>=1e6?1e6:$18):($18>=1e6?1e-10:1) smooth cumulative w l ls 9 ti 'luby 1000'
 

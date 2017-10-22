@@ -1,6 +1,6 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 7cm,7cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 9cm,7cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-scatter-heuristics.tex"
 
 load "inferno.pal"
@@ -17,11 +17,11 @@ set logscale x
 set logscale y
 set format x '$10^{%T}$'
 set format y '$10^{%T}$'
-set key right horiz above width -8
+set key horiz rmargin maxcols 1 width -2 samplen 1
 set size square
 
 plot \
-    "runtimes.data" u ($3==1?NaN:$5>=1e6?1e6:$5):($7>=1e6?1e6:$7) w p ls 2 pt 2 ps 0.7 ti 'Unsatisfiable', \
-    "runtimes.data" u ($3==0?NaN:$5>=1e6?1e6:$5):($7>=1e6?1e6:$7) w p ls 7 pt 6 ps 0.4 ti 'Satisfiable', \
+    "runtimes.data" u ($3==1?NaN:$5>=1e6?1e6:$5):($7>=1e6?1e6:$7) w p ls 6 pt 2 ps 0.7 ti 'Unsat', \
+    "runtimes.data" u ($3==0?NaN:$5>=1e6?1e6:$5):($7>=1e6?1e6:$7) w p ls 2 pt 6 ps 0.4 ti 'Sat', \
     x w l ls 0 notitle
 
