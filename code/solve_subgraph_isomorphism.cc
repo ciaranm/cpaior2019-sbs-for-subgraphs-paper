@@ -107,6 +107,7 @@ auto main(int argc, char * argv[]) -> int
             ("help",                                         "Display help information")
             ("timeout",            po::value<int>(),         "Abort after this many seconds")
             ("format",             po::value<string>(),      "Specify the format of the input")
+            ("induced",                                      "Solve the induced version")
             ("restarts",                                     "Use restarts")
             ("shuffle",                                      "Use shuffling")
             ("biased-shuffle",                               "Use biased shuffling")
@@ -174,6 +175,7 @@ auto main(int argc, char * argv[]) -> int
         /* Figure out what our options should be. */
         Params params;
 
+        params.induced = options_vars.count("induced");
         params.restarts = options_vars.count("restarts");
         params.shuffle = options_vars.count("shuffle");
         params.biased_shuffle = options_vars.count("biased-shuffle");
@@ -224,8 +226,9 @@ auto main(int argc, char * argv[]) -> int
         if (! result.isomorphism.empty()) {
             for (int i = 0 ; i < graphs.first.size() ; ++i) {
                 for (int j = 0 ; j < graphs.first.size() ; ++j) {
-                    if (graphs.first.adjacent(i, j)) {
-                        if (! graphs.second.adjacent(result.isomorphism.find(i)->second, result.isomorphism.find(j)->second)) {
+                    if (params.induced || graphs.first.adjacent(i, j)) {
+                        if (graphs.first.adjacent(i, j) !=
+                                graphs.second.adjacent(result.isomorphism.find(i)->second, result.isomorphism.find(j)->second)) {
                             cerr << "Oops! not an isomorphism: " << i << ", " << j << endl;
                             return EXIT_FAILURE;
                         }

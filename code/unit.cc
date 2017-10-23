@@ -162,9 +162,9 @@ namespace
             patterns_degrees(max_graphs),
             targets_degrees(max_graphs)
         {
-            // strip out isolated vertices in the pattern
+            // strip out isolated vertices in the pattern, and build pattern_permutation
             for (unsigned v = 0 ; v < full_pattern_size ; ++v)
-                if (0 == pattern.degree(v)) {
+                if ((! params.induced) && (0 == pattern.degree(v))) {
                     isolated_vertices.push_back(v);
                     --pattern_size;
                 }
@@ -242,6 +242,14 @@ namespace
                     }
                 }
             }
+        }
+
+        auto build_complement_graphs(vector<FixedBitSet<n_words_> > & graph_rows, unsigned size) -> void
+        {
+            for (unsigned v = 0 ; v < size ; ++v)
+                for (unsigned w = 0 ; w < size ; ++w)
+                    if (! graph_rows[v * max_graphs + 0].test(w))
+                        graph_rows[v * max_graphs + 5].set(w);
         }
 
         auto find_unit_domain(Domains & domains) -> typename Domains::iterator
@@ -778,6 +786,12 @@ namespace
 
             build_supplemental_graphs(pattern_graph_rows, pattern_size);
             build_supplemental_graphs(target_graph_rows, target_size);
+
+            // build complement graphs
+            if (params.induced) {
+                build_complement_graphs(pattern_graph_rows, pattern_size);
+                build_complement_graphs(target_graph_rows, target_size);
+            }
 
             // pattern and target degrees, including supplemental graphs
             for (int g = 0 ; g < max_graphs ; ++g) {
