@@ -307,8 +307,22 @@ namespace
         // The max_graphs_ template parameter is so that the for each graph
         // pair loop gets unrolled, which makes an annoyingly large difference
         // to performance. Note that for larger target graphs, half of the
-        // total runtime is spent in the middle bit of this function.
+        // total runtime is spent in this function.
         template <int max_graphs_>
+        auto propagate_adjacency_constraints(Domain & d, const Assignment & current_assignment) -> void
+        {
+            auto pattern_adjacency_bits = pattern_adjacencies_bits[pattern_size * current_assignment.first + d.v];
+
+            // for each graph pair...
+            for (int g = 0 ; g < max_graphs_ ; ++g) {
+                // if we're adjacent...
+                if (pattern_adjacency_bits & (1u << g)) {
+                    // ...then we can only be mapped to adjacent vertices
+                    d.values.intersect_with(target_graph_rows[current_assignment.second * max_graphs_ + g]);
+                }
+            }
+        }
+
         auto propagate_simple_constraints(Domains & new_domains, const Assignment & current_assignment) -> bool
         {
             // propagate for each remaining domain...
@@ -319,15 +333,13 @@ namespace
                 // all different
                 d.values.unset(current_assignment.second);
 
-                auto pattern_adjacency_bits = pattern_adjacencies_bits[pattern_size * current_assignment.first + d.v];
+                // adjacency
+                switch (max_graphs) {
+                    case 5: propagate_adjacency_constraints<5>(d, current_assignment); break;
+                    case 6: propagate_adjacency_constraints<6>(d, current_assignment); break;
 
-                // for each graph pair...
-                for (int g = 0 ; g < max_graphs_ ; ++g) {
-                    // if we're adjacent...
-                    if (pattern_adjacency_bits & (1u << g)) {
-                        // ...then we can only be mapped to adjacent vertices
-                        d.values.intersect_with(target_graph_rows[current_assignment.second * max_graphs_ + g]);
-                    }
+                    default:
+                        throw "you forgot to update the ugly max_graphs hack";
                 }
 
                 // we might have removed values
@@ -358,20 +370,8 @@ namespace
                         return false;
 
                 // propagate simple all different and adjacency
-                switch (max_graphs) {
-                    case 5:
-                        if (! propagate_simple_constraints<5>(new_domains, current_assignment))
-                            return false;
-                        break;
-
-                    case 6:
-                        if (! propagate_simple_constraints<6>(new_domains, current_assignment))
-                            return false;
-                        break;
-
-                    default:
-                        throw "you need to update the hacky max_graphs switch";
-                }
+                if (! propagate_simple_constraints(new_domains, current_assignment))
+                    return false;
             }
 
             // all unit domains done, try all different (and don't bother fixedpointing)
