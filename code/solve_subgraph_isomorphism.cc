@@ -1,7 +1,7 @@
 /* vim: set sw=4 sts=4 et foldmethod=syntax : */
 
 #include "lad.hh"
-#include "unit.hh"
+#include "sip.hh"
 
 #include <boost/program_options.hpp>
 

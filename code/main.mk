@@ -9,7 +9,7 @@ override LDFLAGS += -pthread
 TARGET := solve_subgraph_isomorphism
 
 SOURCES := \
-    unit.cc \
+    sip.cc \
     fixed_bit_set.cc \
     graph.cc \
     lad.cc \
