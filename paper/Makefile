@@ -11,7 +11,6 @@ GRAPHS = \
 	 gen-graph-others.pdf \
 	 gen-graph-others-zoom.pdf \
 	 gen-graph-scatter-heuristics.pdf \
-	 gen-graph-scatter-geometric.pdf \
 	 gen-graph-scatter-by-family.pdf \
 	 gen-graph-restart-policies.pdf \
 	 gen-graph-scatter-nogoods.pdf \
@@ -23,7 +22,7 @@ graphs : $(GRAPHS)
 
 gen-graph-%.pdf : graph-%.gnuplot
 	gnuplot $<
-	sed -i -e '19s/^\(\\path.*\)/\% \1/' gen-graph-$*.tex # epic haxx
+	sed -i -e '19,20s/^\(\\path.*\)/\% \1/' gen-graph-$*.tex # epic haxx
 	latexmk -pdf gen-graph-$*
 
 clean :

@@ -5,8 +5,8 @@ set output "gen-graph-scatter-heuristics.tex"
 
 load "inferno.pal"
 
-set xlabel "Degree Runtime (ms)"
-set ylabel "Degree-Biased Runtime (ms)"
+set xlabel "Degree Search Time (ms)"
+set ylabel "Degree-Biased Search Time (ms)"
 set border 3
 set grid x y
 set xtics nomirror
@@ -21,7 +21,7 @@ set key horiz rmargin maxcols 1 width -2 samplen 1
 set size square
 
 plot \
-    "runtimes.data" u ($3==1?NaN:$5>=1e6?1e6:$5):($7>=1e6?1e6:$7) w p ls 6 pt 2 ps 0.7 ti 'Unsat', \
-    "runtimes.data" u ($3==0?NaN:$5>=1e6?1e6:$5):($7>=1e6?1e6:$7) w p ls 2 pt 6 ps 0.4 ti 'Sat', \
+    "searchtimes.data" u ($3==1?NaN:$4>=1e6?1e6:$4):($6>=1e6?1e6:$6) w p ls 6 pt 2 ps 0.7 ti 'Unsat', \
+    "searchtimes.data" u ($3==0?NaN:$4>=1e6?1e6:$4):($6>=1e6?1e6:$6) w p ls 2 pt 6 ps 0.4 ti 'Sat', \
     x w l ls 0 notitle
 

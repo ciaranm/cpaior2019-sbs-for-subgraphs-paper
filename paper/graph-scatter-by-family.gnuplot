@@ -5,8 +5,8 @@ set output "gen-graph-scatter-by-family.tex"
 
 load "inferno.pal"
 
-set xlabel "Degree Runtime (ms)"
-set ylabel "Degree-Biased + Restarts Runtime (ms)"
+set xlabel "Degree Search Time (ms)"
+set ylabel "Degree-Biased + Restarts Search Time (ms)"
 set border 3
 set grid x y
 set xtics nomirror
@@ -21,11 +21,11 @@ set key horiz rmargin maxcols 1 width -2 samplen 1
 set size square
 
 plot \
-    "runtimes.data" u ($3==0||$2==13||$2==2||$2==11||$2==12||$2==7?NaN:$5>=1e6?1e6:$5):($10>=1e6?1e6:$10) ls 1 pt 7 ps 0.3 notitle, \
-    "runtimes.data" u ($3==0||$2!=13?NaN:$5>=1e6?1e6:$5):($10>=1e6?1e6:$10) ls 3 pt 1 ps 0.5 ti 'Mesh', \
-    "runtimes.data" u ($3==0||($2!=2&&$2!=11)?NaN:$5>=1e6?1e6:$5):($10>=1e6?1e6:$10) w p ls 5 pt 2 ps 0.5 ti 'LV', \
-    "runtimes.data" u ($3==0||$2!=12?NaN:$5>=1e6?1e6:$5):($10>=1e6?1e6:$10) ls 6 pt 3 ps 0.5 ti 'Phase', \
-    "runtimes.data" u ($3==0||$2!=7?NaN:$5>=1e6?1e6:$5):($10>=1e6?1e6:$10) ls 8 pt 6 ps 0.5 ti 'Rand', \
-    "runtimes.data" u (NaN):(NaN) ls 1 pt 7 ps 0.3 ti "Other", \
+    "searchtimes.data" u ($3==0||$2==13||$2==2||$2==11||$2==12||$2==7?NaN:$4>=1e6?1e6:$4):($9>=1e6?1e6:$9) ls 1 pt 7 ps 0.3 notitle, \
+    "searchtimes.data" u ($3==0||$2!=13?NaN:$4>=1e6?1e6:$4):($9>=1e6?1e6:$9) ls 3 pt 1 ps 0.5 ti 'Mesh', \
+    "searchtimes.data" u ($3==0||($2!=2&&$2!=11)?NaN:$4>=1e6?1e6:$4):($9>=1e6?1e6:$9) w p ls 5 pt 2 ps 0.5 ti 'LV', \
+    "searchtimes.data" u ($3==0||$2!=12?NaN:$4>=1e6?1e6:$4):($9>=1e6?1e6:$9) ls 6 pt 3 ps 0.5 ti 'Phase', \
+    "searchtimes.data" u ($3==0||$2!=7?NaN:$4>=1e6?1e6:$4):($9>=1e6?1e6:$9) ls 8 pt 6 ps 0.5 ti 'Rand', \
+    "searchtimes.data" u (NaN):(NaN) ls 1 pt 7 ps 0.3 ti "Other", \
     x w l ls 0 notitle
 
