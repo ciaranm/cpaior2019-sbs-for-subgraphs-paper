@@ -205,23 +205,28 @@ auto main(int argc, char * argv[]) -> int
         /* Stop the clock. */
         auto overall_time = duration_cast<milliseconds>(steady_clock::now() - params.start_time);
 
-        /* Display the results. */
-        cout << boolalpha << ! result.isomorphism.empty() << " " << result.nodes;
-
+        cout << "status = ";
         if (aborted)
-            cout << " aborted";
+            cout << "aborted";
+        else if (! result.isomorphism.empty())
+            cout << "true";
+        else
+            cout << "false";
         cout << endl;
 
-        for (auto v : result.isomorphism)
-            cout << "(" << v.first << " -> " << v.second << ") ";
-        cout << endl;
+        cout << "nodes = " << result.nodes << endl;
 
-        cout << overall_time.count();
-        if (! result.times.empty()) {
-            for (auto t : result.times)
-                cout << " " << t.count();
+        if (! result.isomorphism.empty()) {
+            cout << "mapping = ";
+            for (auto v : result.isomorphism)
+                cout << "(" << v.first << " -> " << v.second << ") ";
+            cout << endl;
         }
-        cout << endl;
+
+        cout << "runtime = " << overall_time.count() << endl;
+
+        for (const auto & s : result.extra_stats)
+            cout << s << endl;
 
         if (! result.isomorphism.empty()) {
             for (int i = 0 ; i < graphs.first.size() ; ++i) {

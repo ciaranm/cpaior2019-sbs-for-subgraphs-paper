@@ -9,6 +9,7 @@
 #include <functional>
 #include <limits>
 #include <list>
+#include <map>
 #include <numeric>
 #include <random>
 #include <utility>
@@ -20,12 +21,15 @@ using std::find_if;
 using std::greater;
 using std::list;
 using std::max;
+using std::map;
 using std::move;
 using std::mt19937;
 using std::next;
 using std::pair;
 using std::sort;
+using std::string;
 using std::swap;
+using std::to_string;
 using std::uniform_int_distribution;
 using std::uniform_real_distribution;
 using std::vector;
@@ -380,18 +384,17 @@ namespace
                 // propagate simple all different and adjacency
                 if (! propagate_simple_constraints(new_domains, current_assignment))
                     return false;
-            }
 
-            // all unit domains done, try all different (and don't bother fixedpointing)
-            if (! cheap_all_different(new_domains))
-                return false;
+                // propagate all different
+                if (! cheap_all_different(new_domains))
+                    return false;
+            }
 
             return true;
         }
 
         auto find_branch_domain(const Domains & domains) -> const Domain *
         {
-            uniform_real_distribution<double> dist(0, 1);
             const Domain * result = nullptr;
             for (auto & d : domains)
                 if (! d.fixed)
@@ -825,7 +828,7 @@ namespace
             assignments.values.reserve(pattern_size);
 
             // start search timer
-            result.times.push_back(duration_cast<milliseconds>(steady_clock::now() - params.start_time));
+            auto search_start_time = steady_clock::now();
 
             // do the appropriate search variant
             if (params.restarts) {
@@ -861,6 +864,7 @@ namespace
                                 if (d.v == n->literals[0].first) {
                                     d.values.unset(n->literals[0].second);
                                     d.popcount = d.values.popcount();
+                                    break;
                                 }
                         }
                         else {
@@ -869,6 +873,9 @@ namespace
                         }
                     }
                     need_to_watch.clear();
+
+                    if (done)
+                        break;
 
                     if (propagate(domains, assignments)) {
                         auto assignments_copy = assignments;
@@ -921,6 +928,22 @@ namespace
                     }
                 }
             }
+
+            result.extra_stats.emplace_back("search_time = " + to_string(
+                        duration_cast<milliseconds>(steady_clock::now() - search_start_time).count()));
+            result.extra_stats.emplace_back("nogoods_size = " + to_string(nogoods.size()));
+
+            map<int, int> nogoods_lengths;
+            for (auto & n : nogoods)
+                nogoods_lengths[n.literals.size()]++;
+
+            string nogoods_lengths_str;
+            for (auto & n : nogoods_lengths) {
+                nogoods_lengths_str += " ";
+                nogoods_lengths_str += to_string(n.first) + ":" + to_string(n.second);
+            }
+            result.extra_stats.emplace_back("nogoods_lengths =" + nogoods_lengths_str);
+
             return result;
         }
     };

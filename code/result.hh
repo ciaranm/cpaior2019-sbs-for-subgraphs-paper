@@ -18,11 +18,8 @@ struct Result
     /// A count, if enumerating.
     unsigned result_count = 0;
 
-    /**
-     * Runtimes. The first entry in the list is the total runtime.
-     * Additional values are for each worker thread.
-     */
-    std::list<std::chrono::milliseconds> times;
+    /// Extra stats, to output
+    std::list<std::string> extra_stats;
 };
 
 #endif
