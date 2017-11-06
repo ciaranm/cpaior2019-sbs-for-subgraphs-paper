@@ -109,6 +109,8 @@ auto main(int argc, char * argv[]) -> int
             ("format",             po::value<string>(),      "Specify the format of the input")
             ("induced",                                      "Solve the induced version")
             ("restarts",                                     "Use restarts")
+            ("dds",                                          "Use dds")
+            ("ddds",                                         "Use ddds")
             ("shuffle",                                      "Use shuffling")
             ("biased-shuffle",                               "Use biased shuffling")
             ("magic-shuffle",                                "Use magic shuffling")
@@ -177,6 +179,8 @@ auto main(int argc, char * argv[]) -> int
 
         params.induced = options_vars.count("induced");
         params.restarts = options_vars.count("restarts");
+        params.dds = options_vars.count("dds");
+        params.ddds = options_vars.count("ddds");
         params.shuffle = options_vars.count("shuffle");
         params.biased_shuffle = options_vars.count("biased-shuffle");
         params.position_shuffle = options_vars.count("position-shuffle");
