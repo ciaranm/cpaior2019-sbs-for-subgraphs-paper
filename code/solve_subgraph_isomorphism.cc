@@ -5,13 +5,17 @@
 
 #include <boost/program_options.hpp>
 
-#include <iostream>
-#include <exception>
-#include <cstdlib>
 #include <chrono>
-#include <thread>
-#include <mutex>
 #include <condition_variable>
+#include <cstdlib>
+#include <ctime>
+#include <exception>
+#include <iomanip>
+#include <iostream>
+#include <mutex>
+#include <thread>
+
+#include <unistd.h>
 
 namespace po = boost::program_options;
 
@@ -24,14 +28,17 @@ using std::cv_status;
 using std::endl;
 using std::exception;
 using std::function;
+using std::localtime;
 using std::make_pair;
 using std::mutex;
+using std::put_time;
 using std::string;
 using std::thread;
 using std::unique_lock;
 
 using std::chrono::seconds;
 using std::chrono::steady_clock;
+using std::chrono::system_clock;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 
@@ -193,10 +200,24 @@ auto main(int argc, char * argv[]) -> int
         if (options_vars.count("geometric-multiplier"))
             params.geometric_multiplier = options_vars["geometric-multiplier"].as<double>();
 
+        char hostname_buf[255];
+        if (0 == gethostname(hostname_buf, 255))
+            cout << "hostname = " << string(hostname_buf) << endl;
+        cout << "commandline =";
+        for (int i = 0 ; i < argc ; ++i)
+            cout << " " << argv[i];
+        cout << endl;
+
+        auto started_at = system_clock::to_time_t(system_clock::now());
+        cout << "started_at = " << put_time(localtime(&started_at), "%F %T") << endl;
+
         /* Read in the graphs */
         auto graphs = make_pair(
             read_lad(options_vars["pattern-file"].as<string>()),
             read_lad(options_vars["target-file"].as<string>()));
+
+        cout << "pattern_file = " << options_vars["pattern-file"].as<std::string>() << endl;
+        cout << "target_file = " << options_vars["target-file"].as<std::string>() << endl;
 
         /* Do the actual run. */
         bool aborted = false;

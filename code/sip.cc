@@ -12,12 +12,14 @@
 #include <map>
 #include <numeric>
 #include <random>
+#include <tuple>
 #include <utility>
 
 using std::array;
 using std::iota;
 using std::fill;
 using std::find_if;
+using std::get;
 using std::greater;
 using std::list;
 using std::max;
@@ -30,6 +32,7 @@ using std::sort;
 using std::string;
 using std::swap;
 using std::to_string;
+using std::tuple;
 using std::uniform_int_distribution;
 using std::uniform_real_distribution;
 using std::vector;
@@ -72,13 +75,13 @@ namespace
 
     struct Assignments
     {
-        vector<pair<Assignment, bool> > values;
+        vector<tuple<Assignment, bool, int> > values;
 
         bool contains(const Assignment & assignment) const
         {
             // this should not be a linear scan...
             return values.end() != find_if(values.begin(), values.end(), [&] (const auto & a) {
-                    return a.first == assignment;
+                    return get<0>(a) == assignment;
                     });
         }
     };
@@ -374,7 +377,7 @@ namespace
 
                 // ok, make the assignment
                 branch_domain->fixed = true;
-                assignments.values.push_back({ { current_assignment.first, current_assignment.second }, false });
+                assignments.values.push_back({ { current_assignment.first, current_assignment.second }, false, -1 });
 
                 // propagate watches
                 if (params.restarts && ! params.goods)
@@ -443,11 +446,12 @@ namespace
 
             auto remaining = branch_domain->values;
 
+            int discrepancy_count = 0;
             for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
                 remaining.unset(f_v);
 
                 auto assignments_size = assignments.values.size();
-                assignments.values.push_back({ { branch_domain->v, f_v }, true });
+                assignments.values.push_back({ { branch_domain->v, f_v }, true, discrepancy_count });
 
                 /* set up new domains */
                 Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
@@ -463,6 +467,7 @@ namespace
                 }
 
                 assignments.values.resize(assignments_size);
+                ++discrepancy_count;
             }
 
             return Search::Unsatisfiable;
@@ -487,12 +492,13 @@ namespace
 
             auto remaining = branch_domain->values;
 
+            int discrepancy_count = 0;
             for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
                 remaining.unset(f_v);
 
                 if (discrepancy_k != -1) {
                     auto assignments_size = assignments.values.size();
-                    assignments.values.push_back({ { branch_domain->v, f_v }, true });
+                    assignments.values.push_back({ { branch_domain->v, f_v }, true, discrepancy_count });
 
                     /* set up new domains */
                     Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
@@ -515,6 +521,8 @@ namespace
                     break;
                 }
                 --discrepancy_k;
+
+                ++discrepancy_count;
             }
 
             return Search::Unsatisfiable;
@@ -529,8 +537,8 @@ namespace
             Nogood nogood;
 
             for (auto & a : assignments.values)
-                if (a.second)
-                    nogood.literals.emplace_back(a.first);
+                if (get<1>(a))
+                    nogood.literals.emplace_back(get<0>(a));
 
             nogoods.emplace_back(move(nogood));
             need_to_watch.emplace_back(prev(nogoods.end()));
@@ -618,13 +626,15 @@ namespace
                 }
             }
 
+            int discrepancy_count = 0;
+
             // for each value remaining...
             for (auto f_v = branch_v.begin(), f_end = branch_v.begin() + branch_v_end ; f_v != f_end ; ++f_v) {
                 // modified in-place by appending, we can restore by shrinking
                 auto assignments_size = assignments.values.size();
 
                 // make the assignment
-                assignments.values.push_back({ { branch_domain->v, *f_v }, true });
+                assignments.values.push_back({ { branch_domain->v, *f_v }, true, discrepancy_count });
 
                 // set up new domains
                 Domains new_domains = prepare_domains(domains, branch_domain->v, *f_v);
@@ -652,7 +662,7 @@ namespace
 
                         // post nogoods for everything we've done so far
                         for (auto l = branch_v.begin() ; l != f_v ; ++l) {
-                            assignments.values.push_back({ { branch_domain->v, *l }, true });
+                            assignments.values.push_back({ { branch_domain->v, *l }, true, -2 });
                             post_nogood(assignments);
                             assignments.values.pop_back();
                         }
@@ -664,6 +674,8 @@ namespace
                         assignments.values.resize(assignments_size);
                         break;
                 }
+
+                ++discrepancy_count;
             }
 
             // no values remaining, backtrack, or possibly kick off a restart
@@ -817,7 +829,7 @@ namespace
         auto save_result(const Assignments & assignments, Result & result) -> void
         {
             for (auto & a : assignments.values)
-                result.isomorphism.emplace(pattern_permutation.at(a.first.first), target_permutation.at(a.first.second));
+                result.isomorphism.emplace(pattern_permutation.at(get<0>(a).first), target_permutation.at(get<0>(a).second));
 
             // re-add isolated vertices
             int t = 0;
@@ -827,6 +839,11 @@ namespace
                         ++t;
                 result.isomorphism.emplace(v, t);
             }
+
+            string where = "where =";
+            for (auto & a : assignments.values)
+                where.append(" " + to_string(get<2>(a)));
+            result.extra_stats.push_back(where);
         }
 
         auto run() -> Result
