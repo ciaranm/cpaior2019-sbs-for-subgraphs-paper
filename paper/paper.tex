@@ -326,16 +326,17 @@ time using the four different value-ordering heuristics. As expected, the degree
 better (?? give aggregate speedups for both all and just satisfiable instances) than random
 ordering, which is in turn ?? times better than the anti-heuristic.
 
-The performance of both the biased heuristics and the degree heuristic are very similar: the
+The performance of both of the biased heuristics and the degree heuristic are very similar: the
 degree-biased heuristic has slightly worse performance below a 100s timeout, and effectively equal
 performance above it. This shows that we can introduce an element of randomness into the degree
 value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.
 \Cref{figure:scatter-heuristics} gives a more detailed look at these results. In this plot,
-satisfiable and unsatisfiable instances are shown using dots and crosses respectively. On the
-$x$-axis we measure the degree heuristic, whilst on the $y$-axis we measure random + restarts.
-Points on the outer axes represent instances which timed out with one heuristic but not the other.
-This plot shows that on a case by case basis, randomness can make a large difference to individual
-satisfiable instances.
+satisfiable and unsatisfiable instances are shown using coloured shapes and black dots respectively.
+On the $x$-axis we measure the degree heuristic, whilst on the $y$-axis we measure the degree-biased
+heuristic. Points on the outer axes represent instances which timed out with one heuristic but not
+the other.  This plot shows that despite the aggregate performance being very similar, on an case by
+case basis, the two heuristics can make a large difference to the performance of satisfiable
+instances.
 
 \subsection{Discrepancy Searches}
 
@@ -432,10 +433,6 @@ factor of ?? times worse.
 
 ?? This has made up the consistency we lost from introducing randomness.
 
-?? maybe some engineering aspects: look at what happens without nogoods in
-\cref{figure:scatter-nogoods}, and at performance with restarts on degree in
-\cref{figure:scatter-overheads}.
-
 ?? Explain why this is so amazingly awesome and the most important idea ever to happen in the entire
 history of science.
 
@@ -459,7 +456,8 @@ this with almost no effect on unsatisfiable instances, and rare to make satisfia
 \clearpage
 \section{Further Experiments}
 
-A bit of text here.
+?? engineering aspects: look at what happens without nogoods in \cref{figure:scatter-nogoods}, and
+at performance with restarts on degree in \cref{figure:scatter-overheads}.
 
 \begin{figure}[h]
     \centering
@@ -476,6 +474,8 @@ A bit of text here.
     \caption{Is nogood recording expensive?}
     \label{figure:scatter-overheads}
 \end{figure}
+
+?? effects of restart policies, \cref{figure:restart-policies}.
 
 \begin{figure}[h]
     \centering
