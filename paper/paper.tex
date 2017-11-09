@@ -75,7 +75,7 @@ fruitful to investigate alternatives to simple backtracking (depth-first) search
 evaluates two such approaches: discrepancy search (which perform poorly), and restarts (which are
 extremely beneficial). To make restarts work, we introduce a new value-ordering heuristic, which is
 nearly the same as ``highest degree first'' except with small amounts of heavily biased randomness.
-The effects of the changes we propose are shown in \cref{figure:scatter}: we can make a
+The effects of the changes we propose are shown in \cref{figure:scatter-by-family}: we can make a
 state-of-the-art algorithm perform much better on a large number of satisfiable instances, without
 substantially degrading its performance on unsatisfiable instances.
 
@@ -405,11 +405,11 @@ many satisfiable instances performing substantially worse. ?? Quantify this a bi
 
 \begin{figure}[p]
     \centering
-    \includegraphics*{gen-graph-scatter.pdf}
+    \includegraphics*{gen-graph-scatter-by-family.pdf}
 
     \caption{Instance by instance comparison of the basic algorithm with the degree heuristic,
     versus degree-biased + restarts.}
-    \label{figure:scatter}
+    \label{figure:scatter-by-family}
 \end{figure}
 
 \Cref{figure:restarts} shows that either biased heuristic together with restarts is better
@@ -419,25 +419,16 @@ The degree-biased heuristic is also stronger than position-biased, showing that 
 relative sizes in the heuristic ordering is also worthwhile. Interestingly, the gap between degree-
 and position-based is much larger when using restarts than it is when not using them.
 
-In the more detailed view in \cref{figure:scatter}, comparing the basic algorithm with the degree
-heuristic to the degree-biased algorithm with restarts, all of the unsatisfiable instances
-are on the $x-y$ diagonal, showing that their performance is unchanged. On the other hand, there are
-?? large numbers of satisfiable instances well below the diagonal line, indicating large speedups.
-Better yet, there are only ?? satisfiable instances that are more than a factor of ?? times worse.
+In the more detailed view in \cref{figure:scatter-by-family}, comparing the basic algorithm with the
+degree heuristic to the degree-biased algorithm with restarts, all of the unsatisfiable instances
+are very close to the $x-y$ diagonal, showing that their performance is nearly unchanged. On the
+other hand, there are ?? large numbers of satisfiable instances well below the diagonal line,
+indicating large speedups.  Better yet, there are only ?? satisfiable instances that are more than a
+factor of ?? times worse.
+
+?? By family
 
 ?? This has made up the consistency we lost from introducing randomness.
-
-\begin{figure}[tb]
-    \centering
-    \includegraphics*{gen-graph-scatter-by-family.pdf}
-
-    \caption{Instance by instance comparison of the basic algorithm with the degree heuristic,
-    versus degree-biased + restarts, showing only satisfiable instances, on a family by family
-    basis.}
-    \label{figure:scatter-by-family}
-\end{figure}
-
-?? do a more detailed breakdown by family, \cref{figure:scatter-by-family}
 
 ?? maybe some engineering aspects: look at what happens without nogoods in
 \cref{figure:scatter-nogoods}, and at performance with restarts on degree in
