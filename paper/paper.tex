@@ -45,14 +45,14 @@ Around}
 \maketitle
 
 \begin{abstract}
-    Modern subgraph isomorphism solvers use strong value-ordering heuristics to direct search, but
-    these heuristics are not perfect, particularly for early choices. Our results suggest that
-    discrepancy-based searches are too expensive to be effective at offsetting this weakness.
-    However, restarts with a random value-ordering heuristic beats conventional search with the best
-    tailored heuristic. This motivates the introduction of a slightly-random value-ordering
-    heuristic with similar behaviour to the tailored heuristic: when combined with restarts, this
-    new heuristic is even more effective on satisfiable instances, whilst not significantly
-    decreasing performance on unsatisfiable instances.
+    Modern subgraph isomorphism solvers use value-ordering heuristics to direct search, but these
+    heuristics are not perfect, particularly for early choices. We investigate discrepancy searches
+    and restarts to offset this weakness. Our results suggest that discrepancy-based searches are
+    too expensive to be effective.  However, restarts with a random value-ordering heuristic beats
+    conventional search with the best tailored heuristic. This motivates the introduction of a
+    slightly-random value-ordering heuristic with similar behaviour to the tailored heuristic: when
+    combined with restarts, this new heuristic is even more effective on satisfiable instances,
+    whilst not significantly decreasing performance on unsatisfiable instances.
 \end{abstract}
 
 \section{Introduction}
@@ -75,12 +75,9 @@ fruitful to investigate alternatives to simple backtracking (depth-first) search
 evaluates two such approaches: discrepancy search (which perform poorly), and restarts (which are
 extremely beneficial). To make restarts work, we introduce a new value-ordering heuristic, which is
 nearly the same as ``highest degree first'' except with small amounts of heavily biased randomness.
-The effects of the changes we propose are shown in the top plot of \cref{figure:scatter}: we can
-make a state-of-the-art algorithm perform much better on a large number of satisfiable instances,
-without substantially degrading its performance on unsatisfiable or the remaining satisfiable
-instances.
-
-?? And concludes what? 
+The effects of the changes we propose are shown in \cref{figure:scatter}: we can make a
+state-of-the-art algorithm perform much better on a large number of satisfiable instances, without
+substantially degrading its performance on unsatisfiable instances.
 
 \section{The Basic Algorithm}
 
@@ -189,7 +186,6 @@ context of restarts.
             }
             \nl \lIf{$D_w = \emptyset$}{$\KwSty{return}~\KwSty{false}$}
         }
-    }
 \nl $(H,\,A,\,n) \gets (\emptyset,\,\emptyset,\,0)$ \;
 \nl \ForEach{$D_v \in D$ \textnormal{from smallest cardinality upwards\siplabel{eachdomain}}}{
     \nl $D_v \gets D_v \setminus H$ \siplabel{elimhall} \;
@@ -197,6 +193,7 @@ context of restarts.
     \nl \lIf{$D_v = \emptyset~\vee~|A| < n$}{$\KwSty{return}~\KwSty{false}$\siplabel{failhall}}
     \nl \lIf{$|A| = n$}{$(H,\,A,\,n) \gets (H \cup A,\,\emptyset,\,0)$\siplabel{hall}}
 }
+    }
 \nl $\KwSty{return}~\KwSty{true}$ \;
 }
 \caption{Non-induced subgraph isomorphism. Shaded code is added for the restarting variant.}
@@ -240,43 +237,6 @@ every vertex weight at least 1.  This is a bit of hack but programming is hard.)
 continues to prefer vertices of high degree, but will give the same chance of being selected next to
 two vertices of equal degree.
 
-\subsection{Discrepancy Searches}
-
-?? Quick intro to discrepancy search
-\citep{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97,DBLP:conf/cpaior/KarouiHLN07,DBLP:journals/jea/ProsserU11}.
-Discrepancy search is about value ordering.
-
-?? Talk about how we're not dealing with a binary search tree, so we could either make it binary, or
-count one discrepancy each time the degree changes, or count every ``against'' branch as being just
-one discrepancy regardless.
-
-\subsection{Restarts}
-
-?? Quick intro to restarts, mentioning how it's important to change something when restarting.
-Interestingly usually that thing is variable-ordering heuristics, not value-ordering
-\citep{DBLP:conf/ijcai/LecoutreSTV07,DBLP:journals/jsat/LecoutreSTV07,DBLP:conf/cp/GayHLS15,DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}.
-?? Does anyone at all do this on value ordering explicitly? And if not, why not? There's
-\citet{DBLP:conf/flairs/RazgonOP07} at least. ?? There's a connection here to confidence-based work
-stealing \citep{DBLP:conf/cp/ChuSS09} too. But what? They talk about confidence in a heuristic, but
-not that different values could be ranked differently.
-
-?? We use the Luby scheme \citep{DBLP:journals/ipl/LubySZ93}, because everyone else does. We count
-the number of backtracks (that is, when we reach the end of the main $\KwSty{foreach}$ loop) to
-decide when to restart. Following established wisdom, we multiply each item in the Luby sequence by
-a magic constant. Preliminary experiments demonstrated that this is useful, but we failed to
-determine a principled way of selecting the constant's value, so we fell back on divine revelation
-and set it to 666. As with everyone else, we are not entirely clear why we are doing this: it could
-be to allow the solver to spend more time deep in search, it could be to reduce the overheads from
-repeatedly visiting inner nodes, or it could be to keep the nogoods small.
-
-?? We just use two watched literals \citep{DBLP:conf/dac/MoskewiczMZZM01}. Could use increasing
-nogoods \citep{DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17} etc, but we are not confident enough
-in our programming abilities to implement these correctly, and we are not maintaining arc
-consistency anyway. We also really do not want to propagate on negative decisions, because we do not
-want to iterate over every removed value.
-
-?? Talk a bit about how it fits into \cref{algorithm:sip}.
-
 \section{Empirical Evaluation}
 
 ?? Dual Xeon E5-2697A v4 CPUs, 512GBytes RAM, running Ubuntu 17.04, implemented in C++ and compiled
@@ -292,7 +252,8 @@ using GCC 6.3.0. Our code is heavily based upon \citet{dblp:conf/cp/McCreeshP15}
 \citep{DBLP:journals/cviu/DamiandSHJS11}, partly because some earlier solvers find many of these
 instances extremely hard, and partly to avoid skewing a portfolio. We want larger numbers of
 satisfiable instances, so we include all pattern / target pairs. This gives a total of 14,621
-instances, ?? of which we know are satisfiable, and ??  unsatisfiable.
+instances, at least 2,110 of which are known to be satisfiable, and at least 12,323 are
+unsatisfiable.
 
 ?? Note that an awful lot of these instances are very easy. We are trying to tackle the remaining
 hard satisfiable instances.
@@ -334,7 +295,7 @@ something to cite showing how bad SAT is at this.
 
 \subsection{Value Ordering Heuristics}
 
-\begin{figure}[tb]
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
 
@@ -343,18 +304,25 @@ something to cite showing how bad SAT is at this.
     \label{figure:value-ordering-heuristics}
 \end{figure}
 
-In \cref{figure:value-ordering-heuristics} we show the cumulative number of instances solved over
-time using the four different value-ordering heuristics. As expected, the degree heuristic is much
-better (?? give aggregate speedups for both all and just satisfiable instances) than random
-ordering, which is in turn ?? times better than the anti-heuristic.
-
-\begin{figure}[tb]
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-heuristics.pdf}
 
     \caption{An instance by instance comparison of the degree and degree-biased heuristics.}
     \label{figure:scatter-heuristics}
 \end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-dds.pdf}
+
+    \caption{The effects of using depth-bounded discrepancy search.}\label{figure:dds}
+\end{figure}
+
+In \cref{figure:value-ordering-heuristics} we show the cumulative number of instances solved over
+time using the four different value-ordering heuristics. As expected, the degree heuristic is much
+better (?? give aggregate speedups for both all and just satisfiable instances) than random
+ordering, which is in turn ?? times better than the anti-heuristic.
 
 The performance of both the biased heuristics and the degree heuristic are very similar: the
 degree-biased heuristic has slightly worse performance below a 100s timeout, and effectively equal
@@ -367,9 +335,46 @@ Points on the outer axes represent instances which timed out with one heuristic 
 This plot shows that on a case by case basis, randomness can make a large difference to individual
 satisfiable instances.
 
-\subsection{Discrepancies Don't Help}
+\subsection{Discrepancy Searches}
 
-?? Code up LDS and DDS and the like properly, and plot them being disappointing here.
+?? Quick intro to discrepancy search
+\citep{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97,DBLP:conf/cpaior/KarouiHLN07,DBLP:journals/jea/ProsserU11}.
+Discrepancy search is about value ordering.
+
+?? Talk about how we're not dealing with a binary search tree, so we could either make it binary, or
+count one discrepancy each time the degree changes, or count every ``against'' branch as being just
+one discrepancy regardless.
+
+?? \cref{figure:dds}. Sometimes extremely beneficial on satisfiable instances. However, on both
+unsatisfiable and satisfiable instances, the overheads are often large, and the algorithm is not
+better in aggregate (even when only considering satisfiable instances).
+
+\subsection{Restarts}
+
+?? Quick intro to restarts, mentioning how it's important to change something when restarting.
+Interestingly usually that thing is variable-ordering heuristics, not value-ordering
+\citep{DBLP:conf/ijcai/LecoutreSTV07,DBLP:journals/jsat/LecoutreSTV07,DBLP:conf/cp/GayHLS15,DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}.
+?? Does anyone at all do this on value ordering explicitly? And if not, why not? There's
+\citet{DBLP:conf/flairs/RazgonOP07} at least. ?? There's a connection here to confidence-based work
+stealing \citep{DBLP:conf/cp/ChuSS09} too. But what? They talk about confidence in a heuristic, but
+not that different values could be ranked differently.
+
+?? We use the Luby scheme \citep{DBLP:journals/ipl/LubySZ93}, because everyone else does. We count
+the number of backtracks (that is, when we reach the end of the main $\KwSty{foreach}$ loop) to
+decide when to restart. Following established wisdom, we multiply each item in the Luby sequence by
+a magic constant. Preliminary experiments demonstrated that this is useful, but we failed to
+determine a principled way of selecting the constant's value, so we fell back on divine revelation
+and set it to 666. As with everyone else, we are not entirely clear why we are doing this: it could
+be to allow the solver to spend more time deep in search, it could be to reduce the overheads from
+repeatedly visiting inner nodes, or it could be to keep the nogoods small.
+
+?? We just use two watched literals \citep{DBLP:conf/dac/MoskewiczMZZM01}. Could use increasing
+nogoods \citep{DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17} etc, but we are not confident enough
+in our programming abilities to implement these correctly, and we are not maintaining arc
+consistency anyway. We also really do not want to propagate on negative decisions, because we do not
+want to iterate over every removed value.
+
+?? Talk a bit about how it fits into \cref{algorithm:sip}.
 
 \subsection{Restarts Make it Better}
 
@@ -386,7 +391,7 @@ many satisfiable instances performing substantially worse. ?? Quantify this a bi
     \includegraphics*{gen-graph-restarts.pdf}
 
     \caption{Cumulative number of instances solved over time, with (dotted lines) and without (solid
-    lines) restarts.}
+    lines) restarts, and with depth-bounded discrepancy search (dashed line).}
     \label{figure:restarts}
 \end{figure}
 
@@ -438,36 +443,8 @@ Better yet, there are only ?? satisfiable instances that are more than a factor 
 \cref{figure:scatter-nogoods}, and at performance with restarts on degree in
 \cref{figure:scatter-overheads}.
 
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-nogoods.pdf}
-
-    \caption{Is nogood recording important?}
-    \label{figure:scatter-nogoods}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-overheads.pdf}
-
-    \caption{Is nogood recording expensive?}
-    \label{figure:scatter-overheads}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-restart-policies.pdf}
-
-    \caption{Different restart policies.}
-    \label{figure:restart-policies}
-\end{figure}
-
 ?? Explain why this is so amazingly awesome and the most important idea ever to happen in the entire
 history of science.
-
-\section{Other Subgraph Solvers}
-
-?? Also do this in McSplit and kdown?
 
 \section{Conclusion}
 
@@ -482,12 +459,38 @@ this with almost no effect on unsatisfiable instances, and rare to make satisfia
 
 ?? Parallel
 
-?? k-regular graphs
-
-?? repeat the random plot from the JAIR paper
-
 \bibliographystyle{named}
 \bibliography{dblp}
+
+\appendix
+\clearpage
+\section{Further Experiments}
+
+A bit of text here.
+
+\begin{figure}[h]
+    \centering
+    \includegraphics*{gen-graph-scatter-nogoods.pdf}
+
+    \caption{Is nogood recording important?}
+    \label{figure:scatter-nogoods}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics*{gen-graph-scatter-overheads.pdf}
+
+    \caption{Is nogood recording expensive?}
+    \label{figure:scatter-overheads}
+\end{figure}
+
+\begin{figure}[h]
+    \centering
+    \includegraphics*{gen-graph-restart-policies.pdf}
+
+    \caption{Different restart policies.}
+    \label{figure:restart-policies}
+\end{figure}
 
 \end{document}
 

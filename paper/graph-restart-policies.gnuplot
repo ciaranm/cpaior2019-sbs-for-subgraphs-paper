@@ -1,16 +1,12 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 8cm,4.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 9cm,4.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-restart-policies.tex"
 
-load "inferno.pal"
+load "common.gnuplot"
 
 set xlabel "Runtime (ms)"
 set ylabel "Number of Instances Solved"
-set border 3
-set grid x y
-set xtics nomirror
-set ytics nomirror
 set xrange [1e3:1e6]
 set logscale x
 set format x '$10^{%T}$'

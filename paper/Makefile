@@ -7,6 +7,7 @@ GRAPHS = \
 	 gen-graph-value-ordering-heuristics.pdf \
 	 gen-graph-restarts.pdf \
 	 gen-graph-scatter.pdf \
+	 gen-graph-scatter-dds.pdf \
 	 gen-graph-scatter-random.pdf \
 	 gen-graph-others.pdf \
 	 gen-graph-others-zoom.pdf \
@@ -20,7 +21,7 @@ tables : $(TABLES)
 
 graphs : $(GRAPHS)
 
-gen-graph-%.pdf : graph-%.gnuplot
+gen-graph-%.pdf : graph-%.gnuplot common.gnuplot inferno.pal
 	gnuplot $<
 	sed -i -e '19,20s/^\(\\path.*\)/\% \1/' gen-graph-$*.tex # epic haxx
 	latexmk -pdf gen-graph-$*

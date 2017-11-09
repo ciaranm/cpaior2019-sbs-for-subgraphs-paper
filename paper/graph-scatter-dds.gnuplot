@@ -1,12 +1,12 @@
 # vim: set et ft=gnuplot sw=4 :
 
 set terminal tikz standalone color size 9cm,6.5cm font '\scriptsize' preamble '\usepackage{times,microtype}'
-set output "gen-graph-scatter-heuristics.tex"
+set output "gen-graph-scatter-dds.tex"
 
 load "common.gnuplot"
 
 set xlabel "Degree Search Time (ms)"
-set ylabel "Degree-Biased Search Time (ms)"
+set ylabel "Degree + DDS Search Time (ms)"
 set xrange [1:1e6]
 set yrange [1:1e6]
 set logscale x
@@ -17,7 +17,7 @@ set key horiz rmargin maxcols 1 width -2 samplen 1
 set size square
 
 plot \
-    "searchtimes.data" u ($3==1?NaN:$4>=1e6?1e6:$4):($6>=1e6?1e6:$6) w p ls 6 pt 2 ps 0.7 ti 'Unsat', \
-    "searchtimes.data" u ($3==0?NaN:$4>=1e6?1e6:$4):($6>=1e6?1e6:$6) w p ls 2 pt 6 ps 0.4 ti 'Sat', \
+    "searchtimes.data" u ($3==1?NaN:$4>=1e6?1e6:$4):($18>=1e6?1e6:$18) w p ls 6 pt 2 ps 0.7 ti 'Unsat', \
+    "searchtimes.data" u ($3==0?NaN:$4>=1e6?1e6:$4):($18>=1e6?1e6:$18) w p ls 2 pt 6 ps 0.4 ti 'Sat', \
     x w l ls 0 notitle
 

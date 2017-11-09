@@ -1,16 +1,12 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 9cm,7cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 9cm,6.5cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-scatter.tex"
 
-load "inferno.pal"
+load "common.gnuplot"
 
 set xlabel "Degree Search Time (ms)"
 set ylabel "Degree-Biased + Restarts Search Time (ms)"
-set border 3
-set grid x y
-set xtics nomirror
-set ytics nomirror
 set xrange [1:1e6]
 set yrange [1:1e6]
 set logscale x

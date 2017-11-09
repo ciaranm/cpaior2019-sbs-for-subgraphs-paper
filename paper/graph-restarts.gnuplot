@@ -1,16 +1,12 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 8cm,4.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 9cm,4.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-restarts.tex"
 
-load "inferno.pal"
+load "common.gnuplot"
 
 set xlabel "Runtime (ms)"
 set ylabel "Number of Instances Solved"
-set border 3
-set grid x y
-set xtics nomirror
-set ytics nomirror
 set xrange [1e3:1e6]
 set logscale x
 set format x '$10^{%T}$'
@@ -21,6 +17,7 @@ plot \
     "runtimes.data" u ($10>=1e6?1e6:$10):($10>=1e6?1e-10:1) smooth cumulative w l notitle ls 1 dt ".", \
     "runtimes.data" u ($12>=1e6?1e6:$10):($12>=1e6?1e-10:1) smooth cumulative w l notitle ls 4 dt ".", \
     "runtimes.data" u ($11>=1e6?1e6:$11):($11>=1e6?1e-10:1) smooth cumulative w l notitle ls 7 dt ".", \
+    "runtimes.data" u ($19>=1e6?1e6:$19):($19>=1e6?1e-10:1) smooth cumulative w l notitle ls 1 dt "-", \
     "runtimes.data" u ($7>=1e6?1e6:$7):($7>=1e6?1e-10:1) smooth cumulative w l ti 'Degree-Biased' ls 1, \
     "runtimes.data" u ($6>=1e6?1e6:$6):($6>=1e6?1e-10:1) smooth cumulative w l ti 'Position-Biased' ls 4, \
     "runtimes.data" u ($5>=1e6?1e6:$5):($5>=1e6?1e-10:1) smooth cumulative w l ti 'Degree' ls 6, \
