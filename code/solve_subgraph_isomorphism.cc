@@ -1,6 +1,7 @@
 /* vim: set sw=4 sts=4 et foldmethod=syntax : */
 
 #include "lad.hh"
+#include "dimacs.hh"
 #include "sip.hh"
 
 #include <boost/program_options.hpp>
@@ -113,7 +114,7 @@ auto main(int argc, char * argv[]) -> int
         display_options.add_options()
             ("help",                                         "Display help information")
             ("timeout",            po::value<int>(),         "Abort after this many seconds")
-            ("format",             po::value<string>(),      "Specify the format of the input")
+            ("dimacs",                                       "Read DIMACS format instead of LAD")
             ("induced",                                      "Solve the induced version")
             ("restarts",                                     "Use restarts")
             ("dds",                                          "Use dds")
@@ -213,8 +214,8 @@ auto main(int argc, char * argv[]) -> int
 
         /* Read in the graphs */
         auto graphs = make_pair(
-            read_lad(options_vars["pattern-file"].as<string>()),
-            read_lad(options_vars["target-file"].as<string>()));
+            (options_vars.count("dimacs") ? read_dimacs : read_lad)(options_vars["pattern-file"].as<string>()),
+            (options_vars.count("dimacs") ? read_dimacs : read_lad)(options_vars["target-file"].as<string>()));
 
         cout << "pattern_file = " << options_vars["pattern-file"].as<std::string>() << endl;
         cout << "target_file = " << options_vars["target-file"].as<std::string>() << endl;

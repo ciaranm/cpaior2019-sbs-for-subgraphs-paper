@@ -8,16 +8,6 @@
 using std::ifstream;
 using std::string;
 
-GraphFileError::GraphFileError(const string & filename, const string & message) throw () :
-    _what("Error reading graph file '" + filename + "': " + message)
-{
-}
-
-auto GraphFileError::what() const throw () -> const char *
-{
-    return _what.c_str();
-}
-
 namespace
 {
     auto read_word(ifstream & infile) -> int
