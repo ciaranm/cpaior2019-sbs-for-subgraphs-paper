@@ -76,8 +76,10 @@ evaluates two such approaches: discrepancy search (which perform poorly), and re
 extremely beneficial). To make restarts work, we introduce a new value-ordering heuristic, which is
 nearly the same as ``highest degree first'' except with small amounts of heavily biased randomness.
 The effects of the changes we propose are shown in \cref{figure:scatter-by-family}: we can make a
-state-of-the-art algorithm perform much better on a large number of satisfiable instances, without
-substantially degrading its performance on unsatisfiable instances.
+state-of-the-art algorithm perform much better on a large number of satisfiable instances, whilst
+performing worse only rarely on satisfiable instances, and never on unsatisfiable instances.
+Further, these properties are \emph{not} shared by discrepancy searches (\cref{figure:scatter-dds})
+or by random value-ordering with restarts (\cref{figure:scatter-random}).
 
 \section{The Basic Algorithm}
 
@@ -316,7 +318,7 @@ something to cite showing how bad SAT is at this.
     \centering
     \includegraphics*{gen-graph-scatter-dds.pdf}
 
-    \caption{The effects of using depth-bounded discrepancy search.}\label{figure:dds}
+    \caption{The effects of using depth-bounded discrepancy search.}\label{figure:scatter-dds}
 \end{figure}
 
 In \cref{figure:value-ordering-heuristics} we show the cumulative number of instances solved over
@@ -345,7 +347,7 @@ Discrepancy search is about value ordering.
 count one discrepancy each time the degree changes, or count every ``against'' branch as being just
 one discrepancy regardless.
 
-?? \cref{figure:dds}. Sometimes extremely beneficial on satisfiable instances. However, on both
+?? \cref{figure:scatter-dds}. Sometimes extremely beneficial on satisfiable instances. However, on both
 unsatisfiable and satisfiable instances, the overheads are often large, and the algorithm is not
 better in aggregate (even when only considering satisfiable instances).
 
@@ -399,7 +401,7 @@ many satisfiable instances performing substantially worse. ?? Quantify this a bi
     \centering
     \includegraphics*{gen-graph-scatter-random.pdf}
     \caption{Instance by instance comparison of the basic algorithm with the degree heuristic,
-    versus random + restarts.}
+    versus random value-ordering with restarts.}
     \label{figure:scatter-random}
 \end{figure}
 
@@ -408,7 +410,7 @@ many satisfiable instances performing substantially worse. ?? Quantify this a bi
     \includegraphics*{gen-graph-scatter-by-family.pdf}
 
     \caption{Instance by instance comparison of the basic algorithm with the degree heuristic,
-    versus degree-biased + restarts.}
+    versus degree-biased value ordering with restarts.}
     \label{figure:scatter-by-family}
 \end{figure}
 
