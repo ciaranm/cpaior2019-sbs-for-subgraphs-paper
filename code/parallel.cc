@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <functional>
 #include <limits>
 #include <list>
@@ -13,10 +14,15 @@
 #include <mutex>
 #include <numeric>
 #include <random>
+#include <thread>
 #include <tuple>
 #include <utility>
+#include <vector>
+
+#include <boost/thread/barrier.hpp>
 
 using std::array;
+using std::atomic;
 using std::iota;
 using std::fill;
 using std::find_if;
@@ -34,6 +40,7 @@ using std::sort;
 using std::string;
 using std::swap;
 using std::to_string;
+using std::thread;
 using std::tuple;
 using std::uniform_int_distribution;
 using std::uniform_real_distribution;
@@ -43,6 +50,8 @@ using std::vector;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::steady_clock;
+
+using boost::barrier;
 
 namespace
 {
@@ -727,6 +736,7 @@ namespace
 
         auto run() -> Result
         {
+            mutex result_mutex;
             Result result;
 
             if (full_pattern_size > target_size) {
@@ -767,86 +777,137 @@ namespace
                             pattern_adjacencies_bits[i * pattern_size + j] |= (1u << g);
 
             // domains
-            Domains domains(pattern_size);
-            if (! initialise_domains(domains))
+            Domains initial_domains(pattern_size);
+            if (! initialise_domains(initial_domains))
                 return result;
-
-            // assignments
-            Assignments assignments;
-            assignments.values.reserve(pattern_size);
 
             // start search timer
             auto search_start_time = steady_clock::now();
 
             // do the actual search
-            bool done = false;
+            atomic<bool> done{ false };
             list<long long> luby = {{ 1 }};
-            auto current_luby = luby.begin();
 
-            unsigned number_of_restarts = 0;
+            unsigned number_of_threads = thread::hardware_concurrency();
 
-            ThreadData thread_data;
-            thread_data.watches.initialise(pattern_size, target_size);
+            list<thread> workers;
+            vector<ThreadData> thread_data{ number_of_threads };
 
-            while (! done) {
-                long long backtracks_until_restart = *current_luby * params.luby_multiplier;
-                if (next(current_luby) == luby.end()) {
-                    luby.insert(luby.end(), luby.begin(), luby.end());
-                    luby.push_back(*luby.rbegin() * 2);
-                }
-                ++current_luby;
-                ++number_of_restarts;
-
-                // start watching new nogoods. we're not backjumping so this is a bit icky.
-                for (auto & n : need_to_watch) {
-                    if (n->literals.empty()) {
-                        done = true;
-                        break;
-                    }
-                    else if (1 == n->literals.size()) {
-                        for (auto & d : domains)
-                            if (d.v == n->literals[0].first) {
-                                d.values.unset(n->literals[0].second);
-                                d.popcount = d.values.popcount();
-                                break;
-                            }
-                    }
-                    else {
-                        auto p = thread_data.watches.nogoods_with_watches.insert(
-                                thread_data.watches.nogoods_with_watches.end(),
-                                NogoodWithTwoWatches{ n, n->literals[0], n->literals[1] });
-                        thread_data.watches[n->literals[0]].push_back(p);
-                        thread_data.watches[n->literals[1]].push_back(p);
-                    }
-                }
-                need_to_watch.clear();
-
-                if (done)
-                    break;
-
-                if (propagate(thread_data.watches, domains, assignments)) {
-                    auto assignments_copy = assignments;
-
-                    switch (parallel_restarting_search(thread_data, assignments_copy, domains, result.nodes, 0, backtracks_until_restart)) {
-                        case RestartingSearch::Satisfiable:
-                            save_result(assignments_copy, result);
-                            done = true;
-                            break;
-
-                        case RestartingSearch::Unsatisfiable:
-                        case RestartingSearch::Aborted:
-                            done = true;
-                            break;
-
-                        case RestartingSearch::Restart:
-                            break;
-                    }
-                }
-                else
-                    done = true;
+            for (unsigned thread_number = 0 ; thread_number != number_of_threads ; ++thread_number) {
+                thread_data[thread_number].watches.initialise(pattern_size, target_size);
+                if (0 != thread_number)
+                    thread_data[thread_number].rand.seed(thread_number);
             }
 
-            result.extra_stats.emplace_back("restarts = " + to_string(number_of_restarts));
+            barrier luby_ready_barrier(number_of_threads), before_starting_search_barrier(number_of_threads),
+                    after_search_barrier(number_of_threads), updated_nogoods_barrier(number_of_threads);
+
+            for (unsigned thread_number = 0 ; thread_number != number_of_threads ; ++thread_number) {
+                workers.emplace_back([thread_number, this, &done, &luby, &initial_domains, &my_thread_data = thread_data[thread_number],
+                        &result, &result_mutex, &luby_ready_barrier, &before_starting_search_barrier, &after_search_barrier,
+                        &updated_nogoods_barrier] () {
+                    auto current_luby = luby.begin();
+                    unsigned number_of_restarts = 0;
+
+                    // assignments
+                    Assignments assignments;
+                    assignments.values.reserve(pattern_size);
+
+                    Domains domains = initial_domains;
+
+                    unsigned long long my_nodes = 0;
+
+                    while (! done) {
+                        long long backtracks_until_restart = *current_luby * params.luby_multiplier;
+
+                        if (0 == thread_number && next(current_luby) == luby.end()) {
+                            luby.insert(luby.end(), luby.begin(), luby.end());
+                            luby.push_back(*luby.rbegin() * 2);
+                        }
+
+                        luby_ready_barrier.count_down_and_wait();
+
+                        ++current_luby;
+                        ++number_of_restarts;
+
+                        // start watching new nogoods. we're not backjumping so this is a bit icky.
+                        for (auto & n : need_to_watch) {
+                            if (n->literals.empty()) {
+                                done = true;
+                                break;
+                            }
+                            else if (1 == n->literals.size()) {
+                                for (auto & d : domains)
+                                    if (d.v == n->literals[0].first) {
+                                        d.values.unset(n->literals[0].second);
+                                        d.popcount = d.values.popcount();
+                                        break;
+                                    }
+                            }
+                            else {
+                                auto p = my_thread_data.watches.nogoods_with_watches.insert(
+                                        my_thread_data.watches.nogoods_with_watches.end(),
+                                        NogoodWithTwoWatches{ n, n->literals[0], n->literals[1] });
+                                my_thread_data.watches[n->literals[0]].push_back(p);
+                                my_thread_data.watches[n->literals[1]].push_back(p);
+                            }
+                        }
+
+                        updated_nogoods_barrier.count_down_and_wait();
+
+                        if (0 == thread_number)
+                            need_to_watch.clear();
+
+                        if (done)
+                            params.abort->store(true);
+
+                        before_starting_search_barrier.count_down_and_wait();
+
+                        if ((! done) && propagate(my_thread_data.watches, domains, assignments)) {
+                            auto assignments_copy = assignments;
+
+                            switch (parallel_restarting_search(my_thread_data, assignments_copy, domains,
+                                        my_nodes, 0, backtracks_until_restart)) {
+                                case RestartingSearch::Satisfiable:
+                                    {
+                                        unique_lock<mutex> guard(result_mutex);
+                                        save_result(assignments_copy, result);
+                                        params.abort->store(true);
+                                    }
+                                    done = true;
+                                    break;
+
+                                case RestartingSearch::Unsatisfiable:
+                                    params.abort->store(true);
+                                    done = true;
+                                    break;
+
+                                case RestartingSearch::Aborted:
+                                    done = true;
+                                    break;
+
+                                case RestartingSearch::Restart:
+                                    break;
+                            }
+                        }
+                        else
+                            done = true;
+
+                        after_search_barrier.count_down_and_wait();
+                    }
+
+                    {
+                        unique_lock<mutex> guard(result_mutex);
+                        result.nodes += my_nodes;
+                        if (0 == thread_number) {
+                            result.extra_stats.emplace_back("restarts = " + to_string(number_of_restarts));
+                        }
+                    }
+                });
+            }
+
+            for (auto & t : workers)
+                t.join();
 
             result.extra_stats.emplace_back("search_time = " + to_string(
                         duration_cast<milliseconds>(steady_clock::now() - search_start_time).count()));
