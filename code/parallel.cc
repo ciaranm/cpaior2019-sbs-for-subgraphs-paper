@@ -1,6 +1,6 @@
 /* vim: set sw=4 sts=4 et foldmethod=syntax : */
 
-#include "sip.hh"
+#include "parallel.hh"
 #include "fixed_bit_set.hh"
 #include "template_voodoo.hh"
 
@@ -10,6 +10,7 @@
 #include <limits>
 #include <list>
 #include <map>
+#include <mutex>
 #include <numeric>
 #include <random>
 #include <tuple>
@@ -26,6 +27,7 @@ using std::max;
 using std::map;
 using std::move;
 using std::mt19937;
+using std::mutex;
 using std::next;
 using std::pair;
 using std::sort;
@@ -35,6 +37,7 @@ using std::to_string;
 using std::tuple;
 using std::uniform_int_distribution;
 using std::uniform_real_distribution;
+using std::unique_lock;
 using std::vector;
 
 using std::chrono::duration_cast;
@@ -58,19 +61,6 @@ namespace
         Restart
     };
 
-    auto degree_sort(const Graph & graph, vector<int> & p, bool reverse) -> void
-    {
-        // pre-calculate degrees
-        vector<int> degrees;
-
-        for (int v = 0 ; v < graph.size() ; ++v)
-            degrees.push_back(graph.degree(v));
-
-        // sort on degree
-        sort(p.begin(), p.end(),
-                [&] (int a, int b) { return (! reverse) ^ (degrees[a] < degrees[b] || (degrees[a] == degrees[b] && a > b)); });
-    }
-
     using Assignment = pair<unsigned, unsigned>;
 
     struct Assignments
@@ -87,9 +77,8 @@ namespace
     };
 
     // A nogood, aways of the form (list of assignments) -> false, where the
-    // last part is implicit. If there are at least two assignments, then the
-    // first two assignments are the watches (and the literals are permuted
-    // when the watches are updates).
+    // last part is implicit. Unlike in the sequential algorithm, these are not
+    // permuted.
     struct Nogood
     {
         vector<Assignment> literals;
@@ -98,13 +87,28 @@ namespace
     // nogoods stored here
     using Nogoods = list<Nogood>;
 
+    struct NogoodWithTwoWatches;
+
+    // nogoods with per-thread watch notes stored here
+    using NogoodWithTwoWatchesList = list<NogoodWithTwoWatches>;
+
+    struct NogoodWithTwoWatches
+    {
+        Nogoods::const_iterator nogood;
+        Assignment first_watch;
+        Assignment second_watch;
+    };
+
     // Two watched literals for our nogoods store.
     struct Watches
     {
+        NogoodWithTwoWatchesList nogoods_with_watches;
+
         // for each watched literal, we have a list of watched things, each of
-        // which is an iterator into the global watch list (so we can reorder
-        // the literal to keep the watches as the first two elements)
-        using WatchList = list<Nogoods::iterator>;
+        // which is an iterator into the global watch list. Unlike in the
+        // sequential algorithm, we cannot permute these, so we have some awful
+        // indirection to deal with.
+        using WatchList = list<NogoodWithTwoWatchesList::iterator>;
 
         // two dimensional array, indexed by (target_size * p + t)
         vector<WatchList> data;
@@ -151,13 +155,17 @@ namespace
         vector<int> pattern_permutation, target_permutation, isolated_vertices;
         vector<vector<int> > patterns_degrees, targets_degrees;
 
-        Nogoods nogoods;
-        Watches watches;
-        list<typename Nogoods::iterator> need_to_watch;
-
         vector<unsigned long long> target_vertex_biases;
 
-        mt19937 global_rand;
+        mutex new_nogoods_mutex;
+        Nogoods nogoods;
+        list<typename Nogoods::const_iterator> need_to_watch;
+
+        struct ThreadData
+        {
+            Watches watches;
+            mt19937 rand;
+        };
 
         SIP(const Graph & target, const Graph & pattern, const Params & a) :
             params(a),
@@ -188,13 +196,6 @@ namespace
             // determine ordering for target graph vertices
             iota(target_permutation.begin(), target_permutation.end(), 0);
 
-            // set up space for watches
-            if (params.restarts && ! params.goods)
-                watches.initialise(pattern_size, target_size);
-
-            if (! params.input_order)
-                degree_sort(target, target_permutation, params.antiheuristic);
-
             // recode target to a bit graph
             target_graph_rows.resize(target_size * max_graphs);
             for (unsigned i = 0 ; i < target_size ; ++i)
@@ -203,18 +204,16 @@ namespace
                         target_graph_rows[i * max_graphs + 0].set(j);
 
             // build up vertex selection biases
-            if (params.biased_shuffle) {
-                unsigned max_degree = 0;
-                for (unsigned j = 0 ; j < target_size ; ++j)
-                    max_degree = max(max_degree, target_graph_rows[j * max_graphs + 0].popcount());
+            unsigned max_degree = 0;
+            for (unsigned j = 0 ; j < target_size ; ++j)
+                max_degree = max(max_degree, target_graph_rows[j * max_graphs + 0].popcount());
 
-                for (unsigned j = 0 ; j < target_size ; ++j) {
-                    unsigned degree = target_graph_rows[j * max_graphs + 0].popcount();
-                    if (max_degree - degree >= 50)
-                        target_vertex_biases.push_back(1);
-                    else
-                        target_vertex_biases.push_back(1ull << (50 - (max_degree - degree)));
-                }
+            for (unsigned j = 0 ; j < target_size ; ++j) {
+                unsigned degree = target_graph_rows[j * max_graphs + 0].popcount();
+                if (max_degree - degree >= 50)
+                    target_vertex_biases.push_back(1);
+                else
+                    target_vertex_biases.push_back(1ull << (50 - (max_degree - degree)));
             }
         }
 
@@ -266,31 +265,40 @@ namespace
                     });
         }
 
-        auto propagate_watches(Domains & new_domains, Assignments & assignments, const Assignment & current_assignment) -> bool
+        auto propagate_watches(
+                Watches & watches,
+                Domains & new_domains,
+                Assignments & assignments,
+                const Assignment & current_assignment) -> bool
         {
             auto & watches_to_update = watches[current_assignment];
             for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ) {
-                Nogood & nogood = **watch_to_update;
+                const Nogood & nogood = *(*watch_to_update)->nogood;
+                Assignment & first_watch = (*watch_to_update)->first_watch;
+                Assignment & second_watch = (*watch_to_update)->second_watch;
 
-                // make the first watch the thing we just triggered
-                if (nogood.literals[0] != current_assignment)
-                    swap(nogood.literals[0], nogood.literals[1]);
+                // swap if necessary so the current assignment is the first watch
+                if (first_watch != current_assignment)
+                    swap(first_watch, second_watch);
 
                 // can we find something else to watch?
                 bool success = false;
-                for (auto new_literal = next(nogood.literals.begin(), 2) ; new_literal != nogood.literals.end() ; ++new_literal) {
+                for (auto new_literal = nogood.literals.begin() ; new_literal != nogood.literals.end() ; ++new_literal) {
+                    if (*new_literal == first_watch || *new_literal == second_watch)
+                        continue;
+
                     if (! assignments.contains(*new_literal)) {
                         // we can watch new_literal instead of current_assignment in this nogood
                         success = true;
 
-                        // move the new watch to be the first item in the nogood
-                        swap(nogood.literals[0], *new_literal);
-
                         // start watching it
-                        watches[nogood.literals[0]].push_back(*watch_to_update);
+                        watches[*new_literal].push_back(*watch_to_update);
 
                         // remove the current watch, and update the loop iterator
                         watches_to_update.erase(watch_to_update++);
+
+                        // update the watching assignments
+                        first_watch = *new_literal;
 
                         break;
                     }
@@ -306,8 +314,8 @@ namespace
                     if (d.fixed)
                         continue;
 
-                    if (d.v == nogood.literals[1].first) {
-                        d.values.unset(nogood.literals[1].second);
+                    if (d.v == second_watch.first) {
+                        d.values.unset(second_watch.second);
                         break;
                     }
                 }
@@ -366,7 +374,7 @@ namespace
             return true;
         }
 
-        auto propagate(Domains & new_domains, Assignments & assignments) -> bool
+        auto propagate(Watches & watches, Domains & new_domains, Assignments & assignments) -> bool
         {
             // whilst we've got a unit domain...
             for (typename Domains::iterator branch_domain = find_unit_domain(new_domains) ;
@@ -380,9 +388,8 @@ namespace
                 assignments.values.push_back({ { current_assignment.first, current_assignment.second }, false, -1 });
 
                 // propagate watches
-                if (params.restarts && ! params.goods)
-                    if (! propagate_watches(new_domains, assignments, current_assignment))
-                        return false;
+                if (! propagate_watches(watches, new_domains, assignments, current_assignment))
+                    return false;
 
                 // propagate simple all different and adjacency
                 if (! propagate_simple_constraints(new_domains, current_assignment))
@@ -429,122 +436,22 @@ namespace
             return new_domains;
         }
 
-        auto search(
-                Assignments & assignments,
-                const Domains & domains,
-                unsigned long long & nodes,
-                int depth) -> Search
-        {
-            if (params.abort->load())
-                return Search::Aborted;
-
-            ++nodes;
-
-            const Domain * branch_domain = find_branch_domain(domains);
-            if (! branch_domain)
-                return Search::Satisfiable;
-
-            auto remaining = branch_domain->values;
-
-            int discrepancy_count = 0;
-            for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
-                remaining.unset(f_v);
-
-                auto assignments_size = assignments.values.size();
-                assignments.values.push_back({ { branch_domain->v, f_v }, true, discrepancy_count });
-
-                /* set up new domains */
-                Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
-
-                if (propagate(new_domains, assignments)) {
-                    auto search_result = search(assignments, new_domains, nodes, depth + 1);
-
-                    switch (search_result) {
-                        case Search::Satisfiable:    return Search::Satisfiable;
-                        case Search::Aborted:        return Search::Aborted;
-                        case Search::Unsatisfiable:  break;
-                    }
-                }
-
-                assignments.values.resize(assignments_size);
-                ++discrepancy_count;
-            }
-
-            return Search::Unsatisfiable;
-        }
-
-        auto dds_search(
-                Assignments & assignments,
-                const Domains & domains,
-                unsigned long long & nodes,
-                int depth,
-                int discrepancy_k,
-                bool & used_all_discrepancies) -> Search
-        {
-            if (params.abort->load())
-                return Search::Aborted;
-
-            ++nodes;
-
-            const Domain * branch_domain = find_branch_domain(domains);
-            if (! branch_domain)
-                return Search::Satisfiable;
-
-            auto remaining = branch_domain->values;
-
-            int discrepancy_count = 0;
-            for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
-                remaining.unset(f_v);
-
-                if (discrepancy_k != -1) {
-                    auto assignments_size = assignments.values.size();
-                    assignments.values.push_back({ { branch_domain->v, f_v }, true, discrepancy_count });
-
-                    /* set up new domains */
-                    Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
-
-                    if (propagate(new_domains, assignments)) {
-                        auto search_result = dds_search(assignments, new_domains, nodes, depth + 1, discrepancy_k, used_all_discrepancies);
-
-                        switch (search_result) {
-                            case Search::Satisfiable:    return Search::Satisfiable;
-                            case Search::Aborted:        return Search::Aborted;
-                            case Search::Unsatisfiable:  break;
-                        }
-                    }
-
-                    assignments.values.resize(assignments_size);
-                }
-
-                if (0 == discrepancy_k) {
-                    used_all_discrepancies = true;
-                    break;
-                }
-                --discrepancy_k;
-
-                ++discrepancy_count;
-            }
-
-            return Search::Unsatisfiable;
-        }
-
         auto post_nogood(
                 const Assignments & assignments)
         {
-            if (params.goods)
-                return;
-
             Nogood nogood;
 
             for (auto & a : assignments.values)
                 if (get<1>(a))
                     nogood.literals.emplace_back(get<0>(a));
 
+            unique_lock<mutex> guard(new_nogoods_mutex);
             nogoods.emplace_back(move(nogood));
             need_to_watch.emplace_back(prev(nogoods.end()));
         }
 
-        auto restarting_search(
+        auto parallel_restarting_search(
+                ThreadData & my_thread_data,
                 Assignments & assignments,
                 const Domains & domains,
                 unsigned long long & nodes,
@@ -571,59 +478,30 @@ namespace
                 branch_v[branch_v_end++] = f_v;
             }
 
-            if (params.shuffle) {
-                shuffle(branch_v.begin(), branch_v.begin() + branch_v_end, global_rand);
-            }
-            else if (params.biased_shuffle) {
-                // sum up the bias scores of every branch vertex
-                unsigned long long remaining_score = 0;
-                for (unsigned v = 0 ; v < branch_v_end ; ++v)
-                    remaining_score += target_vertex_biases[branch_v[v]];
+            // sum up the bias scores of every branch vertex
+            unsigned long long remaining_score = 0;
+            for (unsigned v = 0 ; v < branch_v_end ; ++v)
+                remaining_score += target_vertex_biases[branch_v[v]];
 
-                // now repeatedly pick a biased-random vertex, move it to the front of branch_v,
-                // and then only consider items further to the right in the next iteration.
-                for (unsigned start = 0 ; start < branch_v_end ; ++start) {
-                    // pick a random number between 0 and remaining_score inclusive
-                    uniform_int_distribution<unsigned long long> dist(1, remaining_score);
-                    unsigned long long select_score = dist(global_rand);
+            // now repeatedly pick a biased-random vertex, move it to the front of branch_v,
+            // and then only consider items further to the right in the next iteration.
+            for (unsigned start = 0 ; start < branch_v_end ; ++start) {
+                // pick a random number between 0 and remaining_score inclusive
+                uniform_int_distribution<unsigned long long> dist(1, remaining_score);
+                unsigned long long select_score = dist(my_thread_data.rand);
 
-                    // go over the list until we've used up bias values totalling our
-                    // random number
-                    unsigned select_element = start;
-                    for ( ; select_element < branch_v_end ; ++select_element) {
-                        if (select_score <= target_vertex_biases[branch_v[select_element]])
-                            break;
-                        select_score -= target_vertex_biases[branch_v[select_element]];
-                    }
-
-                    // move to front, and update remaining_score
-                    remaining_score -= target_vertex_biases[branch_v[select_element]];
-                    swap(branch_v[select_element], branch_v[start]);
+                // go over the list until we've used up bias values totalling our
+                // random number
+                unsigned select_element = start;
+                for ( ; select_element < branch_v_end ; ++select_element) {
+                    if (select_score <= target_vertex_biases[branch_v[select_element]])
+                        break;
+                    select_score -= target_vertex_biases[branch_v[select_element]];
                 }
-            }
-            else if (params.position_shuffle) {
-                // repeatedly pick a position-biased vertex, move it to the front of branch_v,
-                // and then only consider items further to the right in the next iteration.
-                for (unsigned start = 0 ; start < branch_v_end ; ++start) {
-                    // pick a random number between 0 and 1 inclusive
-                    uniform_real_distribution<double> dist(0, 1);
-                    double select_score = dist(global_rand);
 
-                    // this divides by two on each iteration, so we're twice as
-                    // likely to take the first vertex as the second and so on
-                    double select_if_score_ge = 1.0;
-
-                    // go over the list until we hit the score
-                    unsigned select_element = start;
-                    for ( ; select_element + 1 < branch_v_end ; ++select_element) {
-                        select_if_score_ge /= 2.0;
-                        if (select_score >= select_if_score_ge)
-                            break;
-                    }
-
-                    // move to front
-                    swap(branch_v[select_element], branch_v[start]);
-                }
+                // move to front, and update remaining_score
+                remaining_score -= target_vertex_biases[branch_v[select_element]];
+                swap(branch_v[select_element], branch_v[start]);
             }
 
             int discrepancy_count = 0;
@@ -640,14 +518,15 @@ namespace
                 Domains new_domains = prepare_domains(domains, branch_domain->v, *f_v);
 
                 // propagate
-                if (! propagate(new_domains, assignments)) {
+                if (! propagate(my_thread_data.watches, new_domains, assignments)) {
                     // failure? restore assignments and go on to the next thing
                     assignments.values.resize(assignments_size);
                     continue;
                 }
 
                 // recursive search
-                auto search_result = restarting_search(assignments, new_domains, nodes, depth + 1, backtracks_until_restart);
+                auto search_result = parallel_restarting_search(
+                        my_thread_data, assignments, new_domains, nodes, depth + 1, backtracks_until_restart);
 
                 switch (search_result) {
                     case RestartingSearch::Satisfiable:
@@ -899,127 +778,75 @@ namespace
             // start search timer
             auto search_start_time = steady_clock::now();
 
-            // do the appropriate search variant
-            if (params.restarts) {
-                bool done = false;
-                list<long long> luby = {{ 1 }};
-                auto current_luby = luby.begin();
-                double current_geometric = 10;
+            // do the actual search
+            bool done = false;
+            list<long long> luby = {{ 1 }};
+            auto current_luby = luby.begin();
 
-                while (! done) {
-                    long long backtracks_until_restart;
+            unsigned number_of_restarts = 0;
 
-                    if (0.0 != params.geometric_multiplier) {
-                        backtracks_until_restart = current_geometric;
-                        current_geometric *= params.geometric_multiplier;
+            ThreadData thread_data;
+            thread_data.watches.initialise(pattern_size, target_size);
+
+            while (! done) {
+                long long backtracks_until_restart = *current_luby * params.luby_multiplier;
+                if (next(current_luby) == luby.end()) {
+                    luby.insert(luby.end(), luby.begin(), luby.end());
+                    luby.push_back(*luby.rbegin() * 2);
+                }
+                ++current_luby;
+                ++number_of_restarts;
+
+                // start watching new nogoods. we're not backjumping so this is a bit icky.
+                for (auto & n : need_to_watch) {
+                    if (n->literals.empty()) {
+                        done = true;
+                        break;
+                    }
+                    else if (1 == n->literals.size()) {
+                        for (auto & d : domains)
+                            if (d.v == n->literals[0].first) {
+                                d.values.unset(n->literals[0].second);
+                                d.popcount = d.values.popcount();
+                                break;
+                            }
                     }
                     else {
-                        backtracks_until_restart = *current_luby * params.luby_multiplier;
-                        if (next(current_luby) == luby.end()) {
-                            luby.insert(luby.end(), luby.begin(), luby.end());
-                            luby.push_back(*luby.rbegin() * 2);
-                        }
-                        ++current_luby;
+                        auto p = thread_data.watches.nogoods_with_watches.insert(
+                                thread_data.watches.nogoods_with_watches.end(),
+                                NogoodWithTwoWatches{ n, n->literals[0], n->literals[1] });
+                        thread_data.watches[n->literals[0]].push_back(p);
+                        thread_data.watches[n->literals[1]].push_back(p);
                     }
-
-                    // start watching new nogoods. we're not backjumping so this is a bit icky.
-                    for (auto & n : need_to_watch) {
-                        if (n->literals.empty()) {
-                            done = true;
-                            break;
-                        }
-                        else if (1 == n->literals.size()) {
-                            for (auto & d : domains)
-                                if (d.v == n->literals[0].first) {
-                                    d.values.unset(n->literals[0].second);
-                                    d.popcount = d.values.popcount();
-                                    break;
-                                }
-                        }
-                        else {
-                            watches[n->literals[0]].push_back(n);
-                            watches[n->literals[1]].push_back(n);
-                        }
-                    }
-                    need_to_watch.clear();
-
-                    if (done)
-                        break;
-
-                    if (propagate(domains, assignments)) {
-                        auto assignments_copy = assignments;
-
-                        switch (restarting_search(assignments_copy, domains, result.nodes, 0, backtracks_until_restart)) {
-                            case RestartingSearch::Satisfiable:
-                                save_result(assignments_copy, result);
-                                done = true;
-                                break;
-
-                            case RestartingSearch::Unsatisfiable:
-                            case RestartingSearch::Aborted:
-                                done = true;
-                                break;
-
-                            case RestartingSearch::Restart:
-                                break;
-                        }
-                    }
-                    else
-                        done = true;
                 }
-            }
-            else if (params.shuffle || params.biased_shuffle || params.position_shuffle) {
-                if (propagate(domains, assignments)) {
-                    // still need to use the restarts variant
-                    long long backtracks_until_restart = -1;
-                    switch (restarting_search(assignments, domains, result.nodes, 0, backtracks_until_restart)) {
+                need_to_watch.clear();
+
+                if (done)
+                    break;
+
+                if (propagate(thread_data.watches, domains, assignments)) {
+                    auto assignments_copy = assignments;
+
+                    switch (parallel_restarting_search(thread_data, assignments_copy, domains, result.nodes, 0, backtracks_until_restart)) {
                         case RestartingSearch::Satisfiable:
-                            save_result(assignments, result);
+                            save_result(assignments_copy, result);
+                            done = true;
                             break;
 
                         case RestartingSearch::Unsatisfiable:
                         case RestartingSearch::Aborted:
+                            done = true;
+                            break;
+
                         case RestartingSearch::Restart:
                             break;
                     }
                 }
+                else
+                    done = true;
             }
-            else if (params.dds) {
-                bool done = false;
-                for (int discrepancy_k = 0 ; ! done ; 0 == discrepancy_k ? ++discrepancy_k : (params.ddds ? discrepancy_k *= 2 : ++discrepancy_k)) {
-                    bool used_all_discrepancies = false;
-                    switch (dds_search(assignments, domains, result.nodes, 0, discrepancy_k, used_all_discrepancies)) {
-                        case Search::Satisfiable:
-                            save_result(assignments, result);
-                            done = true;
-                            break;
 
-                        case Search::Unsatisfiable:
-                            if (! used_all_discrepancies) {
-                                result.extra_stats.emplace_back("last_discrepancy = " + to_string(discrepancy_k));
-                                done = true;
-                            }
-                            break;
-
-                        case Search::Aborted:
-                            done = true;
-                            break;
-                    }
-                }
-            }
-            else {
-                if (propagate(domains, assignments)) {
-                    switch (search(assignments, domains, result.nodes, 0)) {
-                        case Search::Satisfiable:
-                            save_result(assignments, result);
-                            break;
-
-                        case Search::Unsatisfiable:
-                        case Search::Aborted:
-                            break;
-                    }
-                }
-            }
+            result.extra_stats.emplace_back("restarts = " + to_string(number_of_restarts));
 
             result.extra_stats.emplace_back("search_time = " + to_string(
                         duration_cast<milliseconds>(steady_clock::now() - search_start_time).count()));
@@ -1041,7 +868,7 @@ namespace
     };
 }
 
-auto unit_subgraph_isomorphism(const pair<Graph, Graph> & graphs, const Params & params) -> Result
+auto parallel_subgraph_isomorphism(const pair<Graph, Graph> & graphs, const Params & params) -> Result
 {
     if (graphs.first.size() > graphs.second.size())
         return Result{ };

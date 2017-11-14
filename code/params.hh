@@ -17,9 +17,6 @@ struct Params
     /// Use dds?
     bool dds = false;
 
-    /// Use ddds?
-    bool ddds = false;
-
     /// Use restarts?
     bool restarts = false;
 

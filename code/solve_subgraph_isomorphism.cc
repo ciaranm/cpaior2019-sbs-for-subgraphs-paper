@@ -2,7 +2,8 @@
 
 #include "lad.hh"
 #include "dimacs.hh"
-#include "sip.hh"
+#include "sequential.hh"
+#include "parallel.hh"
 
 #include <boost/program_options.hpp>
 
@@ -106,7 +107,10 @@ auto run_this(Result_ func(const Data_ &, const Params_ &)) -> function<Result_ 
 auto main(int argc, char * argv[]) -> int
 {
     auto subgraph_isomorphism_algorithms = {
-        make_pair( string{ "unit" },                         unit_subgraph_isomorphism )
+        make_pair( string{ "sequential" },                   sequential_subgraph_isomorphism ),
+        make_pair( string{ "parallel" },                     parallel_subgraph_isomorphism ),
+        make_pair( string{ "customisable-sequential" },      sequential_subgraph_isomorphism ),
+        make_pair( string{ "customisable-parallel" },        parallel_subgraph_isomorphism )
     };
 
     try {
@@ -115,13 +119,14 @@ auto main(int argc, char * argv[]) -> int
             ("help",                                         "Display help information")
             ("timeout",            po::value<int>(),         "Abort after this many seconds")
             ("dimacs",                                       "Read DIMACS format instead of LAD")
-            ("induced",                                      "Solve the induced version")
+            ("induced",                                      "Solve the induced version");
+
+        po::options_description custom_options{ "Options for customisable algorithms (not all combinations make sense)" };
+        custom_options.add_options()
             ("restarts",                                     "Use restarts")
             ("dds",                                          "Use dds")
-            ("ddds",                                         "Use ddds")
             ("shuffle",                                      "Use shuffling")
             ("biased-shuffle",                               "Use biased shuffling")
-            ("magic-shuffle",                                "Use magic shuffling")
             ("position-shuffle",                             "Use position shuffling")
             ("antiheuristic",                                "Use antiheuristic")
             ("input-order",                                  "Use input order")
@@ -132,12 +137,13 @@ auto main(int argc, char * argv[]) -> int
 
         po::options_description all_options{ "All options" };
         all_options.add_options()
-            ("algorithm",    "Specify which algorithm to use")
+            ("algorithm",    "Specify which algorithm to use (start with \"sequential\" or \"parallel\")")
             ("pattern-file", "Specify the pattern file (LAD format)")
             ("target-file",  "Specify the target file (LAD format)")
             ;
 
         all_options.add(display_options);
+        all_options.add(custom_options);
 
         po::positional_options_description positional_options;
         positional_options
@@ -182,24 +188,48 @@ auto main(int argc, char * argv[]) -> int
             return EXIT_FAILURE;
         }
 
+        // Some sanity checking
+        if (options_vars["algorithm"].as<string>() == "customisable-parallel") {
+            if (! options_vars.count("restarts")
+                    || ! options_vars.count("biased-shuffle")
+                    || ! options_vars.count("input-order")
+                    || options_vars.count("dds")
+                    || options_vars.count("shuffle")
+                    || options_vars.count("goods")
+                    || options_vars.count("position-shuffle")
+                    || options_vars.count("antiheuristic")) {
+                cerr << "Parallel algorithm currently requires --restarts --input-order" << endl;
+                cerr << "  --biased-shuffle, and cannot use any of --dds --shuffle " << endl;
+                cerr << "  --goods --position-shuffle --antiheuristic" << endl;
+                return EXIT_FAILURE;
+            }
+        }
+
         /* Figure out what our options should be. */
         Params params;
 
         params.induced = options_vars.count("induced");
-        params.restarts = options_vars.count("restarts");
-        params.dds = options_vars.count("dds");
-        params.ddds = options_vars.count("ddds");
-        params.shuffle = options_vars.count("shuffle");
-        params.biased_shuffle = options_vars.count("biased-shuffle");
-        params.position_shuffle = options_vars.count("position-shuffle");
-        params.antiheuristic = options_vars.count("antiheuristic");
-        params.input_order = options_vars.count("input-order");
-        params.goods = options_vars.count("goods");
 
-        if (options_vars.count("luby-multiplier"))
-            params.luby_multiplier = options_vars["luby-multiplier"].as<unsigned>();
-        if (options_vars.count("geometric-multiplier"))
-            params.geometric_multiplier = options_vars["geometric-multiplier"].as<double>();
+        if (0 == options_vars["algorithm"].as<std::string>().compare(0, 13, "customisable-", 0, 13)) {
+            params.restarts = options_vars.count("restarts");
+            params.dds = options_vars.count("dds");
+            params.shuffle = options_vars.count("shuffle");
+            params.biased_shuffle = options_vars.count("biased-shuffle");
+            params.position_shuffle = options_vars.count("position-shuffle");
+            params.antiheuristic = options_vars.count("antiheuristic");
+            params.input_order = options_vars.count("input-order");
+            params.goods = options_vars.count("goods");
+
+            if (options_vars.count("luby-multiplier"))
+                params.luby_multiplier = options_vars["luby-multiplier"].as<unsigned>();
+            if (options_vars.count("geometric-multiplier"))
+                params.geometric_multiplier = options_vars["geometric-multiplier"].as<double>();
+        }
+        else {
+            params.restarts = true;
+            params.biased_shuffle = true;
+            params.input_order = true;
+        }
 
         char hostname_buf[255];
         if (0 == gethostname(hostname_buf, 255))
