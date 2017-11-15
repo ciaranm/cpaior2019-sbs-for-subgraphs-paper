@@ -29,8 +29,9 @@ using std::find_if;
 using std::get;
 using std::greater;
 using std::list;
-using std::max;
+using std::make_pair;
 using std::map;
+using std::max;
 using std::move;
 using std::mt19937;
 using std::mutex;
@@ -802,10 +803,12 @@ namespace
             barrier luby_ready_barrier(number_of_threads), before_starting_search_barrier(number_of_threads),
                     after_search_barrier(number_of_threads), updated_nogoods_barrier(number_of_threads);
 
+            map<pair<unsigned, unsigned>, milliseconds> thread_search_times;
+
             for (unsigned thread_number = 0 ; thread_number != number_of_threads ; ++thread_number) {
                 workers.emplace_back([thread_number, this, &done, &luby, &initial_domains, &my_thread_data = thread_data[thread_number],
                         &result, &result_mutex, &luby_ready_barrier, &before_starting_search_barrier, &after_search_barrier,
-                        &updated_nogoods_barrier] () {
+                        &updated_nogoods_barrier, &thread_search_times] () {
                     auto current_luby = luby.begin();
                     unsigned number_of_restarts = 0;
 
@@ -863,6 +866,8 @@ namespace
 
                         before_starting_search_barrier.count_down_and_wait();
 
+                        auto work_start_time = steady_clock::now();
+
                         if ((! done) && propagate(my_thread_data.watches, domains, assignments)) {
                             auto assignments_copy = assignments;
 
@@ -893,6 +898,13 @@ namespace
                         else
                             done = true;
 
+                        {
+                            unique_lock<mutex> guard(result_mutex);
+                            thread_search_times.emplace(
+                                    make_pair(thread_number, number_of_restarts),
+                                    duration_cast<milliseconds>(steady_clock::now() - work_start_time));
+                        }
+
                         after_search_barrier.count_down_and_wait();
                     }
 
@@ -908,6 +920,14 @@ namespace
 
             for (auto & t : workers)
                 t.join();
+
+            {
+                map<string, string> thread_search_times_strings;
+                for (auto & t : thread_search_times)
+                    thread_search_times_strings[to_string(t.first.second)].append(" " + to_string(t.first.first) + ":" + to_string(t.second.count()));
+                for (auto & t : thread_search_times_strings)
+                    result.extra_stats.emplace_back("thread_seach_times_" + t.first + " =" + t.second);
+            }
 
             result.extra_stats.emplace_back("search_time = " + to_string(
                         duration_cast<milliseconds>(steady_clock::now() - search_start_time).count()));
