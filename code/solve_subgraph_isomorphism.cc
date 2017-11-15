@@ -121,6 +121,10 @@ auto main(int argc, char * argv[]) -> int
             ("dimacs",                                       "Read DIMACS format instead of LAD")
             ("induced",                                      "Solve the induced version");
 
+        po::options_description parallel_options{ "Options for parallel algorithms" };
+        parallel_options.add_options()
+            ("threads",            po::value<int>(),         "Number of threads to use");
+
         po::options_description custom_options{ "Options for customisable algorithms (not all combinations make sense)" };
         custom_options.add_options()
             ("restarts",                                     "Use restarts")
@@ -143,6 +147,7 @@ auto main(int argc, char * argv[]) -> int
             ;
 
         all_options.add(display_options);
+        all_options.add(parallel_options);
         all_options.add(custom_options);
 
         po::positional_options_description positional_options;
@@ -230,6 +235,9 @@ auto main(int argc, char * argv[]) -> int
             params.biased_shuffle = true;
             params.input_order = true;
         }
+
+        if (options_vars.count("threads"))
+            params.n_threads = options_vars["threads"].as<unsigned>();
 
         char hostname_buf[255];
         if (0 == gethostname(hostname_buf, 255))

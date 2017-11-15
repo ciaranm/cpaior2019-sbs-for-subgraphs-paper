@@ -782,14 +782,13 @@ namespace
             if (! initialise_domains(initial_domains))
                 return result;
 
-            // start search timer
-            auto search_start_time = steady_clock::now();
-
             // do the actual search
             atomic<bool> done{ false };
             list<long long> luby = {{ 1 }};
 
-            unsigned number_of_threads = thread::hardware_concurrency();
+            unsigned number_of_threads = params.n_threads;
+            if (0 == number_of_threads)
+                number_of_threads = thread::hardware_concurrency();
 
             list<thread> workers;
             vector<ThreadData> thread_data{ number_of_threads };
@@ -799,6 +798,9 @@ namespace
                 if (0 != thread_number)
                     thread_data[thread_number].rand.seed(thread_number);
             }
+
+            // start search timer
+            auto search_start_time = steady_clock::now();
 
             barrier luby_ready_barrier(number_of_threads), before_starting_search_barrier(number_of_threads),
                     after_search_barrier(number_of_threads), updated_nogoods_barrier(number_of_threads);
@@ -921,17 +923,17 @@ namespace
             for (auto & t : workers)
                 t.join();
 
-            {
-                map<string, string> thread_search_times_strings;
-                for (auto & t : thread_search_times)
-                    thread_search_times_strings[to_string(t.first.second)].append(" " + to_string(t.first.first) + ":" + to_string(t.second.count()));
-                for (auto & t : thread_search_times_strings)
-                    result.extra_stats.emplace_back("thread_seach_times_" + t.first + " =" + t.second);
-            }
-
             result.extra_stats.emplace_back("search_time = " + to_string(
                         duration_cast<milliseconds>(steady_clock::now() - search_start_time).count()));
             result.extra_stats.emplace_back("nogoods_size = " + to_string(nogoods.size()));
+
+            {
+                map<string, string> thread_search_times_strings;
+                for (auto & t : thread_search_times)
+                    thread_search_times_strings[to_string(t.first.second)].append(" " + to_string(t.second.count()));
+                for (auto & t : thread_search_times_strings)
+                    result.extra_stats.emplace_back("thread_seach_times_" + t.first + " =" + t.second);
+            }
 
             map<int, int> nogoods_lengths;
             for (auto & n : nogoods)
