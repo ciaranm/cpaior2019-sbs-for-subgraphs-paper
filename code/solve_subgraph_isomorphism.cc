@@ -136,6 +136,7 @@ auto main(int argc, char * argv[]) -> int
             ("input-order",                                  "Use input order")
             ("luby-multiplier",      po::value<unsigned>(),  "Specify a Luby multiplier")
             ("geometric-multiplier", po::value<double>(),    "Specify a Geometric multiplier")
+            ("geometric-start",      po::value<unsigned>(),  "Specify geometric start value")
             ("goods",                                        "No nogoods")
             ;
 
@@ -229,6 +230,8 @@ auto main(int argc, char * argv[]) -> int
                 params.luby_multiplier = options_vars["luby-multiplier"].as<unsigned>();
             if (options_vars.count("geometric-multiplier"))
                 params.geometric_multiplier = options_vars["geometric-multiplier"].as<double>();
+            if (options_vars.count("geometric-start"))
+                params.geometric_start = options_vars["geometric-start"].as<unsigned>();
         }
         else {
             params.restarts = true;

@@ -50,6 +50,9 @@ struct Params
     /// Multiplier for geometric sequence (set to 0 for luby)
     unsigned long long geometric_multiplier = 0.0;
 
+    /// Initial geometric sequence value
+    unsigned long long geometric_start = 10;
+
     /// Number of threads to use (default: hardware_concurrency)
     unsigned n_threads = 0;
 };

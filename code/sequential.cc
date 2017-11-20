@@ -904,7 +904,7 @@ namespace
                 bool done = false;
                 list<long long> luby = {{ 1 }};
                 auto current_luby = luby.begin();
-                double current_geometric = 10;
+                double current_geometric = params.geometric_start;
                 unsigned number_of_restarts = 0;
 
                 while (! done) {
