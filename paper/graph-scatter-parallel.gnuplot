@@ -1,12 +1,12 @@
 # vim: set et ft=gnuplot sw=4 :
 
 set terminal tikz standalone color size 9cm,6.5cm font '\scriptsize' preamble '\usepackage{times,microtype}'
-set output "gen-graph-scatter-heuristics.tex"
+set output "gen-graph-scatter-parallel.tex"
 
 load "common.gnuplot"
 
-set xlabel "Degree Search Time (ms)"
-set ylabel "Degree-Biased Search Time (ms)"
+set xlabel "Degree-Biased + Restarts Search Time (ms)"
+set ylabel "Parallel Runtime (ms)"
 set logscale x
 set logscale y
 set format x '$10^{%T}$'
@@ -17,8 +17,7 @@ set size square
 plotfile="searchtimes.data"
 satcol=3
 famcol=2
-xcol=4
-ycol=6
+xcol=9
+ycol=19
 
 load "scatter.gnuplot"
-

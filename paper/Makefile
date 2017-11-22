@@ -14,13 +14,15 @@ GRAPHS = \
 	 gen-graph-scatter-by-family.pdf \
 	 gen-graph-restart-policies.pdf \
 	 gen-graph-scatter-nogoods.pdf \
-	 gen-graph-scatter-overheads.pdf
+	 gen-graph-scatter-overheads.pdf \
+	 gen-graph-scatter-parallel.pdf \
+	 gen-graph-final.pdf
 
 tables : $(TABLES)
 
 graphs : $(GRAPHS)
 
-gen-graph-%.pdf : graph-%.gnuplot common.gnuplot inferno.pal
+gen-graph-%.pdf : graph-%.gnuplot common.gnuplot scatter.gnuplot inferno.pal
 	gnuplot $<
 	sed -i -e '19,20s/^\(\\path.*\)/\% \1/' gen-graph-$*.tex # epic haxx
 	latexmk -pdf gen-graph-$*
