@@ -352,6 +352,10 @@ namespace
                 if (d.fixed)
                     continue;
 
+                // all different
+                d.values.unset(current_assignment.second);
+
+                // adjacency
                 auto pattern_adjacency_bits = *(pattern_adjacencies_row + d.v);
                 d.values.intersect_with(adjacency_masks[pattern_adjacency_bits][current_assignment.second]);
 
