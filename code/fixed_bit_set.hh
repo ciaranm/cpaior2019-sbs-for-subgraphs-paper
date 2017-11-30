@@ -60,6 +60,15 @@ class FixedBitSet
         }
 
         /**
+         * Set all bits off.
+         */
+        auto set_all() -> void
+        {
+            for (unsigned i = 0 ; i < words_ ; ++i)
+                _bits[i] = ~BitWord{ 0 };
+        }
+
+        /**
          * Is a given bit on?
          */
         auto test(int a) const -> bool
