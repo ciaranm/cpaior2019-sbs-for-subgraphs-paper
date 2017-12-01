@@ -258,17 +258,17 @@ namespace
         }
 
         auto build_adjacency_masks() {
-            for (unsigned i = 0 ; i < (2u << max_graphs) ; ++i) {
+            for (unsigned i = 0 ; i < target_size ; i++) {
                 adjacency_masks.push_back({});
                 auto & am = adjacency_masks.back();
-                for (unsigned j = 0 ; j < target_size ; j++) {
+                for (unsigned j = 0 ; j < (2u << max_graphs) ; ++j) {
                     am.push_back({});
                     am.back().set_all();
                     for (int g = 0 ; g < max_graphs ; ++g) {
                         // if we're adjacent...
-                        if (i & (1u << g)) {
+                        if (j & (1u << g)) {
                             // ...then we can only be mapped to adjacent vertices
-                            am.back().intersect_with(target_graph_rows[j * max_graphs + g]);
+                            am.back().intersect_with(target_graph_rows[i * max_graphs + g]);
                         }
                     }
                 }
@@ -346,6 +346,7 @@ namespace
         auto propagate_simple_constraints(Domains & new_domains, const Assignment & current_assignment) -> bool
         {
             auto pattern_adjacencies_row = pattern_adjacencies_bits.begin() + (pattern_size * current_assignment.first);
+            auto & am = adjacency_masks[current_assignment.second];
 
             // propagate for each remaining domain...
             for (auto & d : new_domains) {
@@ -353,14 +354,14 @@ namespace
                     continue;
 
                 // all different
+                d.popcount -= d.values.test(current_assignment.second);
                 d.values.unset(current_assignment.second);
 
                 // adjacency
                 auto pattern_adjacency_bits = *(pattern_adjacencies_row + d.v);
-                d.values.intersect_with(adjacency_masks[pattern_adjacency_bits][current_assignment.second]);
+                if (pattern_adjacency_bits != 0)
+                    d.popcount = d.values.intersect_with(am[pattern_adjacency_bits]);
 
-                // we might have removed values
-                d.popcount = d.values.popcount();
                 if (0 == d.popcount)
                     return false;
             }
@@ -808,8 +809,7 @@ namespace
                 while (domain_index != -1) {
                     auto & d = domains.at(domain_index);
 
-                    d.values.intersect_with_complement(hall);
-                    d.popcount = d.values.popcount();
+                    d.popcount = d.values.intersect_with_complement(hall);
 
                     if (0 == d.popcount)
                         return false;

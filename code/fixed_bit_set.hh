@@ -89,11 +89,16 @@ class FixedBitSet
 
         /**
          * Intersect (bitwise-and) with another set.
+         * Return the new popcount
          */
-        auto intersect_with(const FixedBitSet<words_> & other) -> void
+        auto intersect_with(const FixedBitSet<words_> & other) -> unsigned
         {
-            for (typename Bits::size_type i = 0 ; i < words_ ; ++i)
+            unsigned result = 0;
+            for (typename Bits::size_type i = 0 ; i < words_ ; ++i) {
                 _bits[i] = _bits[i] & other._bits[i];
+                result += __builtin_popcountll(_bits[i]);
+            }
+            return result;
         }
 
         /**
@@ -107,11 +112,16 @@ class FixedBitSet
 
         /**
          * Intersect with the complement of another set.
+         * Return the new popcount
          */
-        auto intersect_with_complement(const FixedBitSet<words_> & other) -> void
+        auto intersect_with_complement(const FixedBitSet<words_> & other) -> unsigned
         {
-            for (typename Bits::size_type i = 0 ; i < words_ ; ++i)
+            unsigned result = 0;
+            for (typename Bits::size_type i = 0 ; i < words_ ; ++i) {
                 _bits[i] = _bits[i] & ~other._bits[i];
+                result += __builtin_popcountll(_bits[i]);
+            }
+            return result;
         }
 
         /**
