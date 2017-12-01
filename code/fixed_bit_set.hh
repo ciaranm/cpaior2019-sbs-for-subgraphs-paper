@@ -95,8 +95,9 @@ class FixedBitSet
         {
             unsigned result = 0;
             for (typename Bits::size_type i = 0 ; i < words_ ; ++i) {
-                _bits[i] = _bits[i] & other._bits[i];
-                result += __builtin_popcountll(_bits[i]);
+                auto word = _bits[i] & other._bits[i];
+                result += __builtin_popcountll(word);
+                _bits[i] = word;
             }
             return result;
         }
@@ -118,8 +119,9 @@ class FixedBitSet
         {
             unsigned result = 0;
             for (typename Bits::size_type i = 0 ; i < words_ ; ++i) {
-                _bits[i] = _bits[i] & ~other._bits[i];
-                result += __builtin_popcountll(_bits[i]);
+                auto word = _bits[i] & ~other._bits[i];
+                result += __builtin_popcountll(word);
+                _bits[i] = word;
             }
             return result;
         }
