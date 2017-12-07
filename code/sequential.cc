@@ -87,6 +87,11 @@ namespace
         }
     };
 
+    struct Nogood;
+
+    // nogoods stored here
+    using Nogoods = list<Nogood>;
+
     // A nogood, aways of the form (list of assignments) -> false, where the
     // last part is implicit. If there are at least two assignments, then the
     // first two assignments are the watches (and the literals are permuted
@@ -94,10 +99,34 @@ namespace
     struct Nogood
     {
         vector<Assignment> literals;
-    };
 
-    // nogoods stored here
-    using Nogoods = list<Nogood>;
+        struct ClauseMembership
+        {
+            list<Nogoods::iterator> & lst;
+            list<Nogoods::iterator>::iterator it;
+        };
+
+        // Keep track of lists and list nodes in literal_clause_membership that
+        // point to this Nogood, so that we can efficiently delete the list nodes
+        // if this clause is erased.
+        vector<ClauseMembership> clause_memberships;
+
+        // used in a quick, incomplete subsumption test
+        unsigned long long signature = 0;
+
+        void add_literal(Assignment literal) {
+            literals.emplace_back(literal);
+            signature |= 1ull << ((11400714819323198549ull * literal.first) >> 58);
+            signature |= 1ull << ((11400714819323198549ull * literal.second) >> 58);
+        }
+        void add_clause_membership(list<Nogoods::iterator> & lst, list<Nogoods::iterator>::iterator it) {
+            clause_memberships.push_back({lst, it});
+        }
+        void remove_from_clause_membership_lists() {
+            for (auto & cm : clause_memberships)
+                cm.lst.erase(cm.it);
+        }
+    };
 
     // Two watched literals for our nogoods store.
     struct Watches
@@ -160,6 +189,11 @@ namespace
         Watches watches;
         list<typename Nogoods::iterator> need_to_watch;
 
+        // For each literal lit, keep a list of nogoods in which lit appears.
+        // The `Watches` struct is used here as it does what we need; these
+        // aren't really watch lists.
+        Watches literal_clause_membership;
+
         vector<unsigned long long> target_vertex_biases;
 
         mt19937 global_rand;
@@ -194,9 +228,11 @@ namespace
             // determine ordering for target graph vertices
             iota(target_permutation.begin(), target_permutation.end(), 0);
 
-            // set up space for watches
-            if (params.restarts && ! params.goods)
+            // set up space for watches and clauses membership lists
+            if (params.restarts && ! params.goods) {
                 watches.initialise(pattern_size, target_size);
+                literal_clause_membership.initialise(pattern_size, target_size);
+            }
 
             if (! params.input_order)
                 degree_sort(target, target_permutation, params.antiheuristic);
@@ -540,14 +576,38 @@ namespace
             if (params.goods)
                 return;
 
-            Nogood nogood;
+            nogoods.push_back({});
+            Nogood & nogood = nogoods.back();
 
             for (auto & a : assignments.values)
                 if (get<1>(a))
-                    nogood.literals.emplace_back(get<0>(a));
+                    nogood.add_literal(get<0>(a));
 
-            nogoods.emplace_back(move(nogood));
-            need_to_watch.emplace_back(prev(nogoods.end()));
+            auto nogood_it = prev(nogoods.end());
+
+            need_to_watch.emplace_back(nogood_it);
+
+            for (auto & a : nogood.literals) {
+                auto & lcm = literal_clause_membership[a];
+                lcm.emplace_back(nogood_it);
+                nogood.add_clause_membership(lcm, prev(lcm.end()));
+            }
+        }
+
+        auto erase_nogood(
+                Nogoods::iterator nogood_it)
+        {
+            if (params.goods)
+                return;
+
+            for (unsigned i = 0; i < 2; ++i) {
+                auto & wl = watches[nogood_it->literals[i]];
+                wl.erase(std::find(wl.begin(), wl.end(), nogood_it));
+            }
+
+            nogood_it->remove_from_clause_membership_lists();
+
+            nogoods.erase(nogood_it);
         }
 
         auto restarting_search(
@@ -852,6 +912,60 @@ namespace
             result.extra_stats.push_back(where);
         }
 
+        auto nogood_subsumes(const Nogood & a, const Nogood & b) -> bool
+        {
+            // This is based on Armin Biere (2005), Resolve and Expand
+            // https://link.springer.com/content/pdf/10.1007/11527695_5.pdf
+            // Biere's algorithm is described in the solution to exercise
+            // 374 of Knuth's TAOCP fascicle on SAT.
+
+            if (a.literals.size() >= b.literals.size())
+                return false;
+
+            // do a quick partial test to rule out some non-subsumptions
+            if (a.signature & ~b.signature)
+                return false;
+
+            // Return false if some literal in `a` does not appear in `b`.
+            //
+            // The reverse iteration seems to give a slight speed-up compared to
+            // forward iteration, due to literals that appear late in a clause appearing
+            // in few other clauses.  This is based on intuition and a tiny-scale
+            // experiment only; perhaps forward iteration would in fact be better.
+            //
+            // This quadratic-complexity algorithm could be replaced with a linear
+            // one.
+            for (auto it = a.literals.rbegin() ; it != a.literals.rend() ; ++it)
+                if (std::find(b.literals.begin(), b.literals.end(), *it) == b.literals.end())
+                    return false;
+
+            return true;
+        }
+
+        auto remove_subsumed_clauses(Nogood & n) {
+            // `literal_with_lowest_tally` will be an iterator to the literal in `n` that appears in
+            // fewest members of `nogoods`
+            auto literal_with_lowest_tally = std::min_element(
+                    n.literals.begin(),
+                    n.literals.end(),
+                    [&](const Assignment & a, const Assignment & b) {
+                        return literal_clause_membership[a].size() < literal_clause_membership[b].size();
+                    });
+
+            // `lst` is the list of clauses containing the
+            // literal `*literal_with_lowest_tally`
+            auto & lst = literal_clause_membership[*literal_with_lowest_tally];
+
+            // erase all nogoods in `lst` that are subsumed by `n`
+            for (auto nogood_it_it = lst.begin() ; nogood_it_it != lst.end() ; ) {
+                auto nxt = next(nogood_it_it);
+                if (nogood_subsumes(n, **nogood_it_it)) {
+                    erase_nogood(*nogood_it_it);
+                }
+                nogood_it_it = nxt;
+            }
+        }
+
         auto run() -> Result
         {
             Result result;
@@ -939,17 +1053,22 @@ namespace
                             done = true;
                             break;
                         }
-                        else if (1 == n->literals.size()) {
-                            for (auto & d : domains)
-                                if (d.v == n->literals[0].first) {
-                                    d.values.unset(n->literals[0].second);
-                                    d.popcount = d.values.popcount();
-                                    break;
-                                }
-                        }
                         else {
-                            watches[n->literals[0]].push_back(n);
-                            watches[n->literals[1]].push_back(n);
+                            remove_subsumed_clauses(*n);
+
+                            if (1 == n->literals.size()) {
+                                for (auto & d : domains) {
+                                    if (d.v == n->literals[0].first) {
+                                        d.values.unset(n->literals[0].second);
+                                        d.popcount = d.values.popcount();
+                                        break;
+                                    }
+                                }
+                            }
+                            else {
+                                watches[n->literals[0]].push_back(n);
+                                watches[n->literals[1]].push_back(n);
+                            }
                         }
                     }
                     need_to_watch.clear();
