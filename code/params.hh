@@ -29,6 +29,9 @@ struct Params
     /// Use biased shuffles?
     bool biased_shuffle = false;
 
+    /// Use softmax shuffles?
+    bool softmax_shuffle = false;
+
     /// Use position shuffle?
     bool position_shuffle = false;
 

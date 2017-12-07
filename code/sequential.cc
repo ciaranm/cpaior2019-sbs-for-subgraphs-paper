@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <functional>
 #include <limits>
 #include <list>
@@ -17,6 +18,7 @@
 #include <utility>
 
 using std::array;
+using std::exp;
 using std::iota;
 using std::fill;
 using std::find_if;
@@ -607,6 +609,35 @@ namespace
                     swap(branch_v[select_element], branch_v[start]);
                 }
             }
+            else if (params.softmax_shuffle) {
+                // sum up the bias scores of every branch vertex
+                double total = 0.0;
+                for (unsigned v = 0 ; v < branch_v_end ; ++v)
+                    total += exp(double(targets_degrees[0][v]));
+
+                // repeatedly pick a softmax-biased vertex, move it to the front of branch_v,
+                // and then only consider items further to the right in the next iteration.
+                for (unsigned start = 0 ; start < branch_v_end ; ++start) {
+                    // pick a random number between 0 and 1 inclusive
+                    uniform_real_distribution<double> dist(0, 1);
+                    double select_score = dist(global_rand);
+
+                    // this decreases on each iteration by the sum of the
+                    // scores seen so far
+                    double select_if_score_ge = 1.0;
+
+                    // go over the list until we hit the score
+                    unsigned select_element = start;
+                    for ( ; select_element + 1 < branch_v_end ; ++select_element) {
+                        select_if_score_ge -= exp(double(targets_degrees[0][select_element]));
+                        if (select_score >= select_if_score_ge)
+                            break;
+                    }
+
+                    // move to front
+                    swap(branch_v[select_element], branch_v[start]);
+                }
+            }
             else if (params.position_shuffle) {
                 // repeatedly pick a position-biased vertex, move it to the front of branch_v,
                 // and then only consider items further to the right in the next iteration.
@@ -981,7 +1012,7 @@ namespace
 
                 result.extra_stats.emplace_back("restarts = " + to_string(number_of_restarts));
             }
-            else if (params.shuffle || params.biased_shuffle || params.position_shuffle) {
+            else if (params.shuffle || params.biased_shuffle || params.position_shuffle || params.softmax_shuffle) {
                 if (propagate(domains, assignments)) {
                     // still need to use the restarts variant
                     long long backtracks_until_restart = -1;

@@ -131,6 +131,7 @@ auto main(int argc, char * argv[]) -> int
             ("dds",                                          "Use dds")
             ("shuffle",                                      "Use shuffling")
             ("biased-shuffle",                               "Use biased shuffling")
+            ("softmax-shuffle",                              "Use softmax shuffling")
             ("position-shuffle",                             "Use position shuffling")
             ("antiheuristic",                                "Use antiheuristic")
             ("input-order",                                  "Use input order")
@@ -198,6 +199,7 @@ auto main(int argc, char * argv[]) -> int
         if (options_vars["algorithm"].as<string>() == "customisable-parallel") {
             if (! options_vars.count("restarts")
                     || ! options_vars.count("biased-shuffle")
+                    || options_vars.count("softmax-shuffle")
                     || ! options_vars.count("input-order")
                     || options_vars.count("dds")
                     || options_vars.count("shuffle")
@@ -206,7 +208,7 @@ auto main(int argc, char * argv[]) -> int
                     || options_vars.count("antiheuristic")) {
                 cerr << "Parallel algorithm currently requires --restarts --input-order" << endl;
                 cerr << "  --biased-shuffle, and cannot use any of --dds --shuffle " << endl;
-                cerr << "  --goods --position-shuffle --antiheuristic" << endl;
+                cerr << "  --softmax-shuffle --goods --position-shuffle --antiheuristic" << endl;
                 return EXIT_FAILURE;
             }
         }
@@ -221,6 +223,7 @@ auto main(int argc, char * argv[]) -> int
             params.dds = options_vars.count("dds");
             params.shuffle = options_vars.count("shuffle");
             params.biased_shuffle = options_vars.count("biased-shuffle");
+            params.softmax_shuffle = options_vars.count("softmax-shuffle");
             params.position_shuffle = options_vars.count("position-shuffle");
             params.antiheuristic = options_vars.count("antiheuristic");
             params.input_order = options_vars.count("input-order");
