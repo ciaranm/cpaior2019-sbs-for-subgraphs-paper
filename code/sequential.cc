@@ -11,7 +11,6 @@
 #include <limits>
 #include <list>
 #include <map>
-#include <memory>
 #include <numeric>
 #include <random>
 #include <tuple>
@@ -147,13 +146,9 @@ namespace
 
         unsigned pattern_size, full_pattern_size, target_size;
 
-        std::vector<Domains> domains_by_depth;
-
         vector<uint8_t> pattern_adjacencies_bits;
         vector<FixedBitSet<n_words_> > pattern_graph_rows;
         vector<FixedBitSet<n_words_> > target_graph_rows;
-
-        vector<vector<FixedBitSet<n_words_> > > adjacency_masks;
 
         vector<int> pattern_permutation, target_permutation, isolated_vertices;
         vector<vector<int> > patterns_degrees, targets_degrees;
@@ -172,7 +167,6 @@ namespace
             pattern_size(pattern.size()),
             full_pattern_size(pattern.size()),
             target_size(target.size()),
-            domains_by_depth(pattern.size() + 2), // TODO: this is probably bigger than required?
             target_permutation(target.size()),
             patterns_degrees(max_graphs),
             targets_degrees(max_graphs)
@@ -259,24 +253,6 @@ namespace
             }
         }
 
-        auto build_adjacency_masks() {
-            for (unsigned i = 0 ; i < (2u << max_graphs) ; ++i) {
-                adjacency_masks.push_back({});
-                auto & am = adjacency_masks.back();
-                for (unsigned j = 0 ; j < target_size ; j++) {
-                    am.push_back({});
-                    am.back().set_all();
-                    for (int g = 0 ; g < max_graphs ; ++g) {
-                        // if we're adjacent...
-                        if (i & (1u << g)) {
-                            // ...then we can only be mapped to adjacent vertices
-                            am.back().intersect_with(target_graph_rows[j * max_graphs + g]);
-                        }
-                    }
-                }
-            }
-        }
-
         auto build_complement_graphs(vector<FixedBitSet<n_words_> > & graph_rows, unsigned size) -> void
         {
             for (unsigned v = 0 ; v < size ; ++v)
@@ -345,10 +321,27 @@ namespace
             return true;
         }
 
+        // The max_graphs_ template parameter is so that the for each graph
+        // pair loop gets unrolled, which makes an annoyingly large difference
+        // to performance. Note that for larger target graphs, half of the
+        // total runtime is spent in this function.
+        template <int max_graphs_>
+        auto propagate_adjacency_constraints(Domain & d, const Assignment & current_assignment) -> void
+        {
+            auto pattern_adjacency_bits = pattern_adjacencies_bits[pattern_size * current_assignment.first + d.v];
+
+            // for each graph pair...
+            for (int g = 0 ; g < max_graphs_ ; ++g) {
+                // if we're adjacent...
+                if (pattern_adjacency_bits & (1u << g)) {
+                    // ...then we can only be mapped to adjacent vertices
+                    d.values.intersect_with(target_graph_rows[current_assignment.second * max_graphs_ + g]);
+                }
+            }
+        }
+
         auto propagate_simple_constraints(Domains & new_domains, const Assignment & current_assignment) -> bool
         {
-            auto pattern_adjacencies_row = pattern_adjacencies_bits.begin() + (pattern_size * current_assignment.first);
-
             // propagate for each remaining domain...
             for (auto & d : new_domains) {
                 if (d.fixed)
@@ -358,8 +351,13 @@ namespace
                 d.values.unset(current_assignment.second);
 
                 // adjacency
-                auto pattern_adjacency_bits = *(pattern_adjacencies_row + d.v);
-                d.values.intersect_with(adjacency_masks[pattern_adjacency_bits][current_assignment.second]);
+                switch (max_graphs) {
+                    case 5: propagate_adjacency_constraints<5>(d, current_assignment); break;
+                    case 6: propagate_adjacency_constraints<6>(d, current_assignment); break;
+
+                    default:
+                        throw "you forgot to update the ugly max_graphs hack";
+                }
 
                 // we might have removed values
                 d.popcount = d.values.popcount();
@@ -414,24 +412,20 @@ namespace
 
         auto prepare_domains(
                 const Domains & domains,
-                int depth,
                 unsigned branch_v,
-                unsigned f_v) -> Domains &
+                unsigned f_v) -> Domains
         {
-            Domains & new_domains = domains_by_depth.at(depth);
+            Domains new_domains;
             new_domains.reserve(domains.size());
-            new_domains.clear();
-
             for (auto & d : domains) {
                 if (d.fixed)
                     continue;
 
                 new_domains.push_back(d);
                 if (d.v == branch_v) {
-                    auto & new_dom = new_domains.back();
-                    new_dom.values.unset_all();
-                    new_dom.values.set(f_v);
-                    new_dom.popcount = 1;
+                    new_domains.back().values.unset_all();
+                    new_domains.back().values.set(f_v);
+                    new_domains.back().popcount = 1;
                 }
             }
             return new_domains;
@@ -462,7 +456,7 @@ namespace
                 assignments.values.push_back({ { branch_domain->v, f_v }, true, discrepancy_count });
 
                 /* set up new domains */
-                Domains & new_domains = prepare_domains(domains, depth, branch_domain->v, f_v);
+                Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
 
                 if (propagate(new_domains, assignments)) {
                     auto search_result = search(assignments, new_domains, nodes, depth + 1);
@@ -509,7 +503,7 @@ namespace
                     assignments.values.push_back({ { branch_domain->v, f_v }, true, discrepancy_count });
 
                     /* set up new domains */
-                    Domains & new_domains = prepare_domains(domains, depth, branch_domain->v, f_v);
+                    Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
 
                     if (propagate(new_domains, assignments)) {
                         auto search_result = dds_search(assignments, new_domains, nodes, depth + 1, discrepancy_k, used_all_discrepancies);
@@ -674,7 +668,7 @@ namespace
                 assignments.values.push_back({ { branch_domain->v, *f_v }, true, discrepancy_count });
 
                 // set up new domains
-                Domains & new_domains = prepare_domains(domains, depth, branch_domain->v, *f_v);
+                Domains new_domains = prepare_domains(domains, branch_domain->v, *f_v);
 
                 // propagate
                 if (! propagate(new_domains, assignments)) {
@@ -895,8 +889,6 @@ namespace
 
             build_supplemental_graphs(pattern_graph_rows, pattern_size);
             build_supplemental_graphs(target_graph_rows, target_size);
-
-            build_adjacency_masks();
 
             // build complement graphs
             if (params.induced) {
