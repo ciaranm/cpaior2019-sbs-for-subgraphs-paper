@@ -34,8 +34,7 @@
 \crefname{section}{Section}{Sections}
 \Crefname{section}{Section}{Sections}
 
-\title{Value Ordering, Discrepancies, and Restarts in Subgraph Solvers: \\ Some Half-Baked Mucking
-Around}
+\title{Value Ordering, Discrepancies, and Restarts for Subgraph Isomorphism}
 \author{Ciaran McCreesh\thanks{This work was supported by the Engineering and Physical Sciences
     Research Council [grant number EP/026842/1]}\\ University of Glasgow, Glasgow, Scotland \\
     ciaran.mccreesh@glasgow.ac.uk}
@@ -45,14 +44,14 @@ Around}
 \maketitle
 
 \begin{abstract}
-    Modern subgraph isomorphism solvers use value-ordering heuristics to direct search, but these
-    heuristics are not perfect, particularly for early choices. We investigate discrepancy searches
-    and restarts to offset this weakness. Our results suggest that discrepancy-based searches are
-    too expensive to be effective.  However, restarts with a random value-ordering heuristic beats
-    conventional search with the best tailored heuristic. This motivates the introduction of a
-    slightly-random value-ordering heuristic with similar behaviour to the tailored heuristic: when
-    combined with restarts, this new heuristic is even more effective on satisfiable instances,
-    whilst not significantly decreasing performance on unsatisfiable instances.
+    Modern subgraph isomorphism solvers use value-ordering heuristics to direct a constraint
+    programming style search. These heuristics are not perfect, particularly for early branching
+    choices. We show that discrepancy-based searches are too expensive to be effective in this
+    setting.  However, using restarts with a random value-ordering heuristic beats conventional
+    search with the best tailored heuristic.  This motivates the introduction of a slightly-random
+    value-ordering heuristic with similar behaviour to the tailored heuristic: when combined with
+    restarts, this new search strategy is even more effective on satisfiable instances, whilst not
+    significantly decreasing performance on unsatisfiable instances.
 \end{abstract}
 
 \section{Introduction}
@@ -62,11 +61,11 @@ Around}
 The current single strongest subgraph isomorphism solver uses ``highest degree first'' as a
 value-ordering heuristic \citep{dblp:conf/cp/McCreeshP15,dblp:conf/ijcai/McCreeshPT16}.  This is
 much better than not having a value-ordering heuristic at all, but it is far from perfect,
-particularly for early branching choices. There are two reasons to suspect we could do better.
-Firstly, even if degree were a perfect source of information, many graphs do not have a large degree
-distribution, and so we would still need to determine \emph{which} vertex of highest degree would be
-best.  Secondly, experiments with a parallel search strategy which explicitly steals early branching
-choices often gives strongly super-linear speedups on satisfiable instances
+particularly for early branching choices. There are two reasons to suspect a better option may
+possible.  Firstly, even if degree were a perfect source of information, many graphs do not have a
+large degree distribution, and so we would still need to determine \emph{which} vertex of highest
+degree would be best.  Secondly, experiments with a parallel search strategy which explicitly steals
+early branching choices often gives strongly super-linear speedups on satisfiable instances
 \citep{dblp:conf/cp/McCreeshP15}.
 
 We could try to introduce tiebreaking mechanisms to further refine this heuristic. However, given
