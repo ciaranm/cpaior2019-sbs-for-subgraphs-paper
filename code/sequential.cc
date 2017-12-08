@@ -111,13 +111,14 @@ namespace
         // if this clause is erased.
         vector<ClauseMembership> clause_memberships;
 
-        // used in a quick, incomplete subsumption test
+        // a hash of the nogood, used in a quick, incomplete subsumption test
         unsigned long long signature = 0;
 
         void add_literal(Assignment literal) {
             literals.emplace_back(literal);
-            signature |= 1ull << ((11400714819323198549ull * literal.first) >> 58);
-            signature |= 1ull << ((11400714819323198549ull * literal.second) >> 58);
+            // Set a couple of bits in the signature.  I'm sure this could be done better!
+            signature |= 1ull << ((11400714819323198549ull * (literal.first + literal.second)) >> 58);
+            signature |= 1ull << ((11400714819323198549ull * (literal.first * literal.second)) >> 58);
         }
         void add_clause_membership(list<Nogoods::iterator> & lst, list<Nogoods::iterator>::iterator it) {
             clause_memberships.push_back({lst, it});
