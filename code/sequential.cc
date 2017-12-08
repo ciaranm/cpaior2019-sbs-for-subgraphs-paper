@@ -629,7 +629,7 @@ namespace
                     }
 
                     // total is now lower
-                    total -= exp(double(targets_degrees[0][select_element]));
+                    total -= pow(params.softmax_base, double(targets_degrees[0][select_element]));
 
                     // move to front
                     swap(branch_v[select_element], branch_v[start]);
