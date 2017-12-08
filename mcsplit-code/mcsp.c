@@ -1,17 +1,18 @@
 #include "graph.h"
 
 #include <algorithm>
-#include <numeric>
+#include <atomic>
 #include <chrono>
+#include <condition_variable>
 #include <iostream>
+#include <mutex>
+#include <numeric>
+#include <random>
 #include <set>
 #include <string>
+#include <thread>
 #include <utility>
 #include <vector>
-#include <mutex>
-#include <thread>
-#include <condition_variable>
-#include <atomic>
 
 #include <argp.h>
 #include <limits.h>
@@ -41,6 +42,7 @@ static struct argp_option options[] = {
     {"verbose", 'v', 0, 0, "Verbose output"},
     {"dimacs", 'd', 0, 0, "Read DIMACS format"},
     {"lad", 'l', 0, 0, "Read LAD format"},
+    {"position-shuffle", 'p', 0, 0, "Position-shuffle value ordering heuristic"},
     {"connected", 'c', 0, 0, "Solve max common CONNECTED subgraph problem"},
     {"directed", 'i', 0, 0, "Use directed graphs"},
     {"labelled", 'a', 0, 0, "Use edge and vertex labels"},
@@ -55,6 +57,7 @@ static struct {
     bool verbose;
     bool dimacs;
     bool lad;
+    bool position_shuffle;
     bool connected;
     bool directed;
     bool edge_labelled;
@@ -74,6 +77,7 @@ void set_default_arguments() {
     arguments.verbose = false;
     arguments.dimacs = false;
     arguments.lad = false;
+    arguments.position_shuffle = false;
     arguments.connected = false;
     arguments.directed = false;
     arguments.edge_labelled = false;
@@ -96,6 +100,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
             if (arguments.dimacs)
                 fail("The -d and -l options cannot be used together.\n");
             arguments.lad = true;
+            break;
+        case 'p':
+            arguments.position_shuffle = true;
             break;
         case 'q':
             arguments.quiet = true;
@@ -167,6 +174,8 @@ unsigned long long nodes{ 0 };
 /*******************************************************************************
                                  MCS functions
 *******************************************************************************/
+
+std::mt19937 global_rand;
 
 struct VtxPair {
     int v;
@@ -369,7 +378,26 @@ void remove_bidomain(vector<Bidomain>& domains, int idx) {
     domains.pop_back();
 }
 
-void solve(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
+void position_shuffle(vector<int> & vec)
+{
+    for (unsigned start=0; start<vec.size()-1; ++start) {
+        std::uniform_real_distribution<double> dist(0, 1);
+        double select_score = dist(global_rand);
+
+        double select_if_score_ge = 1.0;
+
+        unsigned select_element = start;
+        for ( ; select_element + 1 < vec.size(); ++select_element) {
+            select_if_score_ge /= 2.0;
+            if (select_score >= select_if_score_ge)
+                break;
+        }
+        
+        std::swap(vec[select_element], vec[start]);
+    }
+}
+
+void search(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
         vector<VtxPair> & current, vector<Bidomain> & domains,
         vector<int> & left, vector<int> & right, unsigned int matching_size_goal)
 {
@@ -400,26 +428,32 @@ void solve(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
     remove_vtx_from_left_domain(left, domains[bd_idx], v);
 
     // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
-    int w = -1;
+    std::vector<int> right_vertices(right.begin() + bd.r,  // the vertices in the colour class beginning at bd.r
+            right.begin() + bd.r + bd.right_len);
+    std::sort(right_vertices.begin(), right_vertices.end());
+
+    if (arguments.position_shuffle)
+        position_shuffle(right_vertices);
+
     bd.right_len--;
     for (int i=0; i<=bd.right_len; i++) {
-        int idx = index_of_next_smallest(right, bd.r, bd.right_len+1, w);
-        w = right[bd.r + idx];
+        int w = right_vertices[i];
 
         // swap w to the end of its colour class
-        right[bd.r + idx] = right[bd.r + bd.right_len];
+        auto it = std::find(right.begin() + bd.r, right.end(), right_vertices[i]);
+        *it = right[bd.r + bd.right_len];
         right[bd.r + bd.right_len] = w;
 
         auto new_domains = filter_domains(domains, left, right, g0, g1, v, w,
                 arguments.directed || arguments.edge_labelled);
         current.push_back(VtxPair(v, w));
-        solve(g0, g1, incumbent, current, new_domains, left, right, matching_size_goal);
+        search(g0, g1, incumbent, current, new_domains, left, right, matching_size_goal);
         current.pop_back();
     }
     bd.right_len++;
     if (bd.left_len == 0)
         remove_bidomain(domains, bd_idx);
-    solve(g0, g1, incumbent, current, domains, left, right, matching_size_goal);
+    search(g0, g1, incumbent, current, domains, left, right, matching_size_goal);
 }
 
 vector<VtxPair> mcs(const Graph & g0, const Graph & g1) {
@@ -465,14 +499,14 @@ vector<VtxPair> mcs(const Graph & g0, const Graph & g1) {
             auto right_copy = right;
             auto domains_copy = domains;
             vector<VtxPair> current;
-            solve(g0, g1, incumbent, current, domains_copy, left_copy, right_copy, goal);
+            search(g0, g1, incumbent, current, domains_copy, left_copy, right_copy, goal);
             if (incumbent.size() == goal || abort_due_to_timeout) break;
             if (!arguments.quiet) cout << "Upper bound: " << goal-1 << std::endl;
         }
 
     } else {
         vector<VtxPair> current;
-        solve(g0, g1, incumbent, current, domains, left, right, 1);
+        search(g0, g1, incumbent, current, domains, left, right, 1);
     }
 
     return incumbent;
