@@ -623,10 +623,13 @@ namespace
                     // go over the list until we hit the score
                     unsigned select_element = start;
                     for ( ; select_element + 1 < branch_v_end ; ++select_element) {
-                        select_if_score_ge -= exp(double(targets_degrees[0][select_element]));
+                        select_if_score_ge -= exp(double(targets_degrees[0][select_element])) / total;
                         if (select_score >= select_if_score_ge)
                             break;
                     }
+
+                    // total is now lower
+                    total -= exp(double(targets_degrees[0][select_element]));
 
                     // move to front
                     swap(branch_v[select_element], branch_v[start]);
