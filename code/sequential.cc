@@ -331,6 +331,7 @@ namespace
                         continue;
 
                     if (d.v == nogood.literals[1].first) {
+                        d.popcount -= d.values.test(nogood.literals[1].second);
                         d.values.unset(nogood.literals[1].second);
                         break;
                     }
