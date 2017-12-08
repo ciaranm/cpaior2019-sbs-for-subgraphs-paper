@@ -17,7 +17,6 @@
 #include <utility>
 
 using std::array;
-using std::exp;
 using std::iota;
 using std::fill;
 using std::find_if;
@@ -30,6 +29,7 @@ using std::move;
 using std::mt19937;
 using std::next;
 using std::pair;
+using std::pow;
 using std::sort;
 using std::string;
 using std::swap;
@@ -607,7 +607,7 @@ namespace
                 // sum up the bias scores of every branch vertex
                 double total = 0.0;
                 for (unsigned v = 0 ; v < branch_v_end ; ++v)
-                    total += exp(double(targets_degrees[0][v]));
+                    total += pow(params.softmax_base, double(targets_degrees[0][v]));
 
                 // repeatedly pick a softmax-biased vertex, move it to the front of branch_v,
                 // and then only consider items further to the right in the next iteration.
@@ -623,7 +623,7 @@ namespace
                     // go over the list until we hit the score
                     unsigned select_element = start;
                     for ( ; select_element + 1 < branch_v_end ; ++select_element) {
-                        select_if_score_ge -= exp(double(targets_degrees[0][select_element])) / total;
+                        select_if_score_ge -= pow(params.softmax_base, double(targets_degrees[0][select_element])) / total;
                         if (select_score >= select_if_score_ge)
                             break;
                     }

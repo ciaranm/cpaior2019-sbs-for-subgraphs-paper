@@ -5,6 +5,7 @@
 
 #include <chrono>
 #include <atomic>
+#include <cmath>
 
 struct Params
 {
@@ -31,6 +32,9 @@ struct Params
 
     /// Use softmax shuffles?
     bool softmax_shuffle = false;
+
+    /// Base for softmax voodoo
+    double softmax_base = std::exp(1);
 
     /// Use position shuffle?
     bool position_shuffle = false;
