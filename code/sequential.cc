@@ -16,6 +16,8 @@
 #include <tuple>
 #include <utility>
 
+#include <iostream>
+
 using std::array;
 using std::iota;
 using std::fill;
@@ -604,17 +606,17 @@ namespace
                 }
             }
             else if (params.softmax_shuffle) {
-                // sum up the bias scores of every branch vertex
-                double total = 0.0;
-                for (unsigned v = 0 ; v < branch_v_end ; ++v)
-                    total += pow(params.softmax_base, double(targets_degrees[0][v]));
-
                 // repeatedly pick a softmax-biased vertex, move it to the front of branch_v,
                 // and then only consider items further to the right in the next iteration.
                 for (unsigned start = 0 ; start < branch_v_end ; ++start) {
                     // pick a random number between 0 and 1 inclusive
                     uniform_real_distribution<double> dist(0, 1);
                     double select_score = dist(global_rand);
+
+                    // don't do this outside the loop, too much fp weirdness
+                    double total = 0.0;
+                    for (unsigned v = start ; v < branch_v_end ; ++v)
+                        total += pow(params.softmax_base, double(targets_degrees[0][branch_v[v]]));
 
                     // this decreases on each iteration by the sum of the
                     // scores seen so far
@@ -623,13 +625,10 @@ namespace
                     // go over the list until we hit the score
                     unsigned select_element = start;
                     for ( ; select_element + 1 < branch_v_end ; ++select_element) {
-                        select_if_score_ge -= pow(params.softmax_base, double(targets_degrees[0][select_element])) / total;
+                        select_if_score_ge -= pow(params.softmax_base, double(targets_degrees[0][branch_v[select_element]])) / total;
                         if (select_score >= select_if_score_ge)
                             break;
                     }
-
-                    // total is now lower
-                    total -= pow(params.softmax_base, double(targets_degrees[0][select_element]));
 
                     // move to front
                     swap(branch_v[select_element], branch_v[start]);
