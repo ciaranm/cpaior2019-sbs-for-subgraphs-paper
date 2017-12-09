@@ -16,8 +16,6 @@
 #include <tuple>
 #include <utility>
 
-#include <iostream>
-
 using std::array;
 using std::iota;
 using std::fill;
