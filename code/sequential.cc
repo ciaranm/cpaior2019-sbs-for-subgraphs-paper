@@ -158,6 +158,7 @@ namespace
         list<typename Nogoods::iterator> need_to_watch;
 
         vector<unsigned long long> target_vertex_biases;
+        vector<double> softmax_cost;
 
         mt19937 global_rand;
 
@@ -614,7 +615,7 @@ namespace
                     // don't do this outside the loop, too much fp weirdness
                     double total = 0.0;
                     for (unsigned v = start ; v < branch_v_end ; ++v)
-                        total += pow(params.softmax_base, double(targets_degrees[0][branch_v[v]]));
+                        total += softmax_cost[branch_v[v]];
 
                     // this decreases on each iteration by the sum of the
                     // scores seen so far
@@ -623,7 +624,7 @@ namespace
                     // go over the list until we hit the score
                     unsigned select_element = start;
                     for ( ; select_element + 1 < branch_v_end ; ++select_element) {
-                        select_if_score_ge -= pow(params.softmax_base, double(targets_degrees[0][branch_v[select_element]])) / total;
+                        select_if_score_ge -= softmax_cost[branch_v[select_element]] / total;
                         if (select_score >= select_if_score_ge)
                             break;
                     }
@@ -908,6 +909,13 @@ namespace
 
                 for (unsigned i = 0 ; i < target_size ; ++i)
                     targets_degrees.at(g).at(i) = target_graph_rows[i * max_graphs + g].popcount();
+            }
+
+            // softmax costs
+            if (params.softmax_shuffle) {
+                softmax_cost.reserve(target_size);
+                for (unsigned j = 0 ; j < target_size ; ++j)
+                    softmax_cost.push_back(pow(params.softmax_base, targets_degrees[0][j]));
             }
 
             // pattern adjacencies, compressed
