@@ -911,11 +911,16 @@ namespace
                     targets_degrees.at(g).at(i) = target_graph_rows[i * max_graphs + g].popcount();
             }
 
-            // softmax costs
+            // softmax costs. shenanigans because pow() is incredibly slow.
             if (params.softmax_shuffle) {
+                vector<double> cache_powers(target_size, 0.0);
                 softmax_cost.reserve(target_size);
-                for (unsigned j = 0 ; j < target_size ; ++j)
-                    softmax_cost.push_back(pow(params.softmax_base, targets_degrees[0][j]));
+                for (unsigned j = 0 ; j < target_size ; ++j) {
+                    unsigned deg = targets_degrees[0][j];
+                    if (cache_powers[deg] == 0.0)
+                        cache_powers[deg] = pow(params.softmax_base, deg);
+                    softmax_cost.push_back(cache_powers[deg]);
+                }
             }
 
             // pattern adjacencies, compressed
