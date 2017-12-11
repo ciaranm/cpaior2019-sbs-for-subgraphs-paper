@@ -47,7 +47,6 @@ static struct argp_option options[] = {
     {"directed", 'i', 0, 0, "Use directed graphs"},
     {"labelled", 'a', 0, 0, "Use edge and vertex labels"},
     {"vertex-labelled-only", 'x', 0, 0, "Use vertex labels, but not edge labels"},
-    {"big-first", 'b', 0, 0, "First try to find an induced subgraph isomorphism, then decrement the target size"},
     {"timeout", 't', "timeout", 0, "Specify a timeout (seconds)"},
     { 0 }
 };
@@ -62,7 +61,6 @@ static struct {
     bool directed;
     bool edge_labelled;
     bool vertex_labelled;
-    bool big_first;
     Heuristic heuristic;
     char *filename1;
     char *filename2;
@@ -82,7 +80,6 @@ void set_default_arguments() {
     arguments.directed = false;
     arguments.edge_labelled = false;
     arguments.vertex_labelled = false;
-    arguments.big_first = false;
     arguments.filename1 = NULL;
     arguments.filename2 = NULL;
     arguments.timeout = 0;
@@ -130,9 +127,6 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
             if (arguments.edge_labelled)
                 fail("The -a and -x options can't be used together.");
             arguments.vertex_labelled = true;
-            break;
-        case 'b':
-            arguments.big_first = true;
             break;
         case 't':
             arguments.timeout = std::stoi(arg);
@@ -399,7 +393,7 @@ void position_shuffle(vector<int> & vec)
 
 void search(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
         vector<VtxPair> & current, vector<Bidomain> & domains,
-        vector<int> & left, vector<int> & right, unsigned int matching_size_goal)
+        vector<int> & left, vector<int> & right)
 {
     if (abort_due_to_timeout)
         return;
@@ -413,10 +407,7 @@ void search(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
     }
 
     unsigned int bound = current.size() + calc_bound(domains);
-    if (bound <= incumbent.size() || bound < matching_size_goal)
-        return;
-
-    if (arguments.big_first && incumbent.size()==matching_size_goal)
+    if (bound <= incumbent.size())
         return;
 
     int bd_idx = select_bidomain(domains, left, current.size());
@@ -447,13 +438,13 @@ void search(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
         auto new_domains = filter_domains(domains, left, right, g0, g1, v, w,
                 arguments.directed || arguments.edge_labelled);
         current.push_back(VtxPair(v, w));
-        search(g0, g1, incumbent, current, new_domains, left, right, matching_size_goal);
+        search(g0, g1, incumbent, current, new_domains, left, right);
         current.pop_back();
     }
     bd.right_len++;
     if (bd.left_len == 0)
         remove_bidomain(domains, bd_idx);
-    search(g0, g1, incumbent, current, domains, left, right, matching_size_goal);
+    search(g0, g1, incumbent, current, domains, left, right);
 }
 
 vector<VtxPair> mcs(const Graph & g0, const Graph & g1) {
@@ -492,22 +483,8 @@ vector<VtxPair> mcs(const Graph & g0, const Graph & g1) {
 
     vector<VtxPair> incumbent;
 
-    if (arguments.big_first) {
-        for (int k=0; k<g0.n; k++) {
-            unsigned int goal = g0.n - k;
-            auto left_copy = left;
-            auto right_copy = right;
-            auto domains_copy = domains;
-            vector<VtxPair> current;
-            search(g0, g1, incumbent, current, domains_copy, left_copy, right_copy, goal);
-            if (incumbent.size() == goal || abort_due_to_timeout) break;
-            if (!arguments.quiet) cout << "Upper bound: " << goal-1 << std::endl;
-        }
-
-    } else {
-        vector<VtxPair> current;
-        search(g0, g1, incumbent, current, domains, left, right, 1);
-    }
+    vector<VtxPair> current;
+    search(g0, g1, incumbent, current, domains, left, right);
 
     return incumbent;
 }
