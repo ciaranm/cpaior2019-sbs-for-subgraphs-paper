@@ -51,7 +51,7 @@ static struct argp_option options[] = {
     { 0 }
 };
 
-static struct {
+struct Arguments {
     bool quiet;
     bool verbose;
     bool dimacs;
@@ -66,25 +66,11 @@ static struct {
     char *filename2;
     int timeout;
     int arg_num;
-} arguments;
+};
+
+static Arguments arguments;
 
 static std::atomic<bool> abort_due_to_timeout;
-
-void set_default_arguments() {
-    arguments.quiet = false;
-    arguments.verbose = false;
-    arguments.dimacs = false;
-    arguments.lad = false;
-    arguments.position_shuffle = false;
-    arguments.connected = false;
-    arguments.directed = false;
-    arguments.edge_labelled = false;
-    arguments.vertex_labelled = false;
-    arguments.filename1 = NULL;
-    arguments.filename2 = NULL;
-    arguments.timeout = 0;
-    arguments.arg_num = 0;
-}
 
 static error_t parse_opt (int key, char *arg, struct argp_state *state) {
     switch (key) {
@@ -568,7 +554,6 @@ int sum(const vector<int> & vec) {
 }
 
 int main(int argc, char** argv) {
-    set_default_arguments();
     argp_parse(&argp, argc, argv, 0, 0, 0);
 
     char format = arguments.dimacs ? 'D' : arguments.lad ? 'L' : 'B';
