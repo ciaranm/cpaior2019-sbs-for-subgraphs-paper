@@ -223,31 +223,6 @@ struct Bidomain {
             is_adjacent (is_adjacent) { };
 };
 
-void show(const vector<VarAssignment>& current, const vector<Bidomain> &domains,
-        const vector<int>& left, const vector<int>& right)
-{
-    cout << "Nodes: " << nodes << std::endl;
-    cout << "Length of current assignment: " << current.size() << std::endl;
-    cout << "Current assignment:";
-    for (unsigned int i=0; i<current.size(); i++) {
-        cout << "  (" << current[i].assignment.v << " -> " << current[i].assignment.w
-                << " ; " << current[i].is_decision << ")";
-    }
-    cout << std::endl;
-    for (unsigned int i=0; i<domains.size(); i++) {
-        struct Bidomain bd = domains[i];
-        cout << "Left  ";
-        for (int j=0; j<bd.left_len; j++)
-            cout << left[bd.l + j] << " ";
-        cout << std::endl;
-        cout << "Right  ";
-        for (int j=0; j<bd.right_len; j++)
-            cout << right[bd.r + j] << " ";
-        cout << std::endl;
-    }
-    cout << "\n" << std::endl;
-}
-
 bool check_sol(const Graph & g0, const Graph & g1 , const vector<Assignment> & solution) {
     return true;
     vector<bool> used_left(g0.n, false);
@@ -269,286 +244,312 @@ bool check_sol(const Graph & g0, const Graph & g1 , const vector<Assignment> & s
     return true;
 }
 
-int calc_bound(const vector<Bidomain>& domains) {
-    int bound = 0;
-    for (const Bidomain &bd : domains) {
-        bound += std::min(bd.left_len, bd.right_len);
-    }
-    return bound;
-}
-
-int find_min_value(const vector<int>& arr, int start_idx, int len) {
-    int min_v = INT_MAX;
-    for (int i=0; i<len; i++)
-        if (arr[start_idx + i] < min_v)
-            min_v = arr[start_idx + i];
-    return min_v;
-}
-
-int select_bidomain(const vector<Bidomain>& domains, const vector<int> & left,
-        int current_matching_size)
+class MCS
 {
-    // Select the bidomain with the smallest max(leftsize, rightsize), breaking
-    // ties on the smallest vertex index in the left set
-    int min_size = INT_MAX;
-    int min_tie_breaker = INT_MAX;
-    int best = -1;
-    for (unsigned int i=0; i<domains.size(); i++) {
-        const Bidomain &bd = domains[i];
-        if (arguments.connected && current_matching_size>0 && !bd.is_adjacent) continue;
-        int len = arguments.heuristic == min_max ?
-                std::max(bd.left_len, bd.right_len) :
-                bd.left_len * bd.right_len;
-        if (len < min_size) {
-            min_size = len;
-            min_tie_breaker = find_min_value(left, bd.l, bd.left_len);
-            best = i;
-        } else if (len == min_size) {
-            int tie_breaker = find_min_value(left, bd.l, bd.left_len);
-            if (tie_breaker < min_tie_breaker) {
-                min_tie_breaker = tie_breaker;
-                best = i;
-            }
-        }
-    }
-    return best;
-}
-
-// Returns length of left half of array
-int partition(vector<int>& all_vv, int start, int len, const vector<unsigned int> & adjrow) {
-    int i=0;
-    for (int j=0; j<len; j++) {
-        if (adjrow[all_vv[start+j]]) {
-            std::swap(all_vv[start+i], all_vv[start+j]);
-            i++;
-        }
-    }
-    return i;
-}
-
-// multiway is for directed and/or labelled graphs
-vector<Bidomain> filter_domains(const vector<Bidomain> & d, vector<int> & left,
-        vector<int> & right, const Graph & g0, const Graph & g1, int v, int w,
-        bool multiway)
-{
-    vector<Bidomain> new_d;
-    new_d.reserve(d.size());
-    for (const Bidomain &old_bd : d) {
-        int l = old_bd.l;
-        int r = old_bd.r;
-        // After these two partitions, left_len and right_len are the lengths of the
-        // arrays of vertices with edges from v or w (int the directed case, edges
-        // either from or to v or w)
-        int left_len = partition(left, l, old_bd.left_len, g0.adjmat[v]);
-        int right_len = partition(right, r, old_bd.right_len, g1.adjmat[w]);
-        int left_len_noedge = old_bd.left_len - left_len;
-        int right_len_noedge = old_bd.right_len - right_len;
-        if (left_len_noedge && right_len_noedge)
-            new_d.push_back({l+left_len, r+right_len, left_len_noedge, right_len_noedge, old_bd.is_adjacent});
-        if (multiway && left_len && right_len) {
-            auto& adjrow_v = g0.adjmat[v];
-            auto& adjrow_w = g1.adjmat[w];
-            auto l_begin = std::begin(left) + l;
-            auto r_begin = std::begin(right) + r;
-            std::sort(l_begin, l_begin+left_len, [&](int a, int b)
-                    { return adjrow_v[a] < adjrow_v[b]; });
-            std::sort(r_begin, r_begin+right_len, [&](int a, int b)
-                    { return adjrow_w[a] < adjrow_w[b]; });
-            int l_top = l + left_len;
-            int r_top = r + right_len;
-            while (l<l_top && r<r_top) {
-                unsigned int left_label = adjrow_v[left[l]];
-                unsigned int right_label = adjrow_w[right[r]];
-                if (left_label < right_label) {
-                    l++;
-                } else if (left_label > right_label) {
-                    r++;
-                } else {
-                    int lmin = l;
-                    int rmin = r;
-                    do { l++; } while (l<l_top && adjrow_v[left[l]]==left_label);
-                    do { r++; } while (r<r_top && adjrow_w[right[r]]==left_label);
-                    new_d.push_back({lmin, rmin, l-lmin, r-rmin, true});
-                }
-            }
-        } else if (left_len && right_len) {
-            new_d.push_back({l, r, left_len, right_len, true});
-        }
-    }
-    return new_d;
-}
-
-// returns the index of the smallest value in arr that is >w.
-// Assumption: such a value exists
-// Assumption: arr contains no duplicates
-// Assumption: arr has no values==INT_MAX
-int index_of_next_smallest(const vector<int>& arr, int start_idx, int len, int w) {
-    int idx = -1;
-    int smallest = INT_MAX;
-    for (int i=0; i<len; i++) {
-        if (arr[start_idx + i]>w && arr[start_idx + i]<smallest) {
-            smallest = arr[start_idx + i];
-            idx = i;
-        }
-    }
-    return idx;
-}
-
-void remove_vtx_from_left_domain(vector<int>& left, Bidomain& bd, int v)
-{
-    int i = 0;
-    while(left[bd.l + i] != v) i++;
-    std::swap(left[bd.l+i], left[bd.l+bd.left_len-1]);
-    bd.left_len--;
-}
-
-void remove_bidomain(vector<Bidomain>& domains, int idx) {
-    domains[idx] = domains[domains.size()-1];
-    domains.pop_back();
-}
-
-void position_shuffle(vector<int> & vec)
-{
-    for (unsigned start=0; start<vec.size()-1; ++start) {
-        std::uniform_real_distribution<double> dist(0, 1);
-        double select_score = dist(global_rand);
-
-        double select_if_score_ge = 1.0;
-
-        unsigned select_element = start;
-        for ( ; select_element + 1 < vec.size(); ++select_element) {
-            select_if_score_ge /= 2.0;
-            if (select_score >= select_if_score_ge)
-                break;
-        }
-        
-        std::swap(vec[select_element], vec[start]);
-    }
-}
-
-enum class Search
-{
-    Aborted,
-    Done
-};
-
-auto update_incumbent(vector<Assignment> & incumbent, VarAssignments current) -> void
-{
-    incumbent.clear();
-    for (auto a : current.get_var_assignments())
-        if (a.assignment.w != -1)
-            incumbent.push_back(a.assignment);
-    if (!arguments.quiet) cout << "Incumbent size: " << incumbent.size() << endl;
-}
-
-auto search(const Graph & g0, const Graph & g1, vector<Assignment> & incumbent,
-        VarAssignments & current, vector<Bidomain> & domains,
-        vector<int> & left, vector<int> & right) -> Search
-{
-    if (abort_due_to_timeout)
-        return Search::Aborted;
-
-    nodes++;
-
-    if (arguments.verbose)
-        show(current.get_var_assignments(), domains, left, right);
-
-    if (current.get_num_vtx_assignments() > incumbent.size())
-        update_incumbent(incumbent, current);
-
-    unsigned int bound = current.get_num_vtx_assignments() + calc_bound(domains);
-    if (bound <= incumbent.size())
-        return Search::Done;
-
-    int bd_idx = select_bidomain(domains, left, current.get_num_vtx_assignments());
-    if (bd_idx == -1)   // In the MCCS case, there may be nothing we can branch on
-        return Search::Done;
-    Bidomain &bd = domains[bd_idx];
-
-    int v = find_min_value(left, bd.l, bd.left_len);
-    remove_vtx_from_left_domain(left, domains[bd_idx], v);
-
-    // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
-    std::vector<int> right_vertices(right.begin() + bd.r,  // the vertices in the colour class beginning at bd.r
-            right.begin() + bd.r + bd.right_len);
-    std::sort(right_vertices.begin(), right_vertices.end());
-
-    if (arguments.position_shuffle)
-        position_shuffle(right_vertices);
-
-    bool is_decision = bound!=incumbent.size()+1 || bd.left_len!=0 || bd.right_len!=1;
-    bd.right_len--;
-    int loop_end = bd.right_len + is_decision;
-    for (int i=0; i<=loop_end; i++) {
-        Search search_result;
-        if (i <= bd.right_len) {
-            int w = right_vertices[i];
-
-            // swap w to the end of its colour class
-            auto it = std::find(right.begin() + bd.r, right.end(), right_vertices[i]);
-            *it = right[bd.r + bd.right_len];
-            right[bd.r + bd.right_len] = w;
-
-            auto new_domains = filter_domains(domains, left, right, g0, g1, v, w,
-                    arguments.directed || arguments.edge_labelled);
-            current.push({{v, w}, is_decision});
-            search_result = search(g0, g1, incumbent, current, new_domains, left, right);
-        } else {
-            bd.right_len++;
-            if (bd.left_len == 0)
-                remove_bidomain(domains, bd_idx);
-            current.push({{v, -1}, true});
-            search_result = search(g0, g1, incumbent, current, domains, left, right);
-        }
-        current.pop();
-        if (search_result == Search::Aborted)
-            return Search::Aborted;
-    }
-
-    return Search::Done;
-}
-
-vector<Assignment> mcs(const Graph & g0, const Graph & g1) {
-    vector<int> left;  // the buffer of vertex indices for the left partitions
-    vector<int> right;  // the buffer of vertex indices for the right partitions
-
-    auto domains = vector<Bidomain> {};
-
-    std::set<unsigned int> left_labels;
-    std::set<unsigned int> right_labels;
-    for (unsigned int label : g0.label) left_labels.insert(label);
-    for (unsigned int label : g1.label) right_labels.insert(label);
-    std::set<unsigned int> labels;  // labels that appear in both graphs
-    std::set_intersection(std::begin(left_labels),
-                          std::end(left_labels),
-                          std::begin(right_labels),
-                          std::end(right_labels),
-                          std::inserter(labels, std::begin(labels)));
-
-    // Create a bidomain for each label that appears in both graphs
-    for (unsigned int label : labels) {
-        int start_l = left.size();
-        int start_r = right.size();
-
-        for (int i=0; i<g0.n; i++)
-            if (g0.label[i]==label)
-                left.push_back(i);
-        for (int i=0; i<g1.n; i++)
-            if (g1.label[i]==label)
-                right.push_back(i);
-
-        int left_len = left.size() - start_l;
-        int right_len = right.size() - start_r;
-        domains.push_back({start_l, start_r, left_len, right_len, false});
-    }
-
+    const Graph & g0;
+    const Graph & g1;
+    vector<int> left;
+    vector<int> right;
     vector<Assignment> incumbent;
 
-    VarAssignments current;
-    search(g0, g1, incumbent, current, domains, left, right);
+    void show(const vector<VarAssignment>& current, const vector<Bidomain> &domains)
+    {
+        cout << "Nodes: " << nodes << std::endl;
+        cout << "Length of current assignment: " << current.size() << std::endl;
+        cout << "Current assignment:";
+        for (unsigned int i=0; i<current.size(); i++) {
+            cout << "  (" << current[i].assignment.v << " -> " << current[i].assignment.w
+                    << " ; " << current[i].is_decision << ")";
+        }
+        cout << std::endl;
+        for (unsigned int i=0; i<domains.size(); i++) {
+            struct Bidomain bd = domains[i];
+            cout << "Left  ";
+            for (int j=0; j<bd.left_len; j++)
+                cout << left[bd.l + j] << " ";
+            cout << std::endl;
+            cout << "Right  ";
+            for (int j=0; j<bd.right_len; j++)
+                cout << right[bd.r + j] << " ";
+            cout << std::endl;
+        }
+        cout << "\n" << std::endl;
+    }
 
-    return incumbent;
-}
+    int calc_bound(const vector<Bidomain>& domains) {
+        int bound = 0;
+        for (const Bidomain &bd : domains) {
+            bound += std::min(bd.left_len, bd.right_len);
+        }
+        return bound;
+    }
+
+    int find_min_value(const vector<int>& arr, int start_idx, int len) {
+        int min_v = INT_MAX;
+        for (int i=0; i<len; i++)
+            if (arr[start_idx + i] < min_v)
+                min_v = arr[start_idx + i];
+        return min_v;
+    }
+
+    int select_bidomain(const vector<Bidomain>& domains, int current_matching_size)
+    {
+        // Select the bidomain with the smallest max(leftsize, rightsize), breaking
+        // ties on the smallest vertex index in the left set
+        int min_size = INT_MAX;
+        int min_tie_breaker = INT_MAX;
+        int best = -1;
+        for (unsigned int i=0; i<domains.size(); i++) {
+            const Bidomain &bd = domains[i];
+            if (arguments.connected && current_matching_size>0 && !bd.is_adjacent) continue;
+            int len = arguments.heuristic == min_max ?
+                    std::max(bd.left_len, bd.right_len) :
+                    bd.left_len * bd.right_len;
+            if (len < min_size) {
+                min_size = len;
+                min_tie_breaker = find_min_value(left, bd.l, bd.left_len);
+                best = i;
+            } else if (len == min_size) {
+                int tie_breaker = find_min_value(left, bd.l, bd.left_len);
+                if (tie_breaker < min_tie_breaker) {
+                    min_tie_breaker = tie_breaker;
+                    best = i;
+                }
+            }
+        }
+        return best;
+    }
+
+    // Returns length of left half of array
+    int partition(vector<int>& all_vv, int start, int len, const vector<unsigned int> & adjrow) {
+        int i=0;
+        for (int j=0; j<len; j++) {
+            if (adjrow[all_vv[start+j]]) {
+                std::swap(all_vv[start+i], all_vv[start+j]);
+                i++;
+            }
+        }
+        return i;
+    }
+
+    // multiway is for directed and/or labelled graphs
+    vector<Bidomain> filter_domains(const vector<Bidomain> & d, int v, int w, bool multiway)
+    {
+        vector<Bidomain> new_d;
+        new_d.reserve(d.size());
+        for (const Bidomain &old_bd : d) {
+            int l = old_bd.l;
+            int r = old_bd.r;
+            // After these two partitions, left_len and right_len are the lengths of the
+            // arrays of vertices with edges from v or w (int the directed case, edges
+            // either from or to v or w)
+            int left_len = partition(left, l, old_bd.left_len, g0.adjmat[v]);
+            int right_len = partition(right, r, old_bd.right_len, g1.adjmat[w]);
+            int left_len_noedge = old_bd.left_len - left_len;
+            int right_len_noedge = old_bd.right_len - right_len;
+            if (left_len_noedge && right_len_noedge)
+                new_d.push_back({l+left_len, r+right_len, left_len_noedge, right_len_noedge, old_bd.is_adjacent});
+            if (multiway && left_len && right_len) {
+                auto& adjrow_v = g0.adjmat[v];
+                auto& adjrow_w = g1.adjmat[w];
+                auto l_begin = std::begin(left) + l;
+                auto r_begin = std::begin(right) + r;
+                std::sort(l_begin, l_begin+left_len, [&](int a, int b)
+                        { return adjrow_v[a] < adjrow_v[b]; });
+                std::sort(r_begin, r_begin+right_len, [&](int a, int b)
+                        { return adjrow_w[a] < adjrow_w[b]; });
+                int l_top = l + left_len;
+                int r_top = r + right_len;
+                while (l<l_top && r<r_top) {
+                    unsigned int left_label = adjrow_v[left[l]];
+                    unsigned int right_label = adjrow_w[right[r]];
+                    if (left_label < right_label) {
+                        l++;
+                    } else if (left_label > right_label) {
+                        r++;
+                    } else {
+                        int lmin = l;
+                        int rmin = r;
+                        do { l++; } while (l<l_top && adjrow_v[left[l]]==left_label);
+                        do { r++; } while (r<r_top && adjrow_w[right[r]]==left_label);
+                        new_d.push_back({lmin, rmin, l-lmin, r-rmin, true});
+                    }
+                }
+            } else if (left_len && right_len) {
+                new_d.push_back({l, r, left_len, right_len, true});
+            }
+        }
+        return new_d;
+    }
+
+    // returns the index of the smallest value in arr that is >w.
+    // Assumption: such a value exists
+    // Assumption: arr contains no duplicates
+    // Assumption: arr has no values==INT_MAX
+    int index_of_next_smallest(const vector<int>& arr, int start_idx, int len, int w) {
+        int idx = -1;
+        int smallest = INT_MAX;
+        for (int i=0; i<len; i++) {
+            if (arr[start_idx + i]>w && arr[start_idx + i]<smallest) {
+                smallest = arr[start_idx + i];
+                idx = i;
+            }
+        }
+        return idx;
+    }
+
+    void remove_vtx_from_left_domain(Bidomain& bd, int v)
+    {
+        int i = 0;
+        while(left[bd.l + i] != v) i++;
+        std::swap(left[bd.l+i], left[bd.l+bd.left_len-1]);
+        bd.left_len--;
+    }
+
+    void remove_bidomain(vector<Bidomain>& domains, int idx) {
+        domains[idx] = domains[domains.size()-1];
+        domains.pop_back();
+    }
+
+    void position_shuffle(vector<int> & vec)
+    {
+        for (unsigned start=0; start<vec.size()-1; ++start) {
+            std::uniform_real_distribution<double> dist(0, 1);
+            double select_score = dist(global_rand);
+
+            double select_if_score_ge = 1.0;
+
+            unsigned select_element = start;
+            for ( ; select_element + 1 < vec.size(); ++select_element) {
+                select_if_score_ge /= 2.0;
+                if (select_score >= select_if_score_ge)
+                    break;
+            }
+            
+            std::swap(vec[select_element], vec[start]);
+        }
+    }
+
+    enum class Search
+    {
+        Aborted,
+        Done
+    };
+
+    auto update_incumbent(vector<Assignment> & incumbent, VarAssignments current) -> void
+    {
+        incumbent.clear();
+        for (auto a : current.get_var_assignments())
+            if (a.assignment.w != -1)
+                incumbent.push_back(a.assignment);
+        if (!arguments.quiet) cout << "Incumbent size: " << incumbent.size() << endl;
+    }
+
+    auto search(VarAssignments & current, vector<Bidomain> & domains) -> Search
+    {
+        if (abort_due_to_timeout)
+            return Search::Aborted;
+
+        nodes++;
+
+        if (arguments.verbose)
+            show(current.get_var_assignments(), domains);
+
+        if (current.get_num_vtx_assignments() > incumbent.size())
+            update_incumbent(incumbent, current);
+
+        unsigned int bound = current.get_num_vtx_assignments() + calc_bound(domains);
+        if (bound <= incumbent.size())
+            return Search::Done;
+
+        int bd_idx = select_bidomain(domains, current.get_num_vtx_assignments());
+        if (bd_idx == -1)   // In the MCCS case, there may be nothing we can branch on
+            return Search::Done;
+        Bidomain &bd = domains[bd_idx];
+
+        int v = find_min_value(left, bd.l, bd.left_len);
+        remove_vtx_from_left_domain(domains[bd_idx], v);
+
+        // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
+        std::vector<int> right_vertices(right.begin() + bd.r,  // the vertices in the colour class beginning at bd.r
+                right.begin() + bd.r + bd.right_len);
+        std::sort(right_vertices.begin(), right_vertices.end());
+
+        if (arguments.position_shuffle)
+            position_shuffle(right_vertices);
+
+        bool is_decision = bound!=incumbent.size()+1 || bd.left_len!=0 || bd.right_len!=1;
+        bd.right_len--;
+        int loop_end = bd.right_len + is_decision;
+        for (int i=0; i<=loop_end; i++) {
+            Search search_result;
+            if (i <= bd.right_len) {
+                int w = right_vertices[i];
+
+                // swap w to the end of its colour class
+                auto it = std::find(right.begin() + bd.r, right.end(), right_vertices[i]);
+                *it = right[bd.r + bd.right_len];
+                right[bd.r + bd.right_len] = w;
+
+                auto new_domains = filter_domains(domains, v, w, arguments.directed || arguments.edge_labelled);
+                current.push({{v, w}, is_decision});
+                search_result = search(current, new_domains);
+            } else {
+                bd.right_len++;
+                if (bd.left_len == 0)
+                    remove_bidomain(domains, bd_idx);
+                current.push({{v, -1}, true});
+                search_result = search(current, domains);
+            }
+            current.pop();
+            if (search_result == Search::Aborted)
+                return Search::Aborted;
+        }
+
+        return Search::Done;
+    }
+
+public:
+    MCS(Graph & g0, Graph & g1)
+        : g0(g0), g1(g1) {}
+
+    vector<Assignment> run() {
+        auto domains = vector<Bidomain> {};
+
+        std::set<unsigned int> left_labels;
+        std::set<unsigned int> right_labels;
+        for (unsigned int label : g0.label) left_labels.insert(label);
+        for (unsigned int label : g1.label) right_labels.insert(label);
+        std::set<unsigned int> labels;  // labels that appear in both graphs
+        std::set_intersection(std::begin(left_labels),
+                              std::end(left_labels),
+                              std::begin(right_labels),
+                              std::end(right_labels),
+                              std::inserter(labels, std::begin(labels)));
+
+        // Create a bidomain for each label that appears in both graphs
+        for (unsigned int label : labels) {
+            int start_l = left.size();
+            int start_r = right.size();
+
+            for (int i=0; i<g0.n; i++)
+                if (g0.label[i]==label)
+                    left.push_back(i);
+            for (int i=0; i<g1.n; i++)
+                if (g1.label[i]==label)
+                    right.push_back(i);
+
+            int left_len = left.size() - start_l;
+            int right_len = right.size() - start_r;
+            domains.push_back({start_l, start_r, left_len, right_len, false});
+        }
+
+        VarAssignments current;
+        search(current, domains);
+
+        return incumbent;
+    }
+};
 
 vector<int> calculate_degrees(const Graph & g) {
     vector<int> degree(g.n, 0);
@@ -628,7 +629,7 @@ int main(int argc, char** argv) {
     struct Graph g0_sorted = induced_subgraph(g0, vv0);
     struct Graph g1_sorted = induced_subgraph(g1, vv1);
 
-    vector<Assignment> solution = mcs(g0_sorted, g1_sorted);
+    vector<Assignment> solution = MCS(g0_sorted, g1_sorted).run();
 
     // Convert to indices from original, unsorted graphs
     for (auto& vtx_pair : solution) {
