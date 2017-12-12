@@ -1,3 +1,6 @@
+#define RESTARTS 1
+#define LUBY_MULTIPLIER 500
+
 #include "graph.h"
 
 #include <algorithm>
@@ -5,6 +8,7 @@
 #include <chrono>
 #include <condition_variable>
 #include <iostream>
+#include <list>
 #include <mutex>
 #include <numeric>
 #include <random>
@@ -20,9 +24,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-using std::vector;
 using std::cout;
 using std::endl;
+using std::list;
+using std::vector;
 
 static void fail(std::string msg) {
     std::cerr << msg << std::endl;
@@ -160,6 +165,11 @@ std::mt19937 global_rand;
 struct Assignment {
     int v;
     int w;
+
+    auto operator==(const Assignment & other) const -> bool
+    {
+        return v==other.v && w==other.w;
+    }
 };
 
 struct VarAssignment {
@@ -194,6 +204,11 @@ public:
     auto get_num_vtx_assignments() -> unsigned
     {
         return num_vtx_assignments;
+    }
+
+    auto clear() -> void
+    {
+        var_assignments.clear();
     }
 };
 
@@ -230,6 +245,13 @@ bool check_sol(const Graph & g0, const Graph & g1 , const vector<Assignment> & s
     return true;
 }
 
+struct Nogood
+{
+    vector<Assignment> literals;
+};
+
+using Nogoods = list<Nogood>;
+
 class MCS
 {
     const Graph & g0;
@@ -237,6 +259,7 @@ class MCS
     vector<int> left;
     vector<int> right;
     vector<Assignment> incumbent;
+    Nogoods nogoods;
 
     void show(const vector<VarAssignment>& current, const vector<Bidomain> &domains)
     {
@@ -419,7 +442,8 @@ class MCS
     enum class Search
     {
         Aborted,
-        Done
+        Done,
+        Restart
     };
 
     auto update_incumbent(vector<Assignment> & incumbent, VarAssignments current) -> void
@@ -431,7 +455,45 @@ class MCS
         if (!arguments.quiet) cout << "Incumbent size: " << incumbent.size() << endl;
     }
 
-    auto search(VarAssignments & current, vector<Bidomain> & domains) -> Search
+    auto post_nogood(const VarAssignments & current) -> void
+    {
+        Nogood nogood;
+
+        for (auto & a : current.get_var_assignments())
+            if (a.is_decision)
+                nogood.literals.emplace_back(a.assignment);
+
+//        std::cout << "literals size " << nogood.literals.size() << std::endl;
+        nogoods.emplace_back(std::move(nogood));
+    }
+
+    auto current_contains_nogood(VarAssignments & current,
+            Nogood & n) -> bool
+    {
+//        std::cout << n.literals.size() << std::endl;
+        for (const Assignment a : n.literals) {
+            const auto & var_assignments = current.get_var_assignments();
+            if (var_assignments.end() == std::find_if(var_assignments.begin(), var_assignments.end(),
+                                              [&](const VarAssignment & b){return b.assignment==a;}))
+                return false;
+        }
+
+        return true;
+    }
+
+    auto current_contains_a_nogood(VarAssignments & current) -> bool
+    {
+        for (auto & n : nogoods) {
+            if (current_contains_nogood(current, n))
+                return true;
+        }
+        return false;
+    }
+
+    auto restarting_search(
+            VarAssignments & current,
+            vector<Bidomain> & domains,
+            long long & backtracks_until_restart) -> Search
     {
         if (abort_due_to_timeout)
             return Search::Aborted;
@@ -454,37 +516,162 @@ class MCS
         Bidomain &bd = domains[bd_idx];
 
         int v = find_min_value(left, bd.l, bd.left_len);
-        remove_vtx_from_left_domain(domains[bd_idx], v);
 
         // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
-        std::vector<int> right_vertices(right.begin() + bd.r,  // the vertices in the colour class beginning at bd.r
+        std::vector<int> possible_values(right.begin() + bd.r,  // the vertices in the colour class beginning at bd.r
                 right.begin() + bd.r + bd.right_len);
-        std::sort(right_vertices.begin(), right_vertices.end());
+        std::sort(possible_values.begin(), possible_values.end());
 
         if (arguments.position_shuffle)
-            position_shuffle(right_vertices);
+            position_shuffle(possible_values);
 
-        bool is_decision = bound!=incumbent.size()+1 || bd.left_len!=0 || bd.right_len!=1;
+        if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len)
+            possible_values.push_back(-1);
+
+        remove_vtx_from_left_domain(domains[bd_idx], v);
         bd.right_len--;
-        int loop_end = bd.right_len + is_decision;
-        for (int i=0; i<=loop_end; i++) {
-            Search search_result;
-            if (i <= bd.right_len) {
-                int w = right_vertices[i];
 
+        for (int w : possible_values) {
+            current.push({{v, w}, possible_values.size() > 1});
+            if (current_contains_a_nogood(current)) {
+                current.pop();
+            } else {
+                Search search_result;
+                if (w != -1) {
+                    // swap w to the end of its colour class
+                    auto it = std::find(right.begin() + bd.r, right.end(), w);
+                    *it = right[bd.r + bd.right_len];
+                    right[bd.r + bd.right_len] = w;
+
+                    auto new_domains = filter_domains(domains, v, w, arguments.directed || arguments.edge_labelled);
+                    search_result = restarting_search(current, new_domains, backtracks_until_restart);
+                } else {
+                    bd.right_len++;
+                    if (bd.left_len == 0)
+                        remove_bidomain(domains, bd_idx);
+                    search_result = restarting_search(current, domains, backtracks_until_restart);
+                }
+                current.pop();
+                switch (search_result)
+                {
+                case Search::Restart:
+                    for (int u : possible_values) {
+                        if (u == w)
+                            break;
+                        current.push({{v, u}, true});
+//                        std::cout << "sz " << current.get_var_assignments().size() << std::endl;
+                        post_nogood(current);
+                        current.pop();
+                    }
+                    return Search::Restart;
+                case Search::Aborted:
+                    return Search::Aborted;
+                case Search::Done:
+                    break;
+                }
+            }
+        }
+
+        if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart) {
+//            std::cout << "sz " << current.get_var_assignments().size() << std::endl;
+            post_nogood(current);
+            return Search::Restart;
+        } else {
+            return Search::Done;
+        }
+    }
+
+    auto run_with_restarts(VarAssignments & current, vector<Bidomain> & domains) -> void
+    {
+        list<long long> luby = {{ 1 }};
+        auto current_luby = luby.begin();
+        unsigned number_of_restarts = 0;
+        while (true) {
+            long long backtracks_until_restart = *current_luby * LUBY_MULTIPLIER;
+            if (next(current_luby) == luby.end()) {
+                luby.insert(luby.end(), luby.begin(), luby.end());
+                luby.push_back(*luby.rbegin() * 2);
+            }
+            ++current_luby;
+
+            ++number_of_restarts;
+
+            for (auto & n : nogoods)
+                if (n.literals.empty())
+                    break;
+
+            current.clear();
+            auto domains_copy = domains;
+            std::cout << "restarting search" << std::endl;
+            std::cout << "nogood count: " << nogoods.size() << std::endl;
+            switch (restarting_search(current, domains_copy, backtracks_until_restart))
+            {
+            case Search::Done:
+                std::cout << "done!" << std::endl;
+                return;
+            case Search::Aborted:
+                return;
+            case Search::Restart:
+                break;
+            }
+        }
+    }
+
+    auto search(
+            VarAssignments & current,
+            vector<Bidomain> & domains) -> Search
+    {
+        if (abort_due_to_timeout)
+            return Search::Aborted;
+
+        nodes++;
+
+        if (arguments.verbose)
+            show(current.get_var_assignments(), domains);
+
+        if (current.get_num_vtx_assignments() > incumbent.size())
+            update_incumbent(incumbent, current);
+
+        unsigned int bound = current.get_num_vtx_assignments() + calc_bound(domains);
+        if (bound <= incumbent.size())
+            return Search::Done;
+
+        int bd_idx = select_bidomain(domains, current.get_num_vtx_assignments());
+        if (bd_idx == -1)   // In the MCCS case, there may be nothing we can branch on
+            return Search::Done;
+        Bidomain &bd = domains[bd_idx];
+
+        int v = find_min_value(left, bd.l, bd.left_len);
+
+        // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
+        std::vector<int> possible_values(right.begin() + bd.r,  // the vertices in the colour class beginning at bd.r
+                right.begin() + bd.r + bd.right_len);
+        std::sort(possible_values.begin(), possible_values.end());
+
+        if (arguments.position_shuffle)
+            position_shuffle(possible_values);
+
+        if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len)
+            possible_values.push_back(-1);
+
+        remove_vtx_from_left_domain(domains[bd_idx], v);
+        bd.right_len--;
+
+        for (int w : possible_values) {
+            current.push({{v, w}, possible_values.size() > 1});
+            Search search_result;
+            if (w != -1) {
                 // swap w to the end of its colour class
-                auto it = std::find(right.begin() + bd.r, right.end(), right_vertices[i]);
+                auto it = std::find(right.begin() + bd.r, right.end(), w);
                 *it = right[bd.r + bd.right_len];
                 right[bd.r + bd.right_len] = w;
 
                 auto new_domains = filter_domains(domains, v, w, arguments.directed || arguments.edge_labelled);
-                current.push({{v, w}, is_decision});
                 search_result = search(current, new_domains);
             } else {
                 bd.right_len++;
                 if (bd.left_len == 0)
                     remove_bidomain(domains, bd_idx);
-                current.push({{v, -1}, true});
                 search_result = search(current, domains);
             }
             current.pop();
@@ -531,7 +718,12 @@ public:
         }
 
         VarAssignments current;
-        search(current, domains);
+
+        if (RESTARTS) {
+            run_with_restarts(current, domains);
+        } else {
+            search(current, domains);
+        }
 
         return incumbent;
     }
