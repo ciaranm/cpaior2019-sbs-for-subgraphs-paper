@@ -107,7 +107,8 @@ auto run_this(Result_ func(const Data_ &, const Params_ &)) -> function<Result_ 
 auto main(int argc, char * argv[]) -> int
 {
     auto subgraph_isomorphism_algorithms = {
-        make_pair( string{ "sequential" },                   sequential_subgraph_isomorphism ),
+        make_pair( string{ "simple" },                       sequential_subgraph_isomorphism ),
+        make_pair( string{ "restarting" },                   sequential_subgraph_isomorphism ),
         make_pair( string{ "parallel" },                     parallel_subgraph_isomorphism ),
         make_pair( string{ "customisable-sequential" },      sequential_subgraph_isomorphism ),
         make_pair( string{ "customisable-parallel" },        parallel_subgraph_isomorphism )
@@ -143,7 +144,7 @@ auto main(int argc, char * argv[]) -> int
 
         po::options_description all_options{ "All options" };
         all_options.add_options()
-            ("algorithm",    "Specify which algorithm to use (start with \"sequential\" or \"parallel\")")
+            ("algorithm",    "Specify which algorithm to use (start with \"restarting\" or \"simple\")")
             ("pattern-file", "Specify the pattern file (LAD format)")
             ("target-file",  "Specify the target file (LAD format)")
             ;
@@ -236,10 +237,13 @@ auto main(int argc, char * argv[]) -> int
             if (options_vars.count("geometric-start"))
                 params.geometric_start = options_vars["geometric-start"].as<unsigned>();
         }
-        else {
+        else if (options_vars["algorithm"].as<std::string>() == "restarting") {
             params.restarts = true;
-            params.biased_shuffle = true;
+            params.softmax_shuffle = true;
             params.input_order = true;
+        }
+        else {
+            params.input_order = false;
         }
 
         if (options_vars.count("threads"))
