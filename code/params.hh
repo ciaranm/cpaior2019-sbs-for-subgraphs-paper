@@ -33,9 +33,6 @@ struct Params
     /// Use softmax shuffles?
     bool softmax_shuffle = false;
 
-    /// Use position shuffle?
-    bool position_shuffle = false;
-
     /// Use antiheuristic? (For science purposes)
     bool antiheuristic = false;
 

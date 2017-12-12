@@ -641,30 +641,6 @@ namespace
                     swap(branch_v[select_element], branch_v[start]);
                 }
             }
-            else if (params.position_shuffle) {
-                // repeatedly pick a position-biased vertex, move it to the front of branch_v,
-                // and then only consider items further to the right in the next iteration.
-                for (unsigned start = 0 ; start < branch_v_end ; ++start) {
-                    // pick a random number between 0 and 1 inclusive
-                    uniform_real_distribution<double> dist(0, 1);
-                    double select_score = dist(global_rand);
-
-                    // this divides by two on each iteration, so we're twice as
-                    // likely to take the first vertex as the second and so on
-                    double select_if_score_ge = 1.0;
-
-                    // go over the list until we hit the score
-                    unsigned select_element = start;
-                    for ( ; select_element + 1 < branch_v_end ; ++select_element) {
-                        select_if_score_ge /= 2.0;
-                        if (select_score >= select_if_score_ge)
-                            break;
-                    }
-
-                    // move to front
-                    swap(branch_v[select_element], branch_v[start]);
-                }
-            }
 
             int discrepancy_count = 0;
 
@@ -1013,7 +989,7 @@ namespace
 
                 result.extra_stats.emplace_back("restarts = " + to_string(number_of_restarts));
             }
-            else if (params.shuffle || params.biased_shuffle || params.position_shuffle || params.softmax_shuffle) {
+            else if (params.shuffle || params.biased_shuffle || params.softmax_shuffle) {
                 if (propagate(domains, assignments)) {
                     // still need to use the restarts variant
                     long long backtracks_until_restart = -1;
