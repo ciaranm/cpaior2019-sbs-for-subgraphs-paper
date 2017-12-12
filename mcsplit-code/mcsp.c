@@ -171,10 +171,44 @@ unsigned long long nodes{ 0 };
 
 std::mt19937 global_rand;
 
-struct VtxPair {
+struct Assignment {
     int v;
     int w;
-    VtxPair(int v, int w): v(v), w(w) {}
+};
+
+struct VarAssignment {
+    Assignment assignment;
+    bool is_decision;
+};
+
+class VarAssignments
+{
+    vector<VarAssignment> var_assignments;
+    unsigned num_vtx_assignments = 0;
+public:
+    auto push(VarAssignment a) -> void
+    {
+        var_assignments.push_back(a);
+        if (a.assignment.w != -1)
+            ++num_vtx_assignments;
+    }
+
+    auto pop() -> void
+    {
+        if (var_assignments.back().assignment.w != -1)
+            --num_vtx_assignments;
+        var_assignments.pop_back();
+    }
+
+    auto get_var_assignments() const -> const vector<VarAssignment> &
+    {
+        return var_assignments;
+    }
+
+    auto get_num_vtx_assignments() -> unsigned
+    {
+        return num_vtx_assignments;
+    }
 };
 
 struct Bidomain {
@@ -189,14 +223,15 @@ struct Bidomain {
             is_adjacent (is_adjacent) { };
 };
 
-void show(const vector<VtxPair>& current, const vector<Bidomain> &domains,
+void show(const vector<VarAssignment>& current, const vector<Bidomain> &domains,
         const vector<int>& left, const vector<int>& right)
 {
     cout << "Nodes: " << nodes << std::endl;
     cout << "Length of current assignment: " << current.size() << std::endl;
     cout << "Current assignment:";
     for (unsigned int i=0; i<current.size(); i++) {
-        cout << "  (" << current[i].v << " -> " << current[i].w << ")";
+        cout << "  (" << current[i].assignment.v << " -> " << current[i].assignment.w
+                << " ; " << current[i].is_decision << ")";
     }
     cout << std::endl;
     for (unsigned int i=0; i<domains.size(); i++) {
@@ -213,12 +248,12 @@ void show(const vector<VtxPair>& current, const vector<Bidomain> &domains,
     cout << "\n" << std::endl;
 }
 
-bool check_sol(const Graph & g0, const Graph & g1 , const vector<VtxPair> & solution) {
+bool check_sol(const Graph & g0, const Graph & g1 , const vector<Assignment> & solution) {
     return true;
     vector<bool> used_left(g0.n, false);
     vector<bool> used_right(g1.n, false);
     for (unsigned int i=0; i<solution.size(); i++) {
-        struct VtxPair p0 = solution[i];
+        struct Assignment p0 = solution[i];
         if (used_left[p0.v] || used_right[p0.w])
             return false;
         used_left[p0.v] = true;
@@ -226,7 +261,7 @@ bool check_sol(const Graph & g0, const Graph & g1 , const vector<VtxPair> & solu
         if (g0.label[p0.v] != g1.label[p0.w])
             return false;
         for (unsigned int j=i+1; j<solution.size(); j++) {
-            struct VtxPair p1 = solution[j];
+            struct Assignment p1 = solution[j];
             if (g0.adjmat[p0.v][p1.v] != g1.adjmat[p0.w][p1.w])
                 return false;
         }
@@ -391,28 +426,43 @@ void position_shuffle(vector<int> & vec)
     }
 }
 
-void search(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
-        vector<VtxPair> & current, vector<Bidomain> & domains,
-        vector<int> & left, vector<int> & right)
+enum class Search
+{
+    Aborted,
+    Done
+};
+
+auto update_incumbent(vector<Assignment> & incumbent, VarAssignments current) -> void
+{
+    incumbent.clear();
+    for (auto a : current.get_var_assignments())
+        if (a.assignment.w != -1)
+            incumbent.push_back(a.assignment);
+    if (!arguments.quiet) cout << "Incumbent size: " << incumbent.size() << endl;
+}
+
+auto search(const Graph & g0, const Graph & g1, vector<Assignment> & incumbent,
+        VarAssignments & current, vector<Bidomain> & domains,
+        vector<int> & left, vector<int> & right) -> Search
 {
     if (abort_due_to_timeout)
-        return;
+        return Search::Aborted;
 
-    if (arguments.verbose) show(current, domains, left, right);
     nodes++;
 
-    if (current.size() > incumbent.size()) {
-        incumbent = current;
-        if (!arguments.quiet) cout << "Incumbent size: " << incumbent.size() << endl;
-    }
+    if (arguments.verbose)
+        show(current.get_var_assignments(), domains, left, right);
 
-    unsigned int bound = current.size() + calc_bound(domains);
+    if (current.get_num_vtx_assignments() > incumbent.size())
+        update_incumbent(incumbent, current);
+
+    unsigned int bound = current.get_num_vtx_assignments() + calc_bound(domains);
     if (bound <= incumbent.size())
-        return;
+        return Search::Done;
 
-    int bd_idx = select_bidomain(domains, left, current.size());
+    int bd_idx = select_bidomain(domains, left, current.get_num_vtx_assignments());
     if (bd_idx == -1)   // In the MCCS case, there may be nothing we can branch on
-        return;
+        return Search::Done;
     Bidomain &bd = domains[bd_idx];
 
     int v = find_min_value(left, bd.l, bd.left_len);
@@ -426,28 +476,39 @@ void search(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
     if (arguments.position_shuffle)
         position_shuffle(right_vertices);
 
+    bool is_decision = bound!=incumbent.size()+1 || bd.left_len!=0 || bd.right_len!=1;
     bd.right_len--;
-    for (int i=0; i<=bd.right_len; i++) {
-        int w = right_vertices[i];
+    int loop_end = bd.right_len + is_decision;
+    for (int i=0; i<=loop_end; i++) {
+        Search search_result;
+        if (i <= bd.right_len) {
+            int w = right_vertices[i];
 
-        // swap w to the end of its colour class
-        auto it = std::find(right.begin() + bd.r, right.end(), right_vertices[i]);
-        *it = right[bd.r + bd.right_len];
-        right[bd.r + bd.right_len] = w;
+            // swap w to the end of its colour class
+            auto it = std::find(right.begin() + bd.r, right.end(), right_vertices[i]);
+            *it = right[bd.r + bd.right_len];
+            right[bd.r + bd.right_len] = w;
 
-        auto new_domains = filter_domains(domains, left, right, g0, g1, v, w,
-                arguments.directed || arguments.edge_labelled);
-        current.push_back(VtxPair(v, w));
-        search(g0, g1, incumbent, current, new_domains, left, right);
-        current.pop_back();
+            auto new_domains = filter_domains(domains, left, right, g0, g1, v, w,
+                    arguments.directed || arguments.edge_labelled);
+            current.push({{v, w}, is_decision});
+            search_result = search(g0, g1, incumbent, current, new_domains, left, right);
+        } else {
+            bd.right_len++;
+            if (bd.left_len == 0)
+                remove_bidomain(domains, bd_idx);
+            current.push({{v, -1}, true});
+            search_result = search(g0, g1, incumbent, current, domains, left, right);
+        }
+        current.pop();
+        if (search_result == Search::Aborted)
+            return Search::Aborted;
     }
-    bd.right_len++;
-    if (bd.left_len == 0)
-        remove_bidomain(domains, bd_idx);
-    search(g0, g1, incumbent, current, domains, left, right);
+
+    return Search::Done;
 }
 
-vector<VtxPair> mcs(const Graph & g0, const Graph & g1) {
+vector<Assignment> mcs(const Graph & g0, const Graph & g1) {
     vector<int> left;  // the buffer of vertex indices for the left partitions
     vector<int> right;  // the buffer of vertex indices for the right partitions
 
@@ -481,9 +542,9 @@ vector<VtxPair> mcs(const Graph & g0, const Graph & g1) {
         domains.push_back({start_l, start_r, left_len, right_len, false});
     }
 
-    vector<VtxPair> incumbent;
+    vector<Assignment> incumbent;
 
-    vector<VtxPair> current;
+    VarAssignments current;
     search(g0, g1, incumbent, current, domains, left, right);
 
     return incumbent;
@@ -567,7 +628,7 @@ int main(int argc, char** argv) {
     struct Graph g0_sorted = induced_subgraph(g0, vv0);
     struct Graph g1_sorted = induced_subgraph(g1, vv1);
 
-    vector<VtxPair> solution = mcs(g0_sorted, g1_sorted);
+    vector<Assignment> solution = mcs(g0_sorted, g1_sorted);
 
     // Convert to indices from original, unsorted graphs
     for (auto& vtx_pair : solution) {
