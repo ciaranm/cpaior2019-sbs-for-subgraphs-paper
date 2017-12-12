@@ -261,6 +261,8 @@ class MCS
     vector<Assignment> incumbent;
     Nogoods nogoods;
 
+    vector<int> vtx_current_assignment;
+
     void show(const vector<VarAssignment>& current, const vector<Bidomain> &domains)
     {
         cout << "Nodes: " << nodes << std::endl;
@@ -482,7 +484,8 @@ class MCS
     auto contains_a_nogood(VarAssignments & current,
             vector<Bidomain> & domains) -> bool
     {
-        vector<int> vtx_current_assignment(g0.n, -1);
+        std::fill(vtx_current_assignment.begin(), vtx_current_assignment.end(), -1);
+
         for (auto & bd : domains) {
             for (int i=0; i<bd.left_len; i++) {
                 int v = left[bd.l + i];
@@ -693,7 +696,7 @@ class MCS
 
 public:
     MCS(Graph & g0, Graph & g1)
-        : g0(g0), g1(g1) {}
+        : g0(g0), g1(g1), vtx_current_assignment(g0.n) {}
 
     vector<Assignment> run() {
         auto domains = vector<Bidomain> {};
