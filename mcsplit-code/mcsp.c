@@ -467,24 +467,34 @@ class MCS
         nogoods.emplace_back(std::move(nogood));
     }
 
-    auto current_contains_nogood(VarAssignments & current,
+    auto current_contains_nogood(
+            vector<int> & vtx_current_assignment,
             Nogood & n) -> bool
     {
 //        std::cout << n.literals.size() << std::endl;
-        for (const Assignment a : n.literals) {
-            const auto & var_assignments = current.get_var_assignments();
-            if (var_assignments.end() == std::find_if(var_assignments.begin(), var_assignments.end(),
-                                              [&](const VarAssignment & b){return b.assignment==a;}))
+        for (const Assignment a : n.literals)
+            if (vtx_current_assignment[a.v] != a.w)
                 return false;
-        }
 
         return true;
     }
 
-    auto current_contains_a_nogood(VarAssignments & current) -> bool
+    auto contains_a_nogood(VarAssignments & current,
+            vector<Bidomain> & domains) -> bool
     {
+        vector<int> vtx_current_assignment(g0.n, -1);
+        for (auto & bd : domains) {
+            for (int i=0; i<bd.left_len; i++) {
+                int v = left[bd.l + i];
+                vtx_current_assignment[v] = -2;
+            }
+        }
+
+        for (auto & a : current.get_var_assignments())
+            vtx_current_assignment[a.assignment.v] = a.assignment.w;
+
         for (auto & n : nogoods) {
-            if (current_contains_nogood(current, n))
+            if (current_contains_nogood(vtx_current_assignment, n))
                 return true;
         }
         return false;
@@ -510,6 +520,9 @@ class MCS
         if (bound <= incumbent.size())
             return Search::Done;
 
+        if (contains_a_nogood(current, domains))
+            return Search::Done;
+
         int bd_idx = select_bidomain(domains, current.get_num_vtx_assignments());
         if (bd_idx == -1)   // In the MCCS case, there may be nothing we can branch on
             return Search::Done;
@@ -533,42 +546,38 @@ class MCS
 
         for (int w : possible_values) {
             current.push({{v, w}, possible_values.size() > 1});
-            if (current_contains_a_nogood(current)) {
-                current.pop();
-            } else {
-                Search search_result;
-                if (w != -1) {
-                    // swap w to the end of its colour class
-                    auto it = std::find(right.begin() + bd.r, right.end(), w);
-                    *it = right[bd.r + bd.right_len];
-                    right[bd.r + bd.right_len] = w;
+            Search search_result;
+            if (w != -1) {
+                // swap w to the end of its colour class
+                auto it = std::find(right.begin() + bd.r, right.end(), w);
+                *it = right[bd.r + bd.right_len];
+                right[bd.r + bd.right_len] = w;
 
-                    auto new_domains = filter_domains(domains, v, w, arguments.directed || arguments.edge_labelled);
-                    search_result = restarting_search(current, new_domains, backtracks_until_restart);
-                } else {
-                    bd.right_len++;
-                    if (bd.left_len == 0)
-                        remove_bidomain(domains, bd_idx);
-                    search_result = restarting_search(current, domains, backtracks_until_restart);
-                }
-                current.pop();
-                switch (search_result)
-                {
-                case Search::Restart:
-                    for (int u : possible_values) {
-                        if (u == w)
-                            break;
-                        current.push({{v, u}, true});
+                auto new_domains = filter_domains(domains, v, w, arguments.directed || arguments.edge_labelled);
+                search_result = restarting_search(current, new_domains, backtracks_until_restart);
+            } else {
+                bd.right_len++;
+                if (bd.left_len == 0)
+                    remove_bidomain(domains, bd_idx);
+                search_result = restarting_search(current, domains, backtracks_until_restart);
+            }
+            current.pop();
+            switch (search_result)
+            {
+            case Search::Restart:
+                for (int u : possible_values) {
+                    if (u == w)
+                        break;
+                    current.push({{v, u}, true});
 //                        std::cout << "sz " << current.get_var_assignments().size() << std::endl;
-                        post_nogood(current);
-                        current.pop();
-                    }
-                    return Search::Restart;
-                case Search::Aborted:
-                    return Search::Aborted;
-                case Search::Done:
-                    break;
+                    post_nogood(current);
+                    current.pop();
                 }
+                return Search::Restart;
+            case Search::Aborted:
+                return Search::Aborted;
+            case Search::Done:
+                break;
             }
         }
 
