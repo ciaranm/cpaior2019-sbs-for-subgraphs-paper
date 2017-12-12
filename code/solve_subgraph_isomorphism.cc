@@ -132,7 +132,6 @@ auto main(int argc, char * argv[]) -> int
             ("shuffle",                                      "Use shuffling")
             ("biased-shuffle",                               "Use biased shuffling")
             ("softmax-shuffle",                              "Use softmax shuffling")
-            ("softmax-base",         po::value<double>(),    "Specify the base for softmax shuffling")
             ("position-shuffle",                             "Use position shuffling")
             ("antiheuristic",                                "Use antiheuristic")
             ("input-order",                                  "Use input order")
@@ -230,8 +229,6 @@ auto main(int argc, char * argv[]) -> int
             params.input_order = options_vars.count("input-order");
             params.goods = options_vars.count("goods");
 
-            if (options_vars.count("softmax-base"))
-                params.softmax_base = options_vars["softmax-base"].as<double>();
             if (options_vars.count("luby-multiplier"))
                 params.luby_multiplier = options_vars["luby-multiplier"].as<unsigned>();
             if (options_vars.count("geometric-multiplier"))

@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <functional>
 #include <limits>
 #include <list>
@@ -29,7 +28,6 @@ using std::move;
 using std::mt19937;
 using std::next;
 using std::pair;
-using std::pow;
 using std::sort;
 using std::string;
 using std::swap;
@@ -158,7 +156,6 @@ namespace
         list<typename Nogoods::iterator> need_to_watch;
 
         vector<unsigned long long> target_vertex_biases;
-        vector<double> softmax_cost;
 
         mt19937 global_rand;
 
@@ -607,29 +604,40 @@ namespace
             else if (params.softmax_shuffle) {
                 // repeatedly pick a softmax-biased vertex, move it to the front of branch_v,
                 // and then only consider items further to the right in the next iteration.
+
+                // Using floating point here turned out to be way too slow. Fortunately the base
+                // of softmax doesn't seem to matter, so we use 2 instead of e, and do everything
+                // using bit voodoo.
+                int largest_degree = 0;
+                for (unsigned v = 0 ; v < branch_v_end ; ++v)
+                    largest_degree = max(largest_degree, targets_degrees[0][branch_v[v]]);
+
+                auto expish = [largest_degree] (int degree) {
+                    int shift = (degree - largest_degree + 50);
+                    if (shift < 0)
+                        shift = 0;
+                    return 1ll << shift;
+                };
+
+                long long total = 0;
+                for (unsigned v = 0 ; v < branch_v_end ; ++v)
+                    total += expish(targets_degrees[0][branch_v[v]]);
+
                 for (unsigned start = 0 ; start < branch_v_end ; ++start) {
-                    // pick a random number between 0 and 1 inclusive
-                    uniform_real_distribution<double> dist(0, 1);
-                    double select_score = dist(global_rand);
-
-                    // don't do this outside the loop, too much fp weirdness
-                    double total = 0.0;
-                    for (unsigned v = start ; v < branch_v_end ; ++v)
-                        total += softmax_cost[branch_v[v]];
-
-                    // this decreases on each iteration by the sum of the
-                    // scores seen so far
-                    double select_if_score_ge = 1.0;
+                    // pick a random number between 1 and total inclusive
+                    uniform_int_distribution<long long> dist(1, total);
+                    long long select_score = dist(global_rand);
 
                     // go over the list until we hit the score
                     unsigned select_element = start;
                     for ( ; select_element + 1 < branch_v_end ; ++select_element) {
-                        select_if_score_ge -= softmax_cost[branch_v[select_element]] / total;
-                        if (select_score >= select_if_score_ge)
+                        select_score -= expish(targets_degrees[0][branch_v[select_element]]);
+                        if (select_score <= 0)
                             break;
                     }
 
                     // move to front
+                    total -= expish(targets_degrees[0][branch_v[select_element]]);
                     swap(branch_v[select_element], branch_v[start]);
                 }
             }
@@ -909,18 +917,6 @@ namespace
 
                 for (unsigned i = 0 ; i < target_size ; ++i)
                     targets_degrees.at(g).at(i) = target_graph_rows[i * max_graphs + g].popcount();
-            }
-
-            // softmax costs. shenanigans because pow() is incredibly slow.
-            if (params.softmax_shuffle) {
-                vector<double> cache_powers(target_size, 0.0);
-                softmax_cost.reserve(target_size);
-                for (unsigned j = 0 ; j < target_size ; ++j) {
-                    unsigned deg = targets_degrees[0][j];
-                    if (cache_powers[deg] == 0.0)
-                        cache_powers[deg] = pow(params.softmax_base, deg);
-                    softmax_cost.push_back(cache_powers[deg]);
-                }
             }
 
             // pattern adjacencies, compressed
