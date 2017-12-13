@@ -26,6 +26,7 @@ using std::max;
 using std::map;
 using std::move;
 using std::mt19937;
+using std::numeric_limits;
 using std::next;
 using std::pair;
 using std::sort;
@@ -150,6 +151,7 @@ namespace
 
         vector<int> pattern_permutation, target_permutation, isolated_vertices;
         vector<vector<int> > patterns_degrees, targets_degrees;
+        int largest_target_degree;
 
         Nogoods nogoods;
         Watches watches;
@@ -167,7 +169,8 @@ namespace
             target_size(target.size()),
             target_permutation(target.size()),
             patterns_degrees(max_graphs),
-            targets_degrees(max_graphs)
+            targets_degrees(max_graphs),
+            largest_target_degree(0)
         {
             // strip out isolated vertices in the pattern, and build pattern_permutation
             for (unsigned v = 0 ; v < full_pattern_size ; ++v)
@@ -608,14 +611,9 @@ namespace
                 // Using floating point here turned out to be way too slow. Fortunately the base
                 // of softmax doesn't seem to matter, so we use 2 instead of e, and do everything
                 // using bit voodoo.
-                int largest_degree = 0;
-                for (unsigned v = 0 ; v < branch_v_end ; ++v)
-                    largest_degree = max(largest_degree, targets_degrees[0][branch_v[v]]);
-
-                auto expish = [largest_degree] (int degree) {
-                    int shift = (degree - largest_degree + 50);
-                    if (shift < 0)
-                        shift = 0;
+                auto expish = [largest_target_degree = this->largest_target_degree] (int degree) {
+                    constexpr int sufficient_space_for_adding_up = numeric_limits<long long>::digits - 18;
+                    auto shift = max<int>(degree - largest_target_degree + sufficient_space_for_adding_up, 0);
                     return 1ll << shift;
                 };
 
@@ -894,6 +892,9 @@ namespace
                 for (unsigned i = 0 ; i < target_size ; ++i)
                     targets_degrees.at(g).at(i) = target_graph_rows[i * max_graphs + g].popcount();
             }
+
+            for (unsigned i = 0 ; i < target_size ; ++i)
+                largest_target_degree = max(largest_target_degree, targets_degrees[0][i]);
 
             // pattern adjacencies, compressed
             pattern_adjacencies_bits.resize(pattern_size * pattern_size);
