@@ -252,6 +252,30 @@ struct Nogood
 
 using Nogoods = list<Nogood>;
 
+// One watched literal for our nogoods store.
+struct Watches
+{
+    // for each watched literal, we have a list of watched things, each of
+    // which is an iterator into the global watch list (so we can reorder
+    // the literal to keep the watch as the first element)
+    using WatchList = list<Nogoods::iterator>;
+
+    unsigned target_size_plus_1;
+
+    // two dimensional array, indexed by ((target_size+1) * p + t + 1)
+    vector<WatchList> data;
+
+    // not a ctor to avoid annoyingness with isolated vertices altering the
+    // pattern size
+    Watches(unsigned p, unsigned t)
+        : target_size_plus_1(t + 1), data(p * (t + 1)) {}
+
+    WatchList & operator[] (const Assignment & a)
+    {
+        return data[target_size_plus_1 * a.v + a.w + 1];
+    }
+};
+
 class MCS
 {
     const Graph & g0;
@@ -260,6 +284,8 @@ class MCS
     vector<int> right;
     vector<Assignment> incumbent;
     Nogoods nogoods;
+    Watches watches;
+    list<typename Nogoods::iterator> need_to_watch;
 
     vector<int> vtx_current_assignment;
 
@@ -467,18 +493,49 @@ class MCS
 
 //        std::cout << "literals size " << nogood.literals.size() << std::endl;
         nogoods.emplace_back(std::move(nogood));
+        need_to_watch.emplace_back(prev(nogoods.end()));
     }
 
     auto current_contains_nogood(
-            vector<int> & vtx_current_assignment,
-            Nogood & n) -> bool
+            Assignment most_recent_assignment,
+            vector<int> & vtx_current_assignment) -> bool
     {
-//        std::cout << n.literals.size() << std::endl;
-        for (const Assignment a : n.literals)
-            if (vtx_current_assignment[a.v] != a.w)
-                return false;
+        auto & watches_to_update = watches[most_recent_assignment];
+        for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ) {
+            Nogood & nogood = **watch_to_update;
 
-        return true;
+            // can we find something else to watch?
+            bool success = false;
+            for (auto new_literal = next(nogood.literals.begin(), 1) ; new_literal != nogood.literals.end() ; ++new_literal) {
+                if (vtx_current_assignment[new_literal->v] != new_literal->w) {
+                    // we can watch new_literal instead of current_assignment in this nogood
+                    success = true;
+
+                    // move the new watch to be the first item in the nogood
+                    std::swap(nogood.literals[0], *new_literal);
+
+                    // start watching it
+                    watches[nogood.literals[0]].push_back(*watch_to_update);
+
+                    // remove the current watch, and update the loop iterator
+                    watches_to_update.erase(watch_to_update++);
+
+                    break;
+                }
+            }
+
+            if (!success)
+                return true;
+        }
+
+        return false;
+
+///////        std::cout << n.literals.size() << std::endl;
+/////        for (const Assignment a : n.literals)
+/////            if (vtx_current_assignment[a.v] != a.w)
+/////                return false;
+/////
+/////        return true;
     }
 
     auto contains_a_nogood(VarAssignments & current,
@@ -496,11 +553,9 @@ class MCS
         for (auto & a : current.get_var_assignments())
             vtx_current_assignment[a.assignment.v] = a.assignment.w;
 
-        for (auto & n : nogoods) {
-            if (current_contains_nogood(vtx_current_assignment, n))
-                return true;
-        }
-        return false;
+        auto most_recent_assignment = current.get_var_assignments().back().assignment;
+
+        return current_contains_nogood(most_recent_assignment, vtx_current_assignment);
     }
 
     auto restarting_search(
@@ -523,7 +578,9 @@ class MCS
         if (bound <= incumbent.size())
             return Search::Done;
 
-        if (contains_a_nogood(current, domains))
+        if (current.get_var_assignments().size() != 0 &&
+                current.get_var_assignments().back().is_decision &&
+                contains_a_nogood(current, domains))
             return Search::Done;
 
         int bd_idx = select_bidomain(domains, current.get_num_vtx_assignments());
@@ -608,9 +665,14 @@ class MCS
 
             ++number_of_restarts;
 
-            for (auto & n : nogoods)
-                if (n.literals.empty())
-                    break;
+            for (auto & n : need_to_watch) {
+                if (n->literals.empty()) {
+                    return;
+                } else {
+                    watches[n->literals[0]].push_back(n);
+                }
+            }
+            need_to_watch.clear();
 
             current.clear();
             auto domains_copy = domains;
@@ -619,7 +681,7 @@ class MCS
             switch (restarting_search(current, domains_copy, backtracks_until_restart))
             {
             case Search::Done:
-                std::cout << "done!" << std::endl;
+//                std::cout << "done!" << std::endl;
                 return;
             case Search::Aborted:
                 return;
@@ -696,7 +758,7 @@ class MCS
 
 public:
     MCS(Graph & g0, Graph & g1)
-        : g0(g0), g1(g1), vtx_current_assignment(g0.n) {}
+        : g0(g0), g1(g1), watches(g0.n, g1.n), vtx_current_assignment(g0.n) {}
 
     vector<Assignment> run() {
         auto domains = vector<Bidomain> {};
