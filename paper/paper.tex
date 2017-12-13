@@ -22,7 +22,7 @@
 \usetikzlibrary{decorations, decorations.pathreplacing, decorations.pathmorphing,
     calc, backgrounds, positioning, tikzmark, patterns, fit}
 
-\definecolor{inferno7}{rgb}{0.976471, 0.584314, 0.039216}
+\definecolor{highlight}{rgb}{0.819608, 0.733333, 0.34902}
 
 % cref style
 \crefname{algorithm}{Algorithm}{Algorithms}
@@ -45,42 +45,45 @@
 
 \begin{abstract}
     Modern subgraph isomorphism solvers use value-ordering heuristics to direct a constraint
-    programming style search. These heuristics are not perfect, particularly for early branching
-    choices. We show that discrepancy-based searches are too expensive to be effective in this
-    setting.  However, using restarts with a random value-ordering heuristic beats conventional
-    search with the best tailored heuristic.  This motivates the introduction of a slightly-random
-    value-ordering heuristic with similar behaviour to the tailored heuristic: when combined with
-    restarts, this new search strategy is even more effective on satisfiable instances, whilst not
-    significantly decreasing performance on unsatisfiable instances.
+    programming style search. These heuristics are far from perfect, and experiments show that using
+    a random value-ordering heuristic with restarts beats conventional search with the best known
+    tailored heuristic. This motivates the introduction of a slightly-random value-ordering
+    heuristic with similar behaviour to the tailored heuristic: when combined with restarts, this
+    new search strategy is over a hundred times more effective on satisfiable instances, and does
+    not significantly decrease performance on unsatisfiable instances. In contrast,
+    discrepancy-based searches are too expensive to be effective in this setting.
 \end{abstract}
 
 \section{Introduction}
 
-?? Subgraph isomorphism is useful.
-
-The current single strongest subgraph isomorphism solver uses ``highest degree first'' as a
-value-ordering heuristic \citep{dblp:conf/cp/McCreeshP15,dblp:conf/ijcai/McCreeshPT16}.  This is
+The subgraph isomorphism problem is to find a copy of a small ``pattern'' graph inside a larger
+``target'' graph.  The current single strongest subgraph isomorphism solver uses ``highest degree
+first'' as a value-ordering heuristic to direct a constraint programming style search
+\citep{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:conf/ijcai/McCreeshPT16}.  This is
 much better than not having a value-ordering heuristic at all, but it is far from perfect,
 particularly for early branching choices. There are two reasons to suspect a better option may
-possible.  Firstly, even if degree were a perfect source of information, many graphs do not have a
-large degree distribution, and so we would still need to determine \emph{which} vertex of highest
-degree would be best.  Secondly, experiments with a parallel search strategy which explicitly steals
-early branching choices often gives strongly super-linear speedups on satisfiable instances
-\citep{dblp:conf/cp/McCreeshP15}.
+possible.  Firstly, even if degree were a perfect source of information, many target graphs do not
+have a large degree distribution, and so we would still need to determine \emph{which} vertex of
+highest degree would be best.  Secondly, experiments with a parallel search strategy which
+explicitly steals early branching choices often gives strongly super-linear speedups on satisfiable
+instances \citep{DBLP:conf/cp/McCreeshP15}.
 
 We could try to introduce tiebreaking mechanisms to further refine this heuristic. However, given
 the extreme cost of making an incorrect branching choice early on in search, we believe it is more
 fruitful to investigate alternatives to simple backtracking (depth-first) search. This paper
-evaluates two such approaches: discrepancy search (which perform poorly), and restarts (which are
-extremely beneficial). To make restarts work, we introduce a new value-ordering heuristic, which is
-nearly the same as ``highest degree first'' except with small amounts of heavily biased randomness.
-The effects of the changes we propose are shown in \cref{figure:scatter-by-family}: we can make a
-state-of-the-art algorithm perform much better on a large number of satisfiable instances, whilst
-performing worse only rarely on satisfiable instances, and never on unsatisfiable instances.
-Further, these properties are \emph{not} shared by discrepancy searches (\cref{figure:scatter-dds})
-or by random value-ordering with restarts (\cref{figure:scatter-random}).
+evaluates two such approaches: discrepancy search (which performs poorly), and restarts (which are
+extremely beneficial). To explore different parts of the search space when restarting, we introduce
+a new value-ordering heuristic, which adds a small amount of randomness to the ``highest degree
+first'' heuristic.  The effects of the changes we propose are shown in
+\cref{figure:scatter-by-family}: we can make a state-of-the-art algorithm perform much better on a
+large number of satisfiable instances, whilst performing worse only rarely on satisfiable instances,
+and never on unsatisfiable instances.  Further, these properties are \emph{not} shared by
+discrepancy searches (\cref{figure:scatter-dds}) or by random value-ordering with restarts
+(\cref{figure:scatter-random}).
 
 \section{The Basic Algorithm}
+
+?? Non-induced!
 
 ?? Notation: $\vertexset(G)$, $\neighbourhood_G(v)$, $\nds_G(v)$, $\preceq$, $\sim_G$, $G^{a,b}$, $\mapsto$.
 
@@ -98,32 +101,32 @@ context of restarts.
     \begin{tikzpicture}[remember picture,overlay]
         \coordinate (restart1sc) at ($(pic cs:restart1s) + (0, 0.15)$);
         \coordinate (restart1ec) at ($(pic cs:restart1e) + (0, 0.00)$);
-        \node [fill=inferno7, rounded corners, fit=(restart1sc) (restart1ec)] { };
+        \node [fill=highlight, rounded corners, fit=(restart1sc) (restart1ec)] { };
         \coordinate (restart2sc) at ($(pic cs:restart2s) + (0, 0.15)$);
         \coordinate (restart2ec) at ($(pic cs:restart2e) + (0, 0.00)$);
-        \node [fill=inferno7, rounded corners, fit=(restart2sc) (restart2ec)] { };
+        \node [fill=highlight, rounded corners, fit=(restart2sc) (restart2ec)] { };
         \coordinate (restart3sc) at ($(pic cs:restart3s) + (0, 0.15)$);
         \coordinate (restart3ec) at ($(pic cs:restart3e) + (0, 0.00)$);
-        \node [fill=inferno7, rounded corners, fit=(restart3sc) (restart3ec)] { };
+        \node [fill=highlight, rounded corners, fit=(restart3sc) (restart3ec)] { };
         \coordinate (restart4sc) at ($(pic cs:restart4s) + (0, 0.15)$);
         \coordinate (restart4ec) at ($(pic cs:restart4e) + (0, 0.00)$);
-        \node [fill=inferno7, rounded corners, fit=(restart4sc) (restart4ec)] { };
+        \node [fill=highlight, rounded corners, fit=(restart4sc) (restart4ec)] { };
         \coordinate (restart5sc) at ($(pic cs:restart5s) + (0, 0.15)$);
         \coordinate (restart5ec) at ($(pic cs:restart5e) - (0, 0.10)$);
         \coordinate (restart5rc) at ($(pic cs:restart5r) + (0, 0.00)$);
-        \node [fill=inferno7, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
+        \node [fill=highlight, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
         \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
         \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
-        \node [fill=inferno7, rounded corners, fit=(restart6sc) (restart6ec)] { };
+        \node [fill=highlight, rounded corners, fit=(restart6sc) (restart6ec)] { };
         \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
         \coordinate (restart7ec) at ($(pic cs:restart7e) + (0, 0.00)$);
-        \node [fill=inferno7, rounded corners, fit=(restart7sc) (restart7ec)] { };
+        \node [fill=highlight, rounded corners, fit=(restart7sc) (restart7ec)] { };
         \coordinate (restart8sc) at ($(pic cs:restart8s) + (0.05, 0.15)$);
         \coordinate (restart8ec) at ($(pic cs:restart8e) + (0, 0.00)$);
-        \node [fill=inferno7, rounded corners, fit=(restart8sc) (restart8ec)] { };
+        \node [fill=highlight, rounded corners, fit=(restart8sc) (restart8ec)] { };
         \coordinate (restart9sc) at ($(pic cs:restart9s) + (0, 0.15)$);
         \coordinate (restart9ec) at ($(pic cs:restart9e) + (-0.15, 0.00)$);
-        \node [fill=inferno7, rounded corners, fit=(restart9sc) (restart9ec)] { };
+        \node [fill=highlight, rounded corners, fit=(restart9sc) (restart9ec)] { };
     \end{tikzpicture}
 
     \nl $\FuncSty{subgraphIsomorphism}$ (Graph $\mathcal{P}$, Graph $\mathcal{T}$) $\rightarrow$ Bool \;
@@ -144,7 +147,7 @@ context of restarts.
     }
     \nl \While{$\KwSty{true}$}{
         \nl \lIf{$\KwSty{not}~\FuncSty{propagate}(D)$}{$\KwSty{return}~\KwSty{false}$}
-        \nl \tikzmark{restart1s}$\KwSty{global}~(R, R') \gets (0, 666 \times \textnormal{the next Luby value})$\tikzmark{restart1e} \;
+        \nl \tikzmark{restart1s}$\KwSty{global}~(R, R') \gets (0, \textnormal{the next restart sequence value})$\tikzmark{restart1e} \;
         \nl $S \gets \FuncSty{search}(\{ E \in D : \left|E\right| > 1 \}, \top)$ \;
         \nl \tikzmark{restart9s}\lIf{$S \ne \KwSty{restart}$}{\tikzmark{restart9e}$\KwSty{return}~S$}
         \nl \tikzmark{restart2s}trigger nogoods containing only one clause\tikzmark{restart2e} \;
@@ -206,58 +209,44 @@ context of restarts.
 For the variable-ordering heuristic on \siplineref{variableordering} of \cref{algorithm:sip}, we use
 smallest domain first, tiebreaking on highest degree. Variable ordering is not the focus of this
 paper---as far as possible, we will leave it intact, so as not to affect the performance of the
-algorithm on unsatisfiable instances.
+algorithm on unsatisfiable instances.  For value ordering, which occurs on
+\siplineref{valueordering} of \cref{algorithm:sip}, we will compare four strategies:
 
-For value ordering, which occurs on \siplineref{valueordering} of \cref{algorithm:sip}, we will
-compare five strategies:
+\paragraph{Random} We select vertices uniformly at random.
 
-\paragraph{Random} We select a vertex dynamically at random (that is, we shuffle the vertices before
-entering the $\KwSty{foreach}$ loop on \siplineref{valueordering} of \cref{algorithm:sip}). This is
-\emph{usually} effectively equivalent to picking vertices in the order in which they appear in the
-input files, although some instances from some benchmark suites are naturally in a special order
-(which may or may not be a good order for searching).
-
-\paragraph{Degree} We select vertices from highest degree to lowest degree. This is done by
-permuting the target graph at the top of search. This heuristic is the current state of the art.
+\paragraph{Degree} We select vertices from highest degree to lowest degree. This heuristic is the
+current state of the art.
 
 \paragraph{Anti} We select vertices from lowest degree to highest degree. This heuristic is used as
 a sanity check: we expect degree to beat random, and random to beat anti.
 
-\paragraph{Position-biased} We permute the graph at the top of search, as in the degree heuristic.
-Then, as with the random heuristic, we shuffle the vertices before we enter the $\KwSty{foreach}$
-loop. Instead of picking a vertex uniformly at random, we select select the first (that is, highest
-degree) vertex with probability 0.5, the second vertex with probability 0.25, and the $n$th with
-probability $2^{-n}$.  This heuristic heavily prefers vertices of high degree, similar to the
-degree heuristic, but also introduces an element of randomness, and so can be used with restarts.
-
-\paragraph{Degree-biased} Refining position-biased, we shuffle the vertices, using a weight of
-$2^{\left|\neighbourhood(v)\right|}$ when deciding whether to branch on vertex $v$ next. (We cheat
-slightly to avoid range issues with random number generation: we give the vertex with highest degree
-in the entire graph weight $2^{50}$, and then give lower degree vertices smaller powers, giving
-every vertex weight at least 1.  This is a bit of hack but programming is hard.) This heuristic
+\paragraph{Biased} We branch by selecting a vertex $v'$ from the chosen domain $D_v$ with
+probability \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \] This heuristic
 continues to prefer vertices of high degree, but will give the same chance of being selected next to
-two vertices of equal degree.
+two vertices of equal degree.  It also introduces an element of randomness, which is needed to make
+restarts have an effect.
+
+The biased heuristic resembles the well-known \emph{softmax} weighting scheme applied to the degree
+heuristic, although usually \emph{softmax} uses a base of $e$ rather than $2$.  Experiments showed
+that in this context, the choice of base is not important to the search space size; however, a base
+of $2$ avoids the need to use floating point arithmetic, which was a substantial overhead.
 
 \section{Empirical Evaluation}
 
-?? Dual Xeon E5-2697A v4 CPUs, 512GBytes RAM, running Ubuntu 17.04, implemented in C++ and compiled
-using GCC 6.3.0. Our code is heavily based upon \citet{dblp:conf/cp/McCreeshP15}.
+Our experiments are performed on systems with dual Intel Xeon E5-2697A v4 CPUs and 512GBytes RAM,
+running Ubuntu 17.04. We implemented\footnote{Institutional DOI URL removed for anonymous review}
+\cref{algorithm:sip} in C++ using the bit-parallel implementation of
+\citet{DBLP:conf/aaai/HoffmannMR17} as a starting point, and compiled it using GCC 6.3.0. We use a
+deterministic pseudo-random number generator for reproducibility.
 
-?? Deterministic RNG.
-
-?? Bitsets.
-
-?? The 5,725 instances \citep{dblp:conf/lion/KotthoffMS16}.
-
-?? Other studies use a random selection of 200 of each of the mesh and images instances
-\citep{DBLP:journals/cviu/DamiandSHJS11}, partly because some earlier solvers find many of these
-instances extremely hard, and partly to avoid skewing a portfolio. We want larger numbers of
-satisfiable instances, so we include all pattern / target pairs. This gives a total of 14,621
-instances, at least 2,126 of which are known to be satisfiable, and at least 12,323 are
-unsatisfiable.
-
-?? Note that an awful lot of these instances are very easy. We are trying to tackle the remaining
-hard satisfiable instances.
+We use the dataset introduced by \citet{DBLP:conf/lion/KotthoffMS16} for evaluation. This dataset
+brings together a range of randomly-generated and application instance families from earlier papers.
+Other studies use a random selection of 200 of each of the instances from the ``meshes'' and
+``images'' families \citep{DBLP:journals/cviu/DamiandSHJS11} because some earlier solvers find many
+of these instances extremely hard. We would like to have a larger number of satisfiable instances in
+our test set, and so we include all pattern / target pairs. This gives a total of 14,621 instances
+(rather than the original 5,725). At least ?? of these instances are known to be satisfiable, and at
+least ?? are unsatisfiable.
 
 \subsection{Our Solver is Good}
 
@@ -270,12 +259,19 @@ hard satisfiable instances.
     \centering
     \includegraphics*{gen-graph-others-zoom.pdf}
 
-    \caption{Cumulative number of instances solved over time, comparing our algorithm to other
-    solvers. Below, zoomed in a bit ?? make this pretty.}
+    \caption{Above, the cumulative number of instances solved over time, comparing our algorithm
+    (both in its basic form, and with the improvements introduced in the remainder of the paper) to
+    other solvers. Below, the same, looking only at satisfiable instances.}
     \label{figure:others}
 \end{figure}
 
-?? In \cref{figure:others} we show that our solver is the bestest. For each algorithm, the $y$ value
+We begin by verifying that our implementation of the basic \cref{algorithm:sip} is competitive. In
+\cref{figure:others} we show the cumulative number of instances solved over time, using our
+implementation (both with the degree heuristic, and with the modifications described in the
+remainder of this paper), the Glasgow2 and Glasgow3 algorithms from which \cref{algorithm:sip} is derived
+\citep{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}, the PathLAD variation of the LAD
+algorithm \citep{DBLP:journals/ai/Solnon10,DBLP:conf/lion/KotthoffMS16}, and VF2
+\citep{DBLP:journals/pami/CordellaFSV04}. For each algorithm, the $y$ value
 gives the cumulative number of instances which (individually) can be solved in no more than $x$
 milliseconds.  The vertical distance between two lines therefore shows how many more instances can
 be solved by one solver than another, if every instance is run separately with the chosen $x$
@@ -283,65 +279,23 @@ timeout; the horizontal distance shows how many times longer the per-instance ti
 be to allow the rightmost algorithm to succeed on $y$ out of the 14,621 instances (bearing in mind
 that the two sets of $y$ instances solved by the two algorithms could be completely different).
 
-?? These results show our algorithm clearly beating PathLAD and VF2, except for very low choices of
-timeout. Our algorithm also beats Glasgow2 and Glasgow3, despite being slightly simpler---on an
-instance by instance basis, sometimes the additional inference performed by these algorithms pays
-off, but in aggregate, there is no difference for longer choices of timeout, and a clear gain for
-shorter choices.
+As expected, the performance of \cref{algorithm:sip} with the degree heuristic is very close to that
+of Glasgow2, although we perform better at lower runtimes because we use simpler preprocessing at
+the top of search. Our implementation also clearly beats PathLAD and VF2, except for very low
+choices of timeout.
 
-?? Add in SND if we can get it to run on the larger set of instances, maybe SAT just to have
-something to cite showing how bad SAT is at this.
-
-?? Possibly also do induced, compare to Glasgow, LAD, PathLAD, VF2, VF3, McSplit.
-
-\subsection{Value Ordering Heuristics}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
-
-    \caption{The cumulative number of instances solved over time, using the four different
-    value-ordering heuristics.}
-    \label{figure:value-ordering-heuristics}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-heuristics.pdf}
-
-    \caption{An instance by instance comparison of the degree and degree-biased heuristics.}
-    \label{figure:scatter-heuristics}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-dds.pdf}
-
-    \caption{The effects of using depth-bounded discrepancy search.}\label{figure:scatter-dds}
-\end{figure}
-
-In \cref{figure:value-ordering-heuristics} we show the cumulative number of instances solved over
-time using the four different value-ordering heuristics. As expected, the degree heuristic is much
-better (?? give aggregate speedups for both all and just satisfiable instances) than random
-ordering, which is in turn ?? times better than the anti-heuristic.
-
-The performance of both of the biased heuristics and the degree heuristic are very similar: the
-degree-biased heuristic has slightly worse performance below a 100s timeout, and effectively equal
-performance above it. This shows that we can introduce an element of randomness into the degree
-value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.
-\Cref{figure:scatter-heuristics} gives a more detailed look at these results. In this plot,
-satisfiable and unsatisfiable instances are shown using coloured shapes and black dots respectively.
-On the $x$-axis we measure the degree heuristic, whilst on the $y$-axis we measure the degree-biased
-heuristic. Points on the outer axes represent instances which timed out with one heuristic but not
-the other.  This plot shows that despite the aggregate performance being very similar, on an case by
-case basis, the two heuristics can make a large difference to the performance of satisfiable
-instances.
+The dataset includes many instances which are extremely easy for a good solver, and so it can be
+hard to see the differences between the stronger solvers at higher runtimes. This paper focusses
+upon improving the performance on the remaining hard satisfiable instances, and so in the second
+plot in \cref{figure:others} (and in subsequent cumulative plots) we show only satisfiable
+instances, and use a reduced range on both axes.
 
 \subsection{Discrepancy Searches}
 
 ?? Quick intro to discrepancy search
 \citep{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97,DBLP:conf/cpaior/KarouiHLN07,DBLP:journals/jea/ProsserU11}.
-Discrepancy search is about value ordering.
+Discrepancy search is about value ordering, and it mostly looks at optimisation problems and at
+problems where an optimality proof is not needed.
 
 ?? Talk about how we're not dealing with a binary search tree, so we could either make it binary, or
 count one discrepancy each time the degree changes, or count every ``against'' branch as being just
@@ -350,6 +304,51 @@ one discrepancy regardless.
 ?? \cref{figure:scatter-dds}. Sometimes extremely beneficial on satisfiable instances. However, on both
 unsatisfiable and satisfiable instances, the overheads are often large, and the algorithm is not
 better in aggregate (even when only considering satisfiable instances).
+
+\subsection{Value Ordering Heuristics}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-dds.pdf}
+
+    \caption{Comparing depth-bounded discrepancy search to backtracking search, both with the degree
+    heuristic.}\label{figure:scatter-dds}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
+
+    \caption{The cumulative number of satisfiable instances solved over time, using four
+    different value-ordering heuristics. The degree and biased lines are close together.}
+    \label{figure:value-ordering-heuristics}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-heuristics.pdf}
+
+    \caption{An instance by instance comparison of the degree and biased heuristics on all
+    instances. Points on the outer axes are timeouts, and point style shows instance family.}
+    \label{figure:scatter-heuristics}
+\end{figure}
+
+In \cref{figure:value-ordering-heuristics} we show the cumulative number of instances solved over
+time using the four different value-ordering heuristics. As expected, the degree heuristic is much
+better (?? give aggregate speedups for both all and just satisfiable instances) than random
+ordering, which is in turn ?? times better than the anti-heuristic.
+
+The performance of the two degree heuristics are very similar: the
+biased heuristic has slightly worse performance below a 100s timeout, and effectively equal
+performance above it. This shows that we can introduce an element of randomness into the degree
+value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.
+\Cref{figure:scatter-heuristics} gives a more detailed look at these results. In this plot,
+satisfiable and unsatisfiable instances are shown using coloured shapes and black dots respectively.
+On the $x$-axis we measure the degree heuristic, whilst on the $y$-axis we measure the biased
+heuristic. Points on the outer axes represent instances which timed out with one heuristic but not
+the other.  This plot shows that despite the aggregate performance being very similar, on an case by
+case basis, the two heuristics can make a large difference to the performance of satisfiable
+instances.
 
 \subsection{Restarts}
 
@@ -392,16 +391,16 @@ many satisfiable instances performing substantially worse. ?? Quantify this a bi
     \centering
     \includegraphics*{gen-graph-restarts.pdf}
 
-    \caption{Cumulative number of instances solved over time, with (dotted lines) and without (solid
-    lines) restarts, and with depth-bounded discrepancy search (dashed line).}
+    \caption{The cumulative number of satisfiable instances solved over time, with and without
+    restarts.}
     \label{figure:restarts}
 \end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-random.pdf}
-    \caption{Instance by instance comparison of the basic algorithm with the degree heuristic,
-    versus random value-ordering with restarts.}
+    \caption{Comparing basic backtracking with the degree heuristic, versus the Random heuristic
+    with restarts.}
     \label{figure:scatter-random}
 \end{figure}
 
@@ -409,8 +408,8 @@ many satisfiable instances performing substantially worse. ?? Quantify this a bi
     \centering
     \includegraphics*{gen-graph-scatter-by-family.pdf}
 
-    \caption{Instance by instance comparison of the basic algorithm with the degree heuristic,
-    versus degree-biased value ordering with restarts.}
+    \caption{Comparing basic backtracking with the degree heuristic, versus the biased
+    heuristic with restarts.}
     \label{figure:scatter-by-family}
 \end{figure}
 
@@ -435,6 +434,25 @@ factor of ?? times worse.
 ?? Explain why this is so amazingly awesome and the most important idea ever to happen in the entire
 history of science.
 
+?? Justify aggregate speedups on sat instances
+
+\subsection{Further Experiments}
+
+\begin{itemize}
+    \item The choice of Luby multiplier is not hugely important, although 100 is too small and 1,000
+        is too big.
+    \item The base of the exponential does not have to be $e$, and it may be easier on implementers
+        to use 2. Using a polynomial weighting is bad, and using a base of $|D_v|$ is bad.
+    \item Using geometric restarts instead of Luby does not give much of a benefit. A constant
+        restart policy is also fine (and terminates on unsatisfiable instances because we count
+        backtracks).
+    \item Using rank with restarts is better than random with restarts, but not as good as using
+        biased with restarts.
+    \item Nogood recording is important.
+    \item Nogood recording is cheap.
+    \item Discarding subsumed nogoods may be done cheaply, if memory space is a concern.
+\end{itemize}
+
 \section{Conclusion}
 
 ?? This stuff is quite good.
@@ -442,63 +460,32 @@ history of science.
 ?? We can keep good value-ordering heuristics, and get large improvement. Importantly, we can do
 this with almost no effect on unsatisfiable instances, and rare to make satisfiable much worse.
 
+?? No theoretical justification for biased. Also tried polynomial weightings, exponential using
+$\left|D_v\right|$ as the base. Using $e$ (or for that matter, $2$ or $\pi$) as a base seems to be
+``just the right amount'' of randomness.
+
 ?? Variable ordering
 
 ?? Bigger CP picture.
 
+?? Parallel future work
+
 \begin{figure}[tb]
     \centering
-    \includegraphics*{gen-graph-scatter-parallel.pdf}
-
-    \caption{Parallel}
-    \label{figure:scatter-parallel}
+    \includegraphics*{gen-graph-as.pdf}
+    \caption{?? Aggregate speedups on satisfiable instances}
 \end{figure}
 
 \begin{figure}[tb]
     \centering
-    \includegraphics*{gen-graph-final.pdf}
+    \includegraphics*{gen-graph-scatter-degree.pdf}
 
-    \caption{Final results}
-    \label{figure:final}
+    \caption{When is the degree heuristic good?}
+    \label{figure:scatter-degree}
 \end{figure}
-
-?? Parallel
 
 \bibliographystyle{named}
 \bibliography{dblp}
-
-\appendix
-\clearpage
-\section{Further Experiments}
-
-?? engineering aspects: look at what happens without nogoods in \cref{figure:scatter-nogoods}, and
-at performance with restarts on degree in \cref{figure:scatter-overheads}.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-scatter-nogoods.pdf}
-
-    \caption{Is nogood recording important?}
-    \label{figure:scatter-nogoods}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-scatter-overheads.pdf}
-
-    \caption{Is nogood recording expensive?}
-    \label{figure:scatter-overheads}
-\end{figure}
-
-?? effects of restart policies, \cref{figure:restart-policies}.
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-restart-policies.pdf}
-
-    \caption{Different restart policies.}
-    \label{figure:restart-policies}
-\end{figure}
 
 \end{document}
 

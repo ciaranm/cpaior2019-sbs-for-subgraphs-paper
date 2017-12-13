@@ -15,10 +15,10 @@ set key horiz rmargin maxcols 1 width -2 samplen 1
 set size square
 
 plotfile="searchtimes.data"
-satcol=3
-famcol=2
-xcol=4
-ycol=10
+satcol="sat"
+famcol="family"
+xcol=norestarts
+ycol=randomrestarts
 
 load "scatter.gnuplot"
 

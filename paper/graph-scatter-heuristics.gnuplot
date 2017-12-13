@@ -6,7 +6,7 @@ set output "gen-graph-scatter-heuristics.tex"
 load "common.gnuplot"
 
 set xlabel "Degree Search Time (ms)"
-set ylabel "Degree-Biased Search Time (ms)"
+set ylabel "Biased Search Time (ms)"
 set logscale x
 set logscale y
 set format x '$10^{%T}$'
@@ -15,10 +15,10 @@ set key horiz rmargin maxcols 1 width -2 samplen 1
 set size square
 
 plotfile="searchtimes.data"
-satcol=3
-famcol=2
-xcol=4
-ycol=6
+satcol="sat"
+famcol="family"
+xcol=norestarts
+ycol=softmax
 
 load "scatter.gnuplot"
 

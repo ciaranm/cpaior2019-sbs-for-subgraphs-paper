@@ -6,7 +6,7 @@ set output "gen-graph-scatter-by-family.tex"
 load "common.gnuplot"
 
 set xlabel "Degree Search Time (ms)"
-set ylabel "Degree-Biased + Restarts Search Time (ms)"
+set ylabel "Biased + Restarts Search Time (ms)"
 set logscale x
 set logscale y
 set format x '$10^{%T}$'
@@ -15,9 +15,9 @@ set key horiz rmargin maxcols 1 width -2 samplen 1
 set size square
 
 plotfile="searchtimes.data"
-satcol=3
-famcol=2
-xcol=4
-ycol=9
+satcol="sat"
+famcol="family"
+xcol=norestarts
+ycol=final
 
 load "scatter.gnuplot"

@@ -12,17 +12,14 @@ GRAPHS = \
 	 gen-graph-others-zoom.pdf \
 	 gen-graph-scatter-heuristics.pdf \
 	 gen-graph-scatter-by-family.pdf \
-	 gen-graph-restart-policies.pdf \
-	 gen-graph-scatter-nogoods.pdf \
-	 gen-graph-scatter-overheads.pdf \
-	 gen-graph-scatter-parallel.pdf \
-	 gen-graph-final.pdf
+	 gen-graph-as.pdf \
+	 gen-graph-scatter-degree.pdf
 
 tables : $(TABLES)
 
 graphs : $(GRAPHS)
 
-gen-graph-%.pdf : graph-%.gnuplot common.gnuplot scatter.gnuplot inferno.pal
+gen-graph-%.pdf : graph-%.gnuplot common.gnuplot scatter.gnuplot parula.pal runtimes.data searchtimes.data
 	gnuplot $<
 	sed -i -e '19,20s/^\(\\path.*\)/\% \1/' gen-graph-$*.tex # epic haxx
 	latexmk -pdf gen-graph-$*
