@@ -523,21 +523,6 @@ class MCS
             remaining_score -= target_vertex_biases[vec[select_element]];
             std::swap(vec[select_element], vec[start]);
         }
-//        for (unsigned start=0; start<vec.size()-1; ++start) {
-//            std::uniform_real_distribution<double> dist(0, 1);
-//            double select_score = dist(global_rand);
-//
-//            double select_if_score_ge = 1.0;
-//
-//            unsigned select_element = start;
-//            for ( ; select_element + 1 < vec.size(); ++select_element) {
-//                select_if_score_ge /= 2.0;
-//                if (select_score >= select_if_score_ge)
-//                    break;
-//            }
-//            
-//            std::swap(vec[select_element], vec[start]);
-//        }
     }
 
     enum class Search
