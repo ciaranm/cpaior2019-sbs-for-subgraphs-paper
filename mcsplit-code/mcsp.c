@@ -245,12 +245,42 @@ bool check_sol(const Graph & g0, const Graph & g1 , const vector<Assignment> & s
     return true;
 }
 
+struct Nogood;
+
+using Nogoods = list<Nogood>;
+
 struct Nogood
 {
     vector<Assignment> literals;
-};
 
-using Nogoods = list<Nogood>;
+    struct ClauseMembership
+    {
+        list<Nogoods::iterator> & lst;
+        list<Nogoods::iterator>::iterator it;
+    };
+
+    // Keep track of lists and list nodes in literal_clause_membership that
+    // point to this Nogood, so that we can efficiently delete the list nodes
+    // if this clause is erased.
+    vector<ClauseMembership> clause_memberships;
+
+    // a hash of the nogood, used in a quick, incomplete subsumption test
+    unsigned long long signature = 0;
+
+    void add_literal(Assignment literal) {
+        literals.emplace_back(literal);
+        // Set a couple of bits in the signature.  I'm sure this could be done better!
+        signature |= 1ull << ((11400714819323198549ull * (literal.v + literal.w + 1)) >> 58);
+        signature |= 1ull << ((11400714819323198549ull * (literal.v * (literal.w + 2))) >> 58);
+    }
+    void add_clause_membership(list<Nogoods::iterator> & lst, list<Nogoods::iterator>::iterator it) {
+        clause_memberships.push_back({lst, it});
+    }
+    void remove_from_clause_membership_lists() {
+        for (auto & cm : clause_memberships)
+            cm.lst.erase(cm.it);
+    }
+};
 
 // One watched literal for our nogoods store.
 struct Watches
@@ -286,6 +316,7 @@ class MCS
     Nogoods nogoods;
     Watches watches;
     list<typename Nogoods::iterator> need_to_watch;
+    Watches literal_clause_membership;
 
     vector<int> vtx_current_assignment;
 
@@ -483,17 +514,63 @@ class MCS
         if (!arguments.quiet) cout << "Incumbent size: " << incumbent.size() << endl;
     }
 
+//    auto nogood_has_already_been_posted(Nogood & n) -> bool {
+//        // `literal_with_lowest_tally` will be an iterator to the literal in `n` that appears in
+//        // fewest members of `nogoods`
+//        auto literal_with_lowest_tally = std::min_element(
+//                n.literals.begin(),
+//                n.literals.end(),
+//                [&](const Assignment & a, const Assignment & b) {
+//                    return literal_clause_membership[a].size() < literal_clause_membership[b].size();
+//                });
+//
+//        // `lst` is the list of clauses containing the
+//        // literal `*literal_with_lowest_tally`
+//        auto & lst = literal_clause_membership[*literal_with_lowest_tally];
+//
+//        // erase all nogoods in `lst` that are subsumed by `n`
+//        for (auto nogood_it_it = lst.begin() ; nogood_it_it != lst.end() ; ) {
+//            auto nxt = next(nogood_it_it);
+////            std::cout << "a" << std::endl;
+////            std::cout << (n.literals.size()==(**nogood_it_it).literals.size() && nogood_subsumes(n, **nogood_it_it)) << std::endl;
+//            if (n.literals.size()==(**nogood_it_it).literals.size() && nogood_subsumes(n, **nogood_it_it)) {
+//                return true;
+//            }
+////            std::cout << "b" << std::endl;
+//            nogood_it_it = nxt;
+//        }
+//
+//        return false;
+//    }
+
     auto post_nogood(const VarAssignments & current) -> void
     {
-        Nogood nogood;
+        nogoods.push_back({});
+        Nogood & nogood = nogoods.back();
 
         for (auto & a : current.get_var_assignments())
             if (a.is_decision)
                 nogood.literals.emplace_back(a.assignment);
 
-//        std::cout << "literals size " << nogood.literals.size() << std::endl;
-        nogoods.emplace_back(std::move(nogood));
-        need_to_watch.emplace_back(prev(nogoods.end()));
+        auto nogood_it = prev(nogoods.end());
+
+        need_to_watch.emplace_back(nogood_it);
+
+        for (auto & a : nogood.literals) {
+            auto & lcm = literal_clause_membership[a];
+            lcm.emplace_back(nogood_it);
+            nogood.add_clause_membership(lcm, prev(lcm.end()));
+        }
+    }
+
+    auto erase_nogood(Nogoods::iterator nogood_it) -> void
+    {
+        auto & wl = watches[nogood_it->literals[0]];
+        wl.erase(std::find(wl.begin(), wl.end(), nogood_it));
+
+        nogood_it->remove_from_clause_membership_lists();
+
+        nogoods.erase(nogood_it);
     }
 
     auto current_contains_nogood(
@@ -650,6 +727,61 @@ class MCS
         }
     }
 
+    auto nogood_subsumes(const Nogood & a, const Nogood & b) -> bool
+    {
+        // This is based on Armin Biere (2005), Resolve and Expand
+        // https://link.springer.com/content/pdf/10.1007/11527695_5.pdf
+        // Biere's algorithm is described in the solution to exercise
+        // 374 of Knuth's TAOCP fascicle on SAT.
+
+        if (a.literals.size() > b.literals.size())
+            return false;
+
+        // do a quick partial test to rule out some non-subsumptions
+        if (a.signature & ~b.signature)
+            return false;
+
+        // Return false if some literal in `a` does not appear in `b`.
+        //
+        // The reverse iteration seems to give a slight speed-up compared to
+        // forward iteration, due to literals that appear late in a clause appearing
+        // in few other clauses.  This is based on intuition and a tiny-scale
+        // experiment only; perhaps forward iteration would in fact be better.
+        //
+        // This quadratic-complexity algorithm could be replaced with a linear
+        // one.
+        for (auto it = a.literals.rbegin() ; it != a.literals.rend() ; ++it)
+            if (std::find(b.literals.begin(), b.literals.end(), *it) == b.literals.end())
+                return false;
+
+        return true;
+    }
+
+    auto remove_subsumed_clauses(Nogoods::iterator n_it) -> void {
+        auto & n = *n_it;
+        // `literal_with_lowest_tally` will be an iterator to the literal in `n` that appears in
+        // fewest members of `nogoods`
+        auto literal_with_lowest_tally = std::min_element(
+                n.literals.begin(),
+                n.literals.end(),
+                [&](const Assignment & a, const Assignment & b) {
+                    return literal_clause_membership[a].size() < literal_clause_membership[b].size();
+                });
+
+        // `lst` is the list of clauses containing the
+        // literal `*literal_with_lowest_tally`
+        auto & lst = literal_clause_membership[*literal_with_lowest_tally];
+
+        // erase all nogoods in `lst` that are subsumed by `n`
+        for (auto nogood_it_it = lst.begin() ; nogood_it_it != lst.end() ; ) {
+            auto nxt = next(nogood_it_it);
+            if (n_it != *nogood_it_it && nogood_subsumes(n, **nogood_it_it)) {
+                erase_nogood(*nogood_it_it);
+            }
+            nogood_it_it = nxt;
+        }
+    }
+
     auto run_with_restarts(VarAssignments & current, vector<Bidomain> & domains) -> void
     {
         list<long long> luby = {{ 1 }};
@@ -666,6 +798,8 @@ class MCS
             ++number_of_restarts;
 
             for (auto & n : need_to_watch) {
+                remove_subsumed_clauses(n);
+
                 if (n->literals.empty()) {
                     return;
                 } else {
@@ -676,8 +810,8 @@ class MCS
 
             current.clear();
             auto domains_copy = domains;
-            std::cout << "restarting search" << std::endl;
-            std::cout << "nogood count: " << nogoods.size() << std::endl;
+//            std::cout << "restarting search" << std::endl;
+//            std::cout << "nogood count: " << nogoods.size() << std::endl;
             switch (restarting_search(current, domains_copy, backtracks_until_restart))
             {
             case Search::Done:
@@ -758,7 +892,10 @@ class MCS
 
 public:
     MCS(Graph & g0, Graph & g1)
-        : g0(g0), g1(g1), watches(g0.n, g1.n), vtx_current_assignment(g0.n) {}
+        : g0(g0), g1(g1), watches(g0.n, g1.n),
+          literal_clause_membership(g0.n, g1.n),
+          vtx_current_assignment(g0.n)
+    { }
 
     vector<Assignment> run() {
         auto domains = vector<Bidomain> {};
@@ -799,6 +936,12 @@ public:
             search(current, domains);
         }
 
+//        for (auto & n : nogoods) {
+//            for (auto a : n.literals) {
+//                std::cout << a.v << "," << a.w << " ";
+//            }
+//            std::cout << std::endl;
+//        }
         return incumbent;
     }
 };
