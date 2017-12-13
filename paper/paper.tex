@@ -339,7 +339,7 @@ better (?? give aggregate speedups for both all and just satisfiable instances) 
 ordering, which is in turn ?? times better than the anti-heuristic.
 
 The performance of the two degree heuristics are very similar: the
-biased heuristic has slightly worse performance below a 100s timeout, and effectively equal
+biased heuristic has slightly worse performance below a 400s timeout, and effectively equal
 performance above it. This shows that we can introduce an element of randomness into the degree
 value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.
 \Cref{figure:scatter-heuristics} gives a more detailed look at these results. In this plot,
@@ -416,9 +416,6 @@ many satisfiable instances performing substantially worse. ?? Quantify this a bi
 \Cref{figure:restarts} shows that either biased heuristic together with restarts is better
 still---that is, if we are introducing restarts, then it is better to add a small amount of
 randomness to a tailored deterministic heuristic than it is to throw away the heuristic altogether.
-The degree-biased heuristic is also stronger than position-biased, showing that exploiting ties and
-relative sizes in the heuristic ordering is also worthwhile. Interestingly, the gap between degree-
-and position-based is much larger when using restarts than it is when not using them.
 
 In the more detailed view in \cref{figure:scatter-by-family}, comparing the basic algorithm with the
 degree heuristic to the degree-biased algorithm with restarts, all of the unsatisfiable instances
@@ -441,9 +438,9 @@ history of science.
 \begin{itemize}
     \item The choice of Luby multiplier is not hugely important, although 100 is too small and 1,000
         is too big.
-    \item The base of the exponential does not have to be $e$, and it may be easier on implementers
-        to use 2. Using a polynomial weighting is bad, and using a base of $|D_v|$ is bad.
-    \item Using geometric restarts instead of Luby does not give much of a benefit. A constant
+    \item The base of the exponential can be $2$ or $e$ or $3$ or $1.5$ and it makes little
+        difference. Using a polynomial weighting is bad, and using a base of $|D_v|$ is bad.
+    \item Using geometric restarts instead of Luby does not give as much of a benefit. A constant
         restart policy is also fine (and terminates on unsatisfiable instances because we count
         backtracks).
     \item Using rank with restarts is better than random with restarts, but not as good as using
