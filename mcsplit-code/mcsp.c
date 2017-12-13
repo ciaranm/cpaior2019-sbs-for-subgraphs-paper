@@ -1,4 +1,3 @@
-#define RESTARTS 1
 #define LUBY_MULTIPLIER 500 
 
 #include "graph.h"
@@ -47,6 +46,7 @@ static struct argp_option options[] = {
     {"verbose", 'v', 0, 0, "Verbose output"},
     {"dimacs", 'd', 0, 0, "Read DIMACS format"},
     {"lad", 'l', 0, 0, "Read LAD format"},
+    {"restarts", 'r', 0, 0, "Use restarts and nogood learning"},
     {"biased-shuffle", 'b', 0, 0, "Position-shuffle value ordering heuristic"},
     {"connected", 'c', 0, 0, "Solve max common CONNECTED subgraph problem"},
     {"directed", 'i', 0, 0, "Use directed graphs"},
@@ -61,6 +61,7 @@ struct Arguments {
     bool verbose;
     bool dimacs;
     bool lad;
+    bool restarts;
     bool biased_shuffle;
     bool connected;
     bool directed;
@@ -88,6 +89,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
             if (arguments.dimacs)
                 fail("The -d and -l options cannot be used together.\n");
             arguments.lad = true;
+            break;
+        case 'r':
+            arguments.restarts = true;
             break;
         case 'b':
             arguments.biased_shuffle = true;
@@ -969,7 +973,7 @@ public:
 
         VarAssignments current;
 
-        if (RESTARTS) {
+        if (arguments.restarts) {
             run_with_restarts(current, domains);
         } else {
             search(current, domains);
