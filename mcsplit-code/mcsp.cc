@@ -1,6 +1,6 @@
 #define LUBY_MULTIPLIER 500 
 
-#include "graph.h"
+#include "graph.hh"
 
 #include <algorithm>
 #include <atomic>
