@@ -1,5 +1,6 @@
 #include "graph.hh"
 
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 
