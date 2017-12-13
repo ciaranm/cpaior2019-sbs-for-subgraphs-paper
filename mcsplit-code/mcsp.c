@@ -320,6 +320,9 @@ class MCS
 
     vector<int> vtx_current_assignment;
 
+    // used in subsumption test; assigned once for speed
+    vector<int> assignments_in_nogood;
+
     void show(const vector<VarAssignment>& current, const vector<Bidomain> &domains)
     {
         cout << "Nodes: " << nodes << std::endl;
@@ -742,19 +745,10 @@ class MCS
             return false;
 
         // Return false if some literal in `a` does not appear in `b`.
-        //
-        // The reverse iteration seems to give a slight speed-up compared to
-        // forward iteration, due to literals that appear late in a clause appearing
-        // in few other clauses.  This is based on intuition and a tiny-scale
-        // experiment only; perhaps forward iteration would in fact be better.
-        //
-        // This quadratic-complexity algorithm could be replaced with a linear
-        // one.
-        for (auto it = a.literals.rbegin() ; it != a.literals.rend() ; ++it)
-            if (std::find(b.literals.begin(), b.literals.end(), *it) == b.literals.end())
-                return false;
-
-        return true;
+        unsigned count = 0;
+        for (auto lit : b.literals)
+            count += (assignments_in_nogood[lit.v] == lit.w);
+        return count == a.literals.size();
     }
 
     auto remove_subsumed_clauses(Nogoods::iterator n_it) -> void {
@@ -771,6 +765,10 @@ class MCS
         // `lst` is the list of clauses containing the
         // literal `*literal_with_lowest_tally`
         auto & lst = literal_clause_membership[*literal_with_lowest_tally];
+
+        std::fill(assignments_in_nogood.begin(), assignments_in_nogood.end(), -2);
+        for (auto lit : n.literals)
+            assignments_in_nogood[lit.v] = lit.w;
 
         // erase all nogoods in `lst` that are subsumed by `n`
         for (auto nogood_it_it = lst.begin() ; nogood_it_it != lst.end() ; ) {
@@ -894,7 +892,8 @@ public:
     MCS(Graph & g0, Graph & g1)
         : g0(g0), g1(g1), watches(g0.n, g1.n),
           literal_clause_membership(g0.n, g1.n),
-          vtx_current_assignment(g0.n)
+          vtx_current_assignment(g0.n),
+          assignments_in_nogood(g0.n)
     { }
 
     vector<Assignment> run() {
