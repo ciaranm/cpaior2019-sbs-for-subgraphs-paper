@@ -1,5 +1,5 @@
 #define RESTARTS 1
-#define LUBY_MULTIPLIER 500
+#define LUBY_MULTIPLIER 500 
 
 #include "graph.h"
 
@@ -47,7 +47,7 @@ static struct argp_option options[] = {
     {"verbose", 'v', 0, 0, "Verbose output"},
     {"dimacs", 'd', 0, 0, "Read DIMACS format"},
     {"lad", 'l', 0, 0, "Read LAD format"},
-    {"position-shuffle", 'p', 0, 0, "Position-shuffle value ordering heuristic"},
+    {"biased-shuffle", 'b', 0, 0, "Position-shuffle value ordering heuristic"},
     {"connected", 'c', 0, 0, "Solve max common CONNECTED subgraph problem"},
     {"directed", 'i', 0, 0, "Use directed graphs"},
     {"labelled", 'a', 0, 0, "Use edge and vertex labels"},
@@ -61,7 +61,7 @@ struct Arguments {
     bool verbose;
     bool dimacs;
     bool lad;
-    bool position_shuffle;
+    bool biased_shuffle;
     bool connected;
     bool directed;
     bool edge_labelled;
@@ -89,8 +89,8 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
                 fail("The -d and -l options cannot be used together.\n");
             arguments.lad = true;
             break;
-        case 'p':
-            arguments.position_shuffle = true;
+        case 'b':
+            arguments.biased_shuffle = true;
             break;
         case 'q':
             arguments.quiet = true;
@@ -245,6 +245,18 @@ bool check_sol(const Graph & g0, const Graph & g1 , const vector<Assignment> & s
     return true;
 }
 
+vector<int> calculate_degrees(const Graph & g) {
+    vector<int> degree(g.n, 0);
+    for (int v=0; v<g.n; v++) {
+        for (int w=0; w<g.n; w++) {
+            unsigned int mask = 0xFFFFu;
+            if (g.adjmat[v][w] & mask) degree[v]++;
+            if (g.adjmat[v][w] & ~mask) degree[v]++;  // inward edge, in directed case
+        }
+    }
+    return degree;
+}
+
 struct Nogood;
 
 using Nogoods = list<Nogood>;
@@ -322,6 +334,8 @@ class MCS
 
     // used in subsumption test; assigned once for speed
     vector<int> assignments_in_nogood;
+
+    vector<unsigned long long> target_vertex_biases;
 
     void show(const vector<VarAssignment>& current, const vector<Bidomain> &domains)
     {
@@ -482,23 +496,48 @@ class MCS
         domains.pop_back();
     }
 
-    void position_shuffle(vector<int> & vec)
+    void biased_shuffle(vector<int> & vec)
     {
-        for (unsigned start=0; start<vec.size()-1; ++start) {
-            std::uniform_real_distribution<double> dist(0, 1);
-            double select_score = dist(global_rand);
+        // sum up the bias scores of every branch vertex
+        unsigned long long remaining_score = 0;
+        for (unsigned v = 0 ; v < vec.size() ; ++v)
+            remaining_score += target_vertex_biases[vec[v]];
 
-            double select_if_score_ge = 1.0;
+        // now repeatedly pick a biased-random vertex, move it to the front of vec,
+        // and then only consider items further to the right in the next iteration.
+        for (unsigned start = 0 ; start < vec.size() ; ++start) {
+            // pick a random number between 0 and remaining_score inclusive
+            std::uniform_int_distribution<unsigned long long> dist(1, remaining_score);
+            unsigned long long select_score = dist(global_rand);
 
+            // go over the list until we've used up bias values totalling our
+            // random number
             unsigned select_element = start;
-            for ( ; select_element + 1 < vec.size(); ++select_element) {
-                select_if_score_ge /= 2.0;
-                if (select_score >= select_if_score_ge)
+            for ( ; select_element < vec.size() ; ++select_element) {
+                if (select_score <= target_vertex_biases[vec[select_element]])
                     break;
+                select_score -= target_vertex_biases[vec[select_element]];
             }
-            
+
+            // move to front, and update remaining_score
+            remaining_score -= target_vertex_biases[vec[select_element]];
             std::swap(vec[select_element], vec[start]);
         }
+//        for (unsigned start=0; start<vec.size()-1; ++start) {
+//            std::uniform_real_distribution<double> dist(0, 1);
+//            double select_score = dist(global_rand);
+//
+//            double select_if_score_ge = 1.0;
+//
+//            unsigned select_element = start;
+//            for ( ; select_element + 1 < vec.size(); ++select_element) {
+//                select_if_score_ge /= 2.0;
+//                if (select_score >= select_if_score_ge)
+//                    break;
+//            }
+//            
+//            std::swap(vec[select_element], vec[start]);
+//        }
     }
 
     enum class Search
@@ -675,8 +714,8 @@ class MCS
                 right.begin() + bd.r + bd.right_len);
         std::sort(possible_values.begin(), possible_values.end());
 
-        if (arguments.position_shuffle)
-            position_shuffle(possible_values);
+        if (arguments.biased_shuffle)
+            biased_shuffle(possible_values);
 
         if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len)
             possible_values.push_back(-1);
@@ -854,8 +893,8 @@ class MCS
                 right.begin() + bd.r + bd.right_len);
         std::sort(possible_values.begin(), possible_values.end());
 
-        if (arguments.position_shuffle)
-            position_shuffle(possible_values);
+        if (arguments.biased_shuffle)
+            biased_shuffle(possible_values);
 
         if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len)
             possible_values.push_back(-1);
@@ -897,6 +936,22 @@ public:
     { }
 
     vector<Assignment> run() {
+        if (arguments.biased_shuffle) {
+            vector<int> g0_deg = calculate_degrees(g0);
+            vector<int> g1_deg = calculate_degrees(g1);
+            int max_degree = 0;
+            for (int j = 0 ; j < g1.n ; ++j)
+                max_degree = std::max(max_degree, g1_deg[j]);
+
+            for (int j = 0 ; j < g1.n ; ++j) {
+                unsigned degree = g1_deg[j];
+                if (max_degree - degree >= 50)
+                    target_vertex_biases.push_back(1);
+                else
+                    target_vertex_biases.push_back(1ull << (50 - (max_degree - degree)));
+            }
+        }
+
         auto domains = vector<Bidomain> {};
 
         std::set<unsigned int> left_labels;
@@ -944,18 +999,6 @@ public:
         return incumbent;
     }
 };
-
-vector<int> calculate_degrees(const Graph & g) {
-    vector<int> degree(g.n, 0);
-    for (int v=0; v<g.n; v++) {
-        for (int w=0; w<g.n; w++) {
-            unsigned int mask = 0xFFFFu;
-            if (g.adjmat[v][w] & mask) degree[v]++;
-            if (g.adjmat[v][w] & ~mask) degree[v]++;  // inward edge, in directed case
-        }
-    }
-    return degree;
-}
 
 int sum(const vector<int> & vec) {
     return std::accumulate(std::begin(vec), std::end(vec), 0);
