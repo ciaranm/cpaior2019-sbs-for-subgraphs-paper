@@ -556,6 +556,7 @@ namespace {
             return count == a.literals.size();
         }
 
+        // precondition: the nogood that n_it points to is not empty
         auto remove_subsumed_clauses(Nogoods::iterator n_it) -> void {
             auto & n = *n_it;
             // `literal_with_lowest_tally` will be an iterator to the literal in `n` that appears in
@@ -601,11 +602,10 @@ namespace {
                 ++number_of_restarts;
 
                 for (auto & n : need_to_watch) {
-                    remove_subsumed_clauses(n);
-
                     if (n->literals.empty()) {
                         return;
                     } else {
+                        remove_subsumed_clauses(n);
                         watches[n->literals[0]].push_back(n);
                     }
                 }
