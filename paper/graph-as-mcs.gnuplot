@@ -23,9 +23,8 @@ set ylabel "Aggregate Speedup"
 set xrange [1e0:1e5]
 set logscale x
 set format x '$10^{%T}$'
-set yrange [1:]
+set yrange [0:]
 unset format y
-set logscale y
 set grid xtics ytics mytics
 
 set key top left Left
