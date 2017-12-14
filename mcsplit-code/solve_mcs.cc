@@ -465,11 +465,11 @@ namespace {
                 update_incumbent(incumbent, current);
 
             unsigned int bound = current.get_num_vtx_assignments() + calc_bound(domains);
+
             if (bound <= incumbent.size())
                 return Search::Done;
 
-            if (current.get_var_assignments().size() != 0 &&
-                    current.get_var_assignments().back().is_decision &&
+            if (!current.get_var_assignments().empty() &&
                     contains_a_nogood(current, domains))
                 return Search::Done;
 
