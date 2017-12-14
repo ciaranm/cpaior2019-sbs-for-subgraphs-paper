@@ -19,6 +19,10 @@
 \newcommand{\citet}[1]{\citeauthor{#1} \shortcite{#1}}
 \newcommand{\citep}[1]{\cite{#1}}
 
+\newcommand{\siplabel}[1]{\label{line:sip:#1}}
+\newcommand{\siplineref}[1]{line~\ref{line:sip:#1}}
+\newcommand{\siplinerangeref}[2]{lines~\ref{line:sip:#1} to~\ref{line:sip:#2}}
+
 \usetikzlibrary{decorations, decorations.pathreplacing, decorations.pathmorphing,
     calc, backgrounds, positioning, tikzmark, patterns, fit}
 
@@ -61,7 +65,7 @@ The subgraph isomorphism problem is to find a copy of a small ``pattern'' graph 
 ``target'' graph.  The current single strongest subgraph isomorphism solver uses ``highest degree
 first'' as a value-ordering heuristic to direct a constraint programming style search
 \citep{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:conf/ijcai/McCreeshPT16}. This
-heuristic is far from perfect. Furthermore, even if degree were a perfect source of information,
+heuristic is far from perfect---and even if degree were a perfect source of information,
 many target graphs do not have a large degree distribution, so we would still need to determine
 \emph{which} vertex of highest degree would be best.
 
@@ -79,22 +83,52 @@ discrepancy searches (\cref{figure:scatter-dds}) or by random value-ordering wit
 (\cref{figure:scatter-random}). Finally, we show that this strategy is also effective in an
 optimisation setting, producing clear benefits in two maximum common induced subgraph algorithms.
 
-\section{The Basic Algorithm}
+\section{Definitions and Algorithms}
 
-?? Non-induced!
+Let $G$ be a graph. We denote its set of vertices by $\vertexset(G)$, and write $v \sim_G w$ to mean
+that vertices $v$ and $w$ are adjacent. The \emph{neighbourhood} of a vertex, $\neighbourhood_G(v)$,
+is the set of vertices adjacent to $v$, and the \emph{degree} of $v$, $\deg_G(v)$, is the
+cardinality of its neighbourhood; when the graph is clear from the context, we omit the $G$
+subscript. The \emph{neighbourhood degree sequence} of $v$, $\nds_G(v)$, is the sequence of degrees
+of the neighbours of $v$ in descending order, and we denote by $\preceq$ the inclusion relation of
+\citet{DBLP:journals/constraints/ZampelliDS10}. As per \citet{DBLP:conf/aaai/HoffmannMR17},
+$G^{n,\ell}$ denotes the graph with vertex set $\vertexset(G)$, and with edges between vertices $v$
+and $v$ if there are at least $n$ simple paths of length exactly $\ell$ between vertices $v$ and $w$
+in $G$.
 
-?? Notation: $\vertexset(G)$, $\neighbourhood_G(v)$, $\nds_G(v)$, $\preceq$, $\sim_G$, $G^{a,b}$, $\mapsto$.
+The non-induced subgraph isomorphism problem is to find an injective mapping from the vertices of a
+pattern graph $\mathcal{P}$ to a target graph $\mathcal{T}$, such that adjacent vertices in
+$\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{T}$. We write $v \mapsto v'$ to mean that
+pattern vertex $v$ is mapped to target $v'$ under such a mapping.
 
-?? Started with the Glasgow algorithm, removed parts which did not contribute hugely to speedups,
-and ended up with a simpler algorithm that performs as well in practice. In particular, because we
-will be working with reasonably large target graphs, no ILF, and not doing supplemental graphs of
-length 3. This is \cref{algorithm:sip}, ignoring the shaded parts, which are introduced in the
-context of restarts.
+\subsection{A Subgraph Isomorphism Algorithm}
 
-?? Briefly describe this, probably referring elsewhere as far as possible to save space.
+We now briefly outline the non-shaded parts of \cref{algorithm:sip}, which is how we will solve the
+subgraph isomorphism problem. This algorithm is very closely based upon the $k{\downarrow}$
+algorithm of \citet{DBLP:conf/aaai/HoffmannMR17} with $k = 0$, and we refer the reader to that paper
+for full technical details; that algorithm, in turn, is a simplification of the Glasgow2 algorithm
+\citep{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}.
 
-\newcommand{\siplabel}[1]{\label{line:sip:#1}}
-\newcommand{\siplineref}[1]{line~\ref{line:sip:#1}}
+\Cref{algorithm:sip} works by recursively building up a valid mapping of pattern vertices to target
+vertices. For each pattern vertex $v$, we have a domain $D_v$ containing a set of feasible target
+vertices. Each domain is initialised at the top of search (\siplinerangeref{initstart}{initend}),
+using the invariants described by \citet{DBLP:conf/aaai/HoffmannMR17} to restrict its initial
+values.
+
+The $\FuncSty{search}$ procedure recursively selects an unassigned domain $D$
+(\siplineref{variableordering}), and tries assigning
+it each of its remaining value in turn (\siplineref{valueordering}). The effects of this assignment
+are propagated (\siplineref{dopropagate}). If an
+inconsistency is detected, we continue and try another value; otherwise, we recurse
+(\siplineref{recurse}) until a solution is found. Finally, if we run out of values, we backtrack
+(\siplineref{backtrack}).
+
+Our $\FuncSty{propagate}$ routine is similarly close to that of \citet{DBLP:conf/aaai/HoffmannMR17},
+differing only in that we carry out the filtering for injectivity
+(\siplinerangeref{alldiffstart}{alldiffend}) after every assignment rather than once at the end of
+the unit propagation loop. (We make this change because the all-different propagator used is not
+idempotent, and we wish to avoid an odd interaction when we introduce nogood filtering.)
+
 \begin{algorithm}[p]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
     \begin{tikzpicture}[remember picture,overlay]
         \coordinate (restart1sc) at ($(pic cs:restart1s) + (0, 0.15)$);
@@ -136,11 +170,11 @@ context of restarts.
         (\mathcal{P}^{1,2}, \mathcal{T}^{1,2}),
         (\mathcal{P}^{2,2},\ \mathcal{T}^{2,2}), $\\\hspace*{6em}$ (\mathcal{P}^{3,2},\ \mathcal{T}^{3,2}),
         (\mathcal{P}^{4,2},\ \mathcal{T}^{4,2}) \big]$ \;
-    \nl \ForEach{$v \in \vertexset(\mathcal{P})$}{
+    \nl \ForEach{\siplabel{initstart}$v \in \vertexset(\mathcal{P})$}{
         \nl $D_v \gets \vertexset(\mathcal{T})$\;
         \nl \ForEach{$(P,\,T) \in L$}{
             \nl $D_v \gets \{ w \in D_v : $ \siplabel{degreefiltering} \\\hspace*{4em}$v \sim_P v \Rightarrow w \sim_T w~\wedge$
-            \\\hspace*{4em}$\nds_P(v) \preceq \nds_T(w)\}$ \;
+            \\\hspace*{4em}$\nds_P(v) \preceq \nds_T(w)\}$\siplabel{initend} \;
         }
     }
     \nl \While{$\KwSty{true}$}{
@@ -162,8 +196,8 @@ context of restarts.
         \nl \tikzmark{restart4s}$C \gets C \cup \{ v' \}$\tikzmark{restart4e} \;
         \nl $D' \gets \FuncSty{clone}(D)$ \;
         \nl $D'_v \gets \{ v' \} $ \;
-        \nl \If{\FuncSty{propagate}(D')}{
-            \nl $S \gets \FuncSty{search}(\{ E \in D' : \left|E\right| > 1 \}, B \wedge (v \mapsto v'))$ \;
+        \nl \If{\FuncSty{propagate}(D')\siplabel{dopropagate}}{
+            \nl $S \gets \FuncSty{search}(\{ E \in D'\,{:}\,\left|E\right|{>}\,1 \}, B \wedge (v\,{\mapsto}\,v'))$\siplabel{recurse} \;
             \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
             \nl \tikzmark{restart5s}\ElseIf{$S = \KwSty{restart}$}{
                 \nl post nogoods $\{B \wedge (v \mapsto c) \Rightarrow \bot : c \in C \}$\tikzmark{restart5r}\;
@@ -172,7 +206,7 @@ context of restarts.
         }
     }
     \nl \tikzmark{restart6s}\lIf{$(R \gets R + 1) = R'$}{$\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$}
-    \nl $\KwSty{return}~\KwSty{false}$
+    \nl $\KwSty{return}~\KwSty{false}$\siplabel{backtrack}
 }
 \medskip
 \nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
@@ -188,17 +222,17 @@ context of restarts.
             }
             \nl \lIf{$D_w = \emptyset$}{$\KwSty{return}~\KwSty{false}$}
         }
-\nl $(H,\,A,\,n) \gets (\emptyset,\,\emptyset,\,0)$ \;
+\nl $(H,\,A,\,n) \gets (\emptyset,\,\emptyset,\,0)$\siplabel{alldiffstart} \;
 \nl \ForEach{$D_v \in D$ \textnormal{from smallest cardinality upwards\siplabel{eachdomain}}}{
     \nl $D_v \gets D_v \setminus H$ \siplabel{elimhall} \;
     \nl $(A,\,n) \gets (A \cup D_v,\,n + 1)$ \siplabel{acc} \;
     \nl \lIf{$D_v = \emptyset~\vee~|A| < n$}{$\KwSty{return}~\KwSty{false}$\siplabel{failhall}}
-    \nl \lIf{$|A| = n$}{$(H,\,A,\,n) \gets (H \cup A,\,\emptyset,\,0)$\siplabel{hall}}
+    \nl \lIf{$|A| = n$}{$(H,\,A,\,n) \gets (H \cup A,\,\emptyset,\,0)$\siplabel{hall}}\siplabel{alldiffend}
 }
     }
 \nl $\KwSty{return}~\KwSty{true}$ \;
 }
-\caption{Non-induced subgraph isomorphism. Shaded code is added for the restarting variant.}
+\caption{Non-induced subgraph isomorphism. The shaded code is added for the restarting variant.}
 \label{algorithm:sip}
 \end{algorithm}
 
