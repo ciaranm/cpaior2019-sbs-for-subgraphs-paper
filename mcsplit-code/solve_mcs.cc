@@ -424,6 +424,9 @@ namespace {
         auto contains_a_nogood(VarAssignments & current,
                 vector<Bidomain> & domains) -> bool
         {
+            if (current.get_var_assignments().empty())
+                return false;
+
             std::fill(vtx_current_assignment.begin(), vtx_current_assignment.end(), -1);
 
             for (auto & bd : domains) {
@@ -466,76 +469,73 @@ namespace {
 
             unsigned int bound = current.get_num_vtx_assignments() + calc_bound(domains);
 
-            if (bound <= incumbent.size())
-                return Search::Done;
+            int bd_idx;
 
-            if (!current.get_var_assignments().empty() &&
-                    contains_a_nogood(current, domains))
-                return Search::Done;
+            if (bound > incumbent.size() &&
+                    !contains_a_nogood(current, domains) &&
+                    -1 != (bd_idx = select_bidomain(domains, current.get_num_vtx_assignments())))
+            {
+                Bidomain &bd = domains[bd_idx];
 
-            int bd_idx = select_bidomain(domains, current.get_num_vtx_assignments());
-            if (bd_idx == -1)   // In the MCCS case, there may be nothing we can branch on
-                return Search::Done;
-            Bidomain &bd = domains[bd_idx];
+                int v = find_min_value(left, bd.l, bd.left_len);
 
-            int v = find_min_value(left, bd.l, bd.left_len);
+                // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
+                std::vector<int> possible_values(right.begin() + bd.r,  // the vertices in the colour class beginning at bd.r
+                        right.begin() + bd.r + bd.right_len);
+                std::sort(possible_values.begin(), possible_values.end());
 
-            // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
-            std::vector<int> possible_values(right.begin() + bd.r,  // the vertices in the colour class beginning at bd.r
-                    right.begin() + bd.r + bd.right_len);
-            std::sort(possible_values.begin(), possible_values.end());
+                if (params.biased_shuffle)
+                    biased_shuffle(possible_values);
 
-            if (params.biased_shuffle)
-                biased_shuffle(possible_values);
-
-            if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len) {
-                if (params.biased_shuffle) {
-                    std::uniform_int_distribution<unsigned> dist(0, possible_values.size());
-                    unsigned insertion_point = dist(global_rand);
-                    possible_values.insert(next(possible_values.begin(), insertion_point), -1);
-                } else {
-                    possible_values.push_back(-1);
-                }
-            }
-
-            remove_vtx_from_left_domain(domains[bd_idx], v);
-            bd.right_len--;
-
-            for (int w : possible_values) {
-                current.push({{v, w}, possible_values.size() > 1});
-                Search search_result;
-                if (w != -1) {
-                    // swap w to the end of its colour class
-                    auto it = std::find(right.begin() + bd.r, right.end(), w);
-                    *it = right[bd.r + bd.right_len];
-                    right[bd.r + bd.right_len] = w;
-
-                    auto new_domains = filter_domains(domains, v, w, params.directed || params.edge_labelled);
-                    search_result = restarting_search(current, new_domains, backtracks_until_restart);
-                } else {
-                    bd.right_len++;
-                    auto copied_domains = domains;
-                    if (bd.left_len == 0)
-                        remove_bidomain(copied_domains, bd_idx);
-                    search_result = restarting_search(current, copied_domains, backtracks_until_restart);
-                    bd.right_len--;
-                }
-                current.pop();
-                switch (search_result)
-                {
-                case Search::Restart:
-                    for (int u : possible_values) {
-                        if (u == w)
-                            break;
-                        current.push({{v, u}, true});
-                        post_nogood(current);
-                        current.pop();
+                if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len) {
+                    if (params.biased_shuffle) {
+                        std::uniform_int_distribution<unsigned> dist(0, possible_values.size());
+                        unsigned insertion_point = dist(global_rand);
+                        possible_values.insert(next(possible_values.begin(), insertion_point), -1);
+                    } else {
+                        possible_values.push_back(-1);
                     }
-                    return Search::Restart;
-                case Search::Aborted:
-                    return Search::Aborted;
-                case Search::Done:
-                    break;
+                }
+
+                remove_vtx_from_left_domain(domains[bd_idx], v);
+                bd.right_len--;
+
+                for (int w : possible_values) {
+                    current.push({{v, w}, possible_values.size() > 1});
+                    Search search_result;
+                    if (w != -1) {
+                        // swap w to the end of its colour class
+                        auto it = std::find(right.begin() + bd.r, right.end(), w);
+                        *it = right[bd.r + bd.right_len];
+                        right[bd.r + bd.right_len] = w;
+
+                        auto new_domains = filter_domains(domains, v, w, params.directed || params.edge_labelled);
+                        search_result = restarting_search(current, new_domains, backtracks_until_restart);
+                    } else {
+                        bd.right_len++;
+                        auto copied_domains = domains;
+                        if (bd.left_len == 0)
+                            remove_bidomain(copied_domains, bd_idx);
+                        search_result = restarting_search(current, copied_domains, backtracks_until_restart);
+                        bd.right_len--;
+                    }
+                    current.pop();
+                    switch (search_result)
+                    {
+                    case Search::Restart:
+                        for (int u : possible_values) {
+                            if (u == w)
+                                break;
+                            current.push({{v, u}, true});
+                            post_nogood(current);
+                            current.pop();
+                        }
+                        return Search::Restart;
+                    case Search::Aborted:
+                        return Search::Aborted;
+                    case Search::Done:
+                        break;
+                    }
                 }
             }
 
