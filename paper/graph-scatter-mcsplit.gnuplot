@@ -6,7 +6,7 @@ set output "gen-graph-scatter-mcsplit.tex"
 load "common.gnuplot"
 
 set xlabel "McSplit Runtime (ms)"
-set ylabel "Random + Restarts McSplit Runtime (ms)"
+set ylabel "Biased + Restarts McSplit Runtime (ms)"
 set logscale x
 set logscale y
 set format x '$10^{%T}$'

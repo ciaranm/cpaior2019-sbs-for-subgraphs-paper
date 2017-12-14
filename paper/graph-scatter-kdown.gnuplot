@@ -6,7 +6,7 @@ set output "gen-graph-scatter-kdown.tex"
 load "common.gnuplot"
 
 set xlabel "k${\\downarrow}$ Runtime (ms)"
-set ylabel "Random + Restarts k${\\downarrow}$ Runtime (ms)"
+set ylabel "Biased + Restarts k${\\downarrow}$ Runtime (ms)"
 set logscale x
 set logscale y
 set format x '$10^{%T}$'
