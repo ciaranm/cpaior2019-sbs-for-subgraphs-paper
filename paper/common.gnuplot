@@ -28,6 +28,11 @@ anti="sequentialantiheuristic9"
 final="sequentialinputordersoftmaxrestarts13"
 dds="sequentialdds9"
 
+mcsplit="mcsplit"
+mcsplitbiasedrestarts="mcsplitbiasedrestarts"
+kdown="kdown"
+kdownbiasedrestarts="kdownbiasedrestarts"
+
 glasgow2="glasgow2"
 glasgow3="glasgow3"
 pathlad="pathlad"

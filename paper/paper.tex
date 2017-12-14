@@ -34,7 +34,7 @@
 \crefname{section}{Section}{Sections}
 \Crefname{section}{Section}{Sections}
 
-\title{Value Ordering, Discrepancies, and Restarts for Subgraph Isomorphism}
+\title{Value Ordering, Discrepancies, and Restarts for Subgraph Algorithms}
 \author{Ciaran McCreesh\thanks{This work was supported by the Engineering and Physical Sciences
     Research Council [grant number EP/026842/1]}\\ University of Glasgow, Glasgow, Scotland \\
     ciaran.mccreesh@glasgow.ac.uk}
@@ -45,13 +45,14 @@
 
 \begin{abstract}
     Modern subgraph isomorphism solvers use value-ordering heuristics to direct a constraint
-    programming style search. These heuristics are far from perfect, and experiments show that using
-    a random value-ordering heuristic with restarts beats conventional search with the best known
-    tailored heuristic. This motivates the introduction of a slightly-random value-ordering
-    heuristic with similar behaviour to the tailored heuristic: when combined with restarts, this
-    new search strategy is over a hundred times more effective on satisfiable instances, and does
-    not significantly decrease performance on unsatisfiable instances. In contrast,
-    discrepancy-based searches are too expensive to be effective in this setting.
+    programming style search. Although these heuristics are far from perfect (particularly early on
+    in search), discrepancy-based searches are too expensive to be effective in this setting.
+    However, we show that a random value-ordering heuristic with restarts beats conventional search
+    with the best-known tailored heuristic. This motivates the introduction of a slightly-random
+    value-ordering heuristic with similar behaviour to the tailored heuristic: when combined with
+    restarts, this new search strategy is over ?? a hundred times more effective on satisfiable
+    instances, and does not significantly decrease performance on unsatisfiable instances. Finally,
+    we show that this strategy also improves two maximum common induced subgraph algorithms.
 \end{abstract}
 
 \section{Introduction}
@@ -79,7 +80,8 @@ first'' heuristic.  The effects of the changes we propose are shown in
 large number of satisfiable instances, whilst performing worse only rarely on satisfiable instances,
 and never on unsatisfiable instances.  Further, these properties are \emph{not} shared by
 discrepancy searches (\cref{figure:scatter-dds}) or by random value-ordering with restarts
-(\cref{figure:scatter-random}).
+(\cref{figure:scatter-random}). Finally, we show that this strategy is also effective in an
+optimisation setting, producing clear benefits in two maximum common induced subgraph algorithms.
 
 \section{The Basic Algorithm}
 
@@ -153,7 +155,7 @@ context of restarts.
         \nl \tikzmark{restart2s}trigger nogoods containing only one clause\tikzmark{restart2e} \;
     }
 }
-\bigskip
+\medskip
     \nl $\FuncSty{search}$ (Domains $D$, Decisions $B$) $\rightarrow$ Bool
     \tikzmark{restart8s}\KwSty{or} \KwSty{restart}\tikzmark{restart8e} \;
 \nl \Begin{
@@ -176,7 +178,7 @@ context of restarts.
     \nl \tikzmark{restart6s}\lIf{$(R \gets R + 1) = R'$}{$\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$}
     \nl $\KwSty{return}~\KwSty{false}$
 }
-\bigskip
+\medskip
 \nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
 \nl \Begin{
     \nl \While{$D_v \gets$~\textnormal{a unit domain from}~$D$}{
@@ -450,6 +452,26 @@ history of science.
     \item Discarding subsumed nogoods may be done cheaply, if memory space is a concern.
 \end{itemize}
 
+\section{Maximum Common Subgraph Algorithms}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-mcsplit.pdf}
+    \caption{McSplit speedups}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-kdown.pdf}
+    \caption{k${\downarrow}$ speedups}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-mcs.pdf}
+    \caption{k${\downarrow}$ and McSplit cumulative curves.}
+\end{figure}
+
 \section{Conclusion}
 
 ?? This stuff is quite good.
@@ -466,6 +488,8 @@ $\left|D_v\right|$ as the base. Using $e$ (or for that matter, $2$ or $\pi$) as 
 ?? Bigger CP picture.
 
 ?? Parallel future work
+
+\section{Extra Plots not for the Final Paper}
 
 \begin{figure}[tb]
     \centering

@@ -13,13 +13,16 @@ GRAPHS = \
 	 gen-graph-scatter-heuristics.pdf \
 	 gen-graph-scatter-by-family.pdf \
 	 gen-graph-as.pdf \
-	 gen-graph-scatter-degree.pdf
+	 gen-graph-scatter-degree.pdf \
+	 gen-graph-scatter-mcsplit.pdf \
+	 gen-graph-scatter-kdown.pdf \
+	 gen-graph-mcs.pdf
 
 tables : $(TABLES)
 
 graphs : $(GRAPHS)
 
-gen-graph-%.pdf : graph-%.gnuplot common.gnuplot scatter.gnuplot parula.pal runtimes.data searchtimes.data
+gen-graph-%.pdf : graph-%.gnuplot common.gnuplot scatter.gnuplot optscatter.gnuplot parula.pal runtimes.data searchtimes.data mcsruntimes.data
 	gnuplot $<
 	sed -i -e '19,20s/^\(\\path.*\)/\% \1/' gen-graph-$*.tex # epic haxx
 	latexmk -pdf gen-graph-$*
