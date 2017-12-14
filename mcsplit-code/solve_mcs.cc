@@ -159,7 +159,6 @@ namespace {
         vector<Assignment> incumbent;
         Nogoods nogoods;
         Watches watches;
-        list<typename Nogoods::iterator> need_to_watch;
         Watches literal_clause_membership;
 
         vector<int> vtx_current_assignment;
@@ -345,7 +344,7 @@ namespace {
             if (!params.quiet) cout << "Incumbent size: " << incumbent.size() << endl;
         }
 
-        auto post_nogood(const VarAssignments & current) -> void
+        auto post_nogood(const VarAssignments & current) -> bool
         {
             nogoods.push_back({});
             auto & nogood = nogoods.back();
@@ -354,15 +353,21 @@ namespace {
                 if (a.is_decision)
                     nogood.literals.emplace_back(a.assignment);
 
-            auto nogood_it = prev(nogoods.end());
+            if (nogood.literals.empty())
+                return false;
 
-            need_to_watch.emplace_back(nogood_it);
+            auto nogood_it = prev(nogoods.end());
 
             for (auto & a : nogood.literals) {
                 auto & lcm = literal_clause_membership[a];
                 lcm.emplace_back(nogood_it);
                 nogood.add_clause_membership(lcm, prev(lcm.end()));
             }
+
+            remove_subsumed_clauses(nogood_it);
+            watches[nogood.literals[0]].push_back(nogood_it);
+
+            return true;
         }
 
         auto erase_nogood(Nogoods::iterator nogood_it) -> void
@@ -523,7 +528,6 @@ namespace {
                         if (u == w)
                             break;
                         current.push({{v, u}, true});
-    //                        std::cout << "sz " << current.get_var_assignments().size() << endl;
                         post_nogood(current);
                         current.pop();
                     }
@@ -536,8 +540,8 @@ namespace {
             }
 
             if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart) {
-    //            std::cout << "sz " << current.get_var_assignments().size() << endl;
-                post_nogood(current);
+                if (! post_nogood(current))
+                    return Search::Done;
                 return Search::Restart;
             } else {
                 return Search::Done;
@@ -609,16 +613,6 @@ namespace {
                 ++current_luby;
 
                 ++number_of_restarts;
-
-                for (auto & n : need_to_watch) {
-                    if (n->literals.empty()) {
-                        return;
-                    } else {
-                        remove_subsumed_clauses(n);
-                        watches[n->literals[0]].push_back(n);
-                    }
-                }
-                need_to_watch.clear();
 
                 current.clear();
                 auto domains_copy = domains;
