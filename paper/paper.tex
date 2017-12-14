@@ -60,14 +60,10 @@ supported by the Engineering and Physical Sciences Research Council [grant numbe
 The subgraph isomorphism problem is to find a copy of a small ``pattern'' graph inside a larger
 ``target'' graph.  The current single strongest subgraph isomorphism solver uses ``highest degree
 first'' as a value-ordering heuristic to direct a constraint programming style search
-\citep{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:conf/ijcai/McCreeshPT16}.  This is
-much better than not having a value-ordering heuristic at all, but it is far from perfect,
-particularly for early branching choices. There are two reasons to suspect a better option may
-possible.  Firstly, even if degree were a perfect source of information, many target graphs do not
-have a large degree distribution, and so we would still need to determine \emph{which} vertex of
-highest degree would be best.  Secondly, experiments with a parallel search strategy which
-explicitly steals early branching choices often gives strongly super-linear speedups on satisfiable
-instances \citep{DBLP:conf/cp/McCreeshP15}.
+\citep{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:conf/ijcai/McCreeshPT16}. This
+heuristic is far from perfect. Furthermore, even if degree were a perfect source of information,
+many target graphs do not have a large degree distribution, so we would still need to determine
+\emph{which} vertex of highest degree would be best.
 
 We could try to introduce tiebreaking mechanisms to further refine this heuristic. However, given
 the extreme cost of making an incorrect branching choice early on in search, we believe it is more
@@ -454,22 +450,40 @@ history of science.
 
 \section{Maximum Common Subgraph Algorithms}
 
+?? Two recent maximum common induced subgraph algorithms: k${\downarrow}$
+\citep{DBLP:conf/aaai/HoffmannMR17}, and McSplit \citep{DBLP:conf/ijcai/McCreeshPT17}. The former
+attempts to solve the problem by first trying to solve the induced subgraph isomorphism problem, and
+then if that fails, retries allowing a single unmatched vertex (and thus using weaker invariants),
+and so on. Due to its similarity to \cref{algorithm:sip}, we can introduce the same bias and restart
+strategy.
+
+The McSplit algorithm, meanwhile, uses a constraint programming style search, but with special
+propagators and backtrackable data structures that exploit special properties of the problem. The
+unconventional domain store used by McSplit precludes the use of arbitrary unit propagation, and so
+when introducing restarts, we cannot propagate using nogoods. Instead, we can only detect when we
+are inside an already-visited branch. We must therefore use the one watched literal scheme instead.
+
+?? Benchmark results on the same families of instances are shown in
+\cref{figure:mcsplit,figure:kdown,figure:mcs}. Clearly beneficial. Note that on McSplit we're doing
+extra work and this shows, but it's still worthwhile.
+
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-mcsplit.pdf}
-    \caption{McSplit speedups}
+    \caption{McSplit speedups ?? partial data}\label{figure:mcsplit}
 \end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-kdown.pdf}
-    \caption{k${\downarrow}$ speedups}
+    \caption{k${\downarrow}$ speedups ?? missing data}\label{figure:kdown}
 \end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-mcs.pdf}
-    \caption{k${\downarrow}$ and McSplit cumulative curves.}
+    \caption{k${\downarrow}$ and McSplit cumulative curves ?? partial and missing
+    data}\label{figure:mcs}
 \end{figure}
 
 \section{Conclusion}
@@ -489,24 +503,34 @@ $\left|D_v\right|$ as the base. Using $e$ (or for that matter, $2$ or $\pi$) as 
 
 ?? Parallel future work
 
+\clearpage
+\bibliographystyle{named}
+\bibliography{dblp}
+
+\clearpage
+\appendix
+
 \section{Extra Plots not for the Final Paper}
 
-\begin{figure}[tb]
+\begin{figure}[h]
     \centering
     \includegraphics*{gen-graph-as.pdf}
     \caption{?? Aggregate speedups on satisfiable instances}
 \end{figure}
 
-\begin{figure}[tb]
+\begin{figure}[h]
+    \centering
+    \includegraphics*{gen-graph-as-mcs.pdf}
+    \caption{?? Aggregate speedups on MCS instances}
+\end{figure}
+
+\begin{figure}[h]
     \centering
     \includegraphics*{gen-graph-scatter-degree.pdf}
 
     \caption{When is the degree heuristic good?}
     \label{figure:scatter-degree}
 \end{figure}
-
-\bibliographystyle{named}
-\bibliography{dblp}
 
 \end{document}
 

@@ -16,7 +16,8 @@ GRAPHS = \
 	 gen-graph-scatter-degree.pdf \
 	 gen-graph-scatter-mcsplit.pdf \
 	 gen-graph-scatter-kdown.pdf \
-	 gen-graph-mcs.pdf
+	 gen-graph-mcs.pdf \
+	 gen-graph-as-mcs.pdf
 
 tables : $(TABLES)
 
