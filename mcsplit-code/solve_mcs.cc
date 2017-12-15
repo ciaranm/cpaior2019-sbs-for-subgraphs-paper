@@ -520,9 +520,7 @@ namespace {
                 }
             }
 
-            if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart) {
-                if (! post_nogood(current))
-                    return Search::Done;
+            if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart && post_nogood(current)) {
                 return Search::Restart;
             } else {
                 return Search::Done;
