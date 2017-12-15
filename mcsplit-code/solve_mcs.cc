@@ -461,6 +461,11 @@ namespace {
 
             int bd_idx;
 
+            // Is more than one value choice available at this search node?
+            // This will be set to true if more than one possible value is found to exist
+            // later in the function.
+            bool is_decision = false;
+
             if (bound > incumbent.size() &&
                     !contains_a_nogood(current, domains) &&
                     -1 != (bd_idx = select_bidomain(domains, current.get_num_vtx_assignments())))
@@ -480,11 +485,14 @@ namespace {
                 if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len)
                     possible_values.push_back(-1);
 
+                if (possible_values.size() > 1)
+                    is_decision = true;
+
                 remove_vtx_from_left_domain(domains[bd_idx], v);
                 bd.right_len--;
 
                 for (int w : possible_values) {
-                    current.push({{v, w}, possible_values.size() > 1});
+                    current.push({{v, w}, is_decision});
                     Search search_result;
                     if (w != -1) {
                         // swap w to the end of its colour class
@@ -520,7 +528,7 @@ namespace {
                 }
             }
 
-            if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart && post_nogood(current)) {
+            if (is_decision && backtracks_until_restart > 0 && 0 == --backtracks_until_restart && post_nogood(current)) {
                 return Search::Restart;
             } else {
                 return Search::Done;
