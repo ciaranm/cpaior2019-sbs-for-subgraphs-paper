@@ -165,7 +165,7 @@ namespace {
         const Graph & g0;
         const Graph & g1;
         const Params params;
-		unsigned long long nodes = 0;
+        McsStats stats;
         vector<int> left;
         vector<int> right;
         vector<Assignment> incumbent;
@@ -188,7 +188,7 @@ namespace {
 
         auto show(const vector<VarAssignment>& current, const vector<Bidomain> &domains) -> void
         {
-            cout << "Nodes: " << nodes << endl;
+            cout << "Nodes: " << stats.nodes << endl;
             cout << "Length of current assignment: " << current.size() << endl;
             cout << "Current assignment:";
             for (unsigned int i=0; i<current.size(); i++) {
@@ -355,10 +355,12 @@ namespace {
             for (auto a : current.get_var_assignments())
                 if (a.assignment.w != -1)
                     incumbent.push_back(a.assignment);
+
+            stats.time_of_last_incumbent_update = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    std::chrono::steady_clock::now() - params.start_time).count();
+
             if (!params.quiet) cout << "New incumbent " << incumbent.size() << " at time " <<
-                    std::chrono::duration_cast<std::chrono::milliseconds>(
-                            std::chrono::steady_clock::now() - params.start_time).count() <<
-                    " ms" << endl;
+                    stats.time_of_last_incumbent_update << " ms" << endl;
         }
 
         auto post_nogood(const VarAssignments & current) -> bool
@@ -383,6 +385,9 @@ namespace {
 
             remove_subsumed_clauses(nogood_it);
             watches[nogood.literals[0]].push_back(nogood_it);
+
+            if (nogoods.size() > stats.peak_nogood_count)
+                stats.peak_nogood_count = nogoods.size();
 
             return true;
         }
@@ -467,7 +472,7 @@ namespace {
             if (abort_due_to_timeout)
                 return Search::Aborted;
 
-            nodes++;
+            ++stats.nodes;
 
             if (params.verbose)
                 show(current.get_var_assignments(), domains);
@@ -623,7 +628,7 @@ namespace {
             if (abort_due_to_timeout)
                 return Search::Aborted;
 
-            nodes++;
+            ++stats.nodes;
 
             if (params.verbose)
                 show(current.get_var_assignments(), domains);
@@ -735,7 +740,7 @@ namespace {
               assignments_in_nogood(g0.n)
         { }
 
-        auto run() -> std::pair<vector<Assignment>, unsigned long long>
+        auto run() -> std::pair<vector<Assignment>, McsStats>
         {
             if (params.biased_shuffle) {
                 auto g0_deg = calculate_degrees(g0);
@@ -786,15 +791,14 @@ namespace {
 
 	    if (params.mcsplit_down) {
 		for (unsigned int goal = std::min(g0.n, g1.n) ; goal > 0 ; --goal) {
+                    clear_nogoods();
 		    run_search(domains, goal);
 		    if (incumbent.size() == goal || abort_due_to_timeout) break;
 		    if (!params.quiet) cout << "Upper bound: " << goal-1 << std::endl;
-                    clear_nogoods();
 		}
 	    } else {
                 run_search(domains, std::min(g0.n, g1.n));
 	    }
-
 
     //        for (auto & n : nogoods) {
     //            for (auto a : n.literals) {
@@ -802,7 +806,10 @@ namespace {
     //            }
     //            std::cout << endl;
     //        }
-            return {incumbent, nodes};
+
+            stats.final_nogood_count = nogoods.size();
+
+            return {incumbent, stats};
         }
     };
 
@@ -813,7 +820,7 @@ namespace {
 };
 
 auto solve_mcs(Graph & g0, Graph & g1, Params params)
-		-> std::pair<vector<Assignment>, unsigned long long>
+		-> std::pair<vector<Assignment>, McsStats>
 {
     auto g0_deg = calculate_degrees(g0);
     auto g1_deg = calculate_degrees(g1);

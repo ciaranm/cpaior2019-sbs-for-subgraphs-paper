@@ -224,7 +224,7 @@ int main(int argc, char** argv) {
 
     auto result = solve_mcs(g0, g1, params);
     auto solution = result.first;
-    unsigned long long nodes = result.second;
+    auto stats = result.second;
 
     auto stop = std::chrono::steady_clock::now();
     auto time_elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(stop - start).count();
@@ -249,9 +249,20 @@ int main(int argc, char** argv) {
                 cout << "(" << solution[j].v << " -> " << solution[j].w << ") ";
     cout << std::endl;
 
-    cout << "Nodes:                      " << nodes << endl;
-    cout << "CPU time (ms):              " << time_elapsed << endl;
+    cout << "Peak nogood count:                  " << stats.peak_nogood_count << endl;
+    cout << "Final nogood count:                 " << stats.final_nogood_count << endl;
+    cout << "Nodes:                              " << stats.nodes << endl;
+    cout << "Time of last incumbent update (ms): " << stats.time_of_last_incumbent_update << endl;
+    cout << "CPU time (ms):                      " << time_elapsed << endl;
     if (aborted)
         cout << "TIMEOUT" << endl;
+
+    cout << "Summary:" << std::endl;
+    cout << (aborted ? "TIMEOUT" : "COMPLETED") << " " <<
+            stats.peak_nogood_count << " " <<
+            stats.final_nogood_count << " " <<
+            stats.nodes << " " <<
+            stats.time_of_last_incumbent_update << " " <<
+            time_elapsed << endl;
 }
 

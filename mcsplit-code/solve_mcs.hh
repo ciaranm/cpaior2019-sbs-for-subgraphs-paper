@@ -32,5 +32,12 @@ struct Assignment {
     }
 };
 
+struct McsStats {
+    unsigned long long nodes = 0;
+    unsigned long long peak_nogood_count = 0;
+    unsigned long long final_nogood_count = 0;
+    long long time_of_last_incumbent_update = 0;
+};
+
 auto solve_mcs(Graph & g0, Graph & g1, Params params)
-		-> std::pair<std::vector<Assignment>, unsigned long long>;
+		-> std::pair<std::vector<Assignment>, McsStats>;
