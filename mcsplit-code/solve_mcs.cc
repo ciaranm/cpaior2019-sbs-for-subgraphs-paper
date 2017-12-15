@@ -487,15 +487,8 @@ namespace {
                 if (params.biased_shuffle)
                     biased_shuffle(possible_values);
 
-                if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len) {
-                    if (params.biased_shuffle) {
-                        std::uniform_int_distribution<unsigned> dist(0, possible_values.size());
-                        unsigned insertion_point = dist(global_rand);
-                        possible_values.insert(next(possible_values.begin(), insertion_point), -1);
-                    } else {
-                        possible_values.push_back(-1);
-                    }
-                }
+                if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len)
+                    possible_values.push_back(-1);
 
                 remove_vtx_from_left_domain(domains[bd_idx], v);
                 bd.right_len--;
@@ -513,11 +506,9 @@ namespace {
                         search_result = restarting_search(current, new_domains, backtracks_until_restart);
                     } else {
                         bd.right_len++;
-                        auto copied_domains = domains;
                         if (bd.left_len == 0)
-                            remove_bidomain(copied_domains, bd_idx);
-                        search_result = restarting_search(current, copied_domains, backtracks_until_restart);
-                        bd.right_len--;
+                            remove_bidomain(domains, bd_idx);
+                        search_result = restarting_search(current, domains, backtracks_until_restart);
                     }
                     current.pop();
                     switch (search_result)
