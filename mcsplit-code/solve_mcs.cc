@@ -352,7 +352,7 @@ namespace {
 
             for (auto & a : current.get_var_assignments())
                 if (a.is_decision)
-                    nogood.literals.emplace_back(a.assignment);
+                    nogood.add_literal(a.assignment);
 
             if (nogood.literals.empty())
                 return false;
