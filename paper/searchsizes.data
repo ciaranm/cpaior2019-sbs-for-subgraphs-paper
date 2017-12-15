@@ -1,4 +1,4 @@
-instance family sat sequential9 sequentialinputordersoftmax13 sequentialshuffle9 sequentialantiheuristic9 sequentialinputordersoftmaxrestarts13 sequentialrestartsshuffle9 sequentialdds9
+instance family sat sequential13 sequentialinputordersoftmax13 sequentialshuffle13 sequentialantiheuristic13 sequentialinputordersoftmaxrestarts13 sequentialrestartsshuffle13 sequentialdds13
 F.04 1 1 17 17 23 23 17 23 168
 C.18 1 1 1 1 1 1 1 1 2
 A.04 1 1 1 1 1 1 1 1 2
@@ -1755,7 +1755,7 @@ g33-g45 2 0 2222730 2222730 2222730 2222730 2229707 2228941 117140836
 g33-g46 2 0 223 223 223 223 223 223 17308
 g33-g47 2 0 243 243 243 243 243 243 18468
 g33-g48 2 0 836 836 836 836 839 838 67764
-g33-g49 2 0 176823918 176823918 176823918 176823918 NaN NaN NaN
+g33-g49 2 0 176823918 176823918 176823918 176823918 NaN 177056968 NaN
 g33-g50 2 1 NaN NaN NaN NaN 217530 823 73564147
 g34-g35 2 0 0 0 0 0 0 0 0
 g34-g36 2 0 0 0 0 0 0 0 0
@@ -4632,7 +4632,7 @@ g8-g104 11 0 2720 2720 2720 2720 2730 2726 852924
 g8-g105 11 0 2720 2720 2720 2720 2729 2727 854982
 g8-g106 11 0 67215 67215 67215 67215 67401 67385 NaN
 g8-g107 11 0 9466 9466 9466 9466 9498 9494 4809757
-g8-g108 11 0 34088 34088 34088 34088 34221 34205 19761346
+g8-g108 11 0 34088 34088 34088 34088 34221 34205 NaN
 g8-g109 11 0 1 1 1 1 1 1 1
 g8-g110 11 0 1 1 1 1 1 1 4199
 g8-g111 11 0 67215 67215 67215 67215 67401 67385 NaN
@@ -5199,7 +5199,7 @@ phase-30-150-0.52-0.54-0.56-8 12 1 2528 27836 1228 828597 27701 11820 58603
 phase-30-150-0.54-0.56-0.58-1 12 X NaN NaN NaN NaN NaN NaN NaN
 phase-30-150-0.54-0.56-0.58-2 12 X NaN NaN NaN NaN NaN NaN NaN
 phase-30-150-0.54-0.56-0.58-3 12 X NaN NaN NaN NaN NaN NaN NaN
-phase-30-150-0.54-0.56-0.58-4 12 1 127073121 NaN 438753839 NaN 83362423 NaN 53087935
+phase-30-150-0.54-0.56-0.58-4 12 1 127073121 NaN NaN NaN 83362423 NaN 53087935
 phase-30-150-0.54-0.56-0.58-5 12 X NaN NaN NaN NaN NaN NaN NaN
 phase-30-150-0.54-0.56-0.58-6 12 1 178153 1725507 8120084 192047317 1327507 8352546 2404181
 phase-30-150-0.54-0.56-0.58-7 12 1 NaN 60013745 NaN NaN 142817165 NaN 493906796
@@ -6522,7 +6522,7 @@ all-meshes-CVIU11-pattern3-target278 13 0 1 1 1 1 1 1 1
 all-meshes-CVIU11-pattern3-target279 13 0 1 1 1 1 1 1 1
 all-meshes-CVIU11-pattern3-target28 13 0 0 0 0 0 0 0 1
 all-meshes-CVIU11-pattern3-target280 13 1 NaN NaN 3197568 4597238 3689 1541 42611
-all-meshes-CVIU11-pattern3-target281 13 1 NaN NaN NaN NaN 4815 44211 31155543
+all-meshes-CVIU11-pattern3-target281 13 1 NaN NaN NaN NaN 4815 44211 NaN
 all-meshes-CVIU11-pattern3-target282 13 0 0 0 0 0 0 0 1
 all-meshes-CVIU11-pattern3-target283 13 0 0 0 0 0 0 0 1
 all-meshes-CVIU11-pattern3-target284 13 0 19 19 19 19 19 19 4437
@@ -6572,7 +6572,7 @@ all-meshes-CVIU11-pattern3-target324 13 0 5 5 5 5 5 5 96
 all-meshes-CVIU11-pattern3-target325 13 0 1 1 1 1 1 1 32
 all-meshes-CVIU11-pattern3-target326 13 0 1 1 1 1 1 1 12
 all-meshes-CVIU11-pattern3-target327 13 0 0 0 0 0 0 0 1
-all-meshes-CVIU11-pattern3-target328 13 1 NaN 711820 120 NaN 31945 120 59800692
+all-meshes-CVIU11-pattern3-target328 13 1 NaN 711820 120 NaN 31945 120 NaN
 all-meshes-CVIU11-pattern3-target329 13 1 NaN NaN NaN NaN 5943 22937 14376941
 all-meshes-CVIU11-pattern3-target33 13 0 1 1 1 1 1 1 1
 all-meshes-CVIU11-pattern3-target330 13 0 1 1 1 1 1 1 140
