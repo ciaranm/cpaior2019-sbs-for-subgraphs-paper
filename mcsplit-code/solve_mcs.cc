@@ -60,6 +60,12 @@ namespace {
         {
             var_assignments.clear();
         }
+
+        bool contains(const Assignment & assignment) const
+        {
+            return var_assignments.end() != find_if(var_assignments.begin(), var_assignments.end(),
+                    [&] (const VarAssignment & a) { return a.assignment == assignment; });
+        }
     };
 
     struct Bidomain
@@ -160,8 +166,6 @@ namespace {
         Nogoods nogoods;
         Watches watches;
         Watches literal_clause_membership;
-
-        vector<int> vtx_current_assignment;
 
         // used in subsumption test; assigned once to avoid a vector
         // allocation on each function call
@@ -382,11 +386,12 @@ namespace {
 
         auto can_find_another_watch(Nogood & nogood,
                 list<Nogoods::iterator> & watches_to_update,
-                list<Nogoods::iterator>::iterator watch_to_update) -> bool
+                list<Nogoods::iterator>::iterator watch_to_update,
+                VarAssignments & current) -> bool
         {
             // can we find something else to watch?
             for (auto new_literal = next(nogood.literals.begin(), 1) ; new_literal != nogood.literals.end() ; ++new_literal) {
-                if (vtx_current_assignment[new_literal->v] != new_literal->w) {
+                if (!current.contains(*new_literal)) {
                     // move the new watch to be the first item in the nogood
                     std::swap(nogood.literals[0], *new_literal);
 
@@ -404,7 +409,7 @@ namespace {
 
         auto current_contains_nogood(
                 Assignment most_recent_assignment,
-                vector<int> & vtx_current_assignment) -> bool
+                VarAssignments & current) -> bool
         {
             auto & watches_to_update = watches[most_recent_assignment];
             for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ) {
@@ -412,7 +417,7 @@ namespace {
 
                 auto next_watch_to_update = next(watch_to_update);
 
-                if (!can_find_another_watch(nogood, watches_to_update, watch_to_update))
+                if (!can_find_another_watch(nogood, watches_to_update, watch_to_update, current))
                     return true;
                 
                 watch_to_update = next_watch_to_update;
@@ -427,21 +432,9 @@ namespace {
             if (current.get_var_assignments().empty())
                 return false;
 
-            std::fill(vtx_current_assignment.begin(), vtx_current_assignment.end(), -1);
-
-            for (auto & bd : domains) {
-                for (int i=0; i<bd.left_len; i++) {
-                    int v = left[bd.l + i];
-                    vtx_current_assignment[v] = -2;
-                }
-            }
-
-            for (auto & a : current.get_var_assignments())
-                vtx_current_assignment[a.assignment.v] = a.assignment.w;
-
             auto most_recent_assignment = current.get_var_assignments().back().assignment;
 
-            return current_contains_nogood(most_recent_assignment, vtx_current_assignment);
+            return current_contains_nogood(most_recent_assignment, current);
         }
 
         enum class Search
@@ -692,7 +685,6 @@ namespace {
             : g0(g0), g1(g1), params(params),
               watches(g0.n, g1.n),
               literal_clause_membership(g0.n, g1.n),
-              vtx_current_assignment(g0.n),
               assignments_in_nogood(g0.n)
         { }
 
