@@ -152,6 +152,12 @@ namespace {
         {
             return data[target_size_plus_1 * a.v + a.w + 1];
         }
+
+        auto clear_all() -> void
+        {
+            for (auto & watch_list : data)
+                watch_list.clear();
+        }
     };
 
     class MCS
@@ -172,6 +178,13 @@ namespace {
         vector<int> assignments_in_nogood;
 
         vector<unsigned long long> target_vertex_biases;
+
+        auto clear_nogoods() -> void
+        {
+            nogoods.clear();
+            watches.clear_all();
+            literal_clause_membership.clear_all();
+        }
 
         auto show(const vector<VarAssignment>& current, const vector<Bidomain> &domains) -> void
         {
@@ -336,7 +349,7 @@ namespace {
             }
         }
 
-        auto update_incumbent(vector<Assignment> & incumbent, VarAssignments current) -> void
+        auto update_incumbent(VarAssignments current) -> void
         {
             incumbent.clear();
             for (auto a : current.get_var_assignments())
@@ -438,13 +451,15 @@ namespace {
         {
             Aborted,
             Done,
-            Restart
+            Restart,
+            ReachedGoal
         };
 
         auto restarting_search(
                 VarAssignments & current,
                 vector<Bidomain> & domains,
-                long long & backtracks_until_restart) -> Search
+                long long & backtracks_until_restart,
+                unsigned int matching_size_goal) -> Search
         {
             if (abort_due_to_timeout)
                 return Search::Aborted;
@@ -454,8 +469,11 @@ namespace {
             if (params.verbose)
                 show(current.get_var_assignments(), domains);
 
-            if (current.get_num_vtx_assignments() > incumbent.size())
-                update_incumbent(incumbent, current);
+            if (current.get_num_vtx_assignments() > incumbent.size()) {
+                update_incumbent(current);
+                if (incumbent.size() == matching_size_goal)
+                    return Search::ReachedGoal;
+            }
 
             unsigned int bound = current.get_num_vtx_assignments() + calc_bound(domains);
 
@@ -467,6 +485,7 @@ namespace {
             bool is_decision = false;
 
             if (bound > incumbent.size() &&
+                    (!params.mcsplit_down || bound >= matching_size_goal) &&
                     !contains_a_nogood(current, domains) &&
                     -1 != (bd_idx = select_bidomain(domains, current.get_num_vtx_assignments())))
             {
@@ -482,7 +501,10 @@ namespace {
                 if (params.biased_shuffle)
                     biased_shuffle(possible_values);
 
-                if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len)
+                bool bound_is_minimum_possible =
+                        bound == incumbent.size() + 1 ||
+                        (params.mcsplit_down && bound == matching_size_goal);
+                if (!bound_is_minimum_possible || bd.left_len > bd.right_len)
                     possible_values.push_back(-1);
 
                 if (possible_values.size() > 1)
@@ -501,12 +523,14 @@ namespace {
                         right[bd.r + bd.right_len] = w;
 
                         auto new_domains = filter_domains(domains, v, w, params.directed || params.edge_labelled);
-                        search_result = restarting_search(current, new_domains, backtracks_until_restart);
+                        search_result = restarting_search(current, new_domains,
+                                backtracks_until_restart, matching_size_goal);
                     } else {
                         bd.right_len++;
                         if (bd.left_len == 0)
                             remove_bidomain(domains, bd_idx);
-                        search_result = restarting_search(current, domains, backtracks_until_restart);
+                        search_result = restarting_search(current, domains,
+                                backtracks_until_restart, matching_size_goal);
                     }
                     current.pop();
                     switch (search_result)
@@ -522,6 +546,8 @@ namespace {
                         return Search::Restart;
                     case Search::Aborted:
                         return Search::Aborted;
+                    case Search::ReachedGoal:
+                        return Search::ReachedGoal;
                     case Search::Done:
                         break;
                     }
@@ -586,41 +612,10 @@ namespace {
             }
         }
 
-        auto run_with_restarts(VarAssignments & current, vector<Bidomain> & domains) -> void
-        {
-            list<long long> luby = {{ 1 }};
-            auto current_luby = luby.begin();
-            unsigned number_of_restarts = 0;
-            while (true) {
-                long long backtracks_until_restart = *current_luby * LUBY_MULTIPLIER;
-                if (next(current_luby) == luby.end()) {
-                    luby.insert(luby.end(), luby.begin(), luby.end());
-                    luby.push_back(*luby.rbegin() * 2);
-                }
-                ++current_luby;
-
-                ++number_of_restarts;
-
-                current.clear();
-                auto domains_copy = domains;
-    //            std::cout << "restarting search" << endl;
-    //            std::cout << "nogood count: " << nogoods.size() << endl;
-                switch (restarting_search(current, domains_copy, backtracks_until_restart))
-                {
-                case Search::Done:
-    //                std::cout << "done!" << endl;
-                    return;
-                case Search::Aborted:
-                    return;
-                case Search::Restart:
-                    break;
-                }
-            }
-        }
-
         auto search(
                 VarAssignments & current,
-                vector<Bidomain> & domains) -> Search
+                vector<Bidomain> & domains,
+                unsigned int matching_size_goal) -> Search
         {
             if (abort_due_to_timeout)
                 return Search::Aborted;
@@ -630,11 +625,14 @@ namespace {
             if (params.verbose)
                 show(current.get_var_assignments(), domains);
 
-            if (current.get_num_vtx_assignments() > incumbent.size())
-                update_incumbent(incumbent, current);
+            if (current.get_num_vtx_assignments() > incumbent.size()) {
+                update_incumbent(current);
+                if (incumbent.size() == matching_size_goal)
+                    return Search::ReachedGoal;
+            }
 
             unsigned int bound = current.get_num_vtx_assignments() + calc_bound(domains);
-            if (bound <= incumbent.size())
+            if (bound <= incumbent.size() || (params.mcsplit_down && bound < matching_size_goal))
                 return Search::Done;
 
             int bd_idx = select_bidomain(domains, current.get_num_vtx_assignments());
@@ -652,7 +650,10 @@ namespace {
             if (params.biased_shuffle)
                 biased_shuffle(possible_values);
 
-            if (bound != incumbent.size() + 1 || bd.left_len > bd.right_len)
+            bool bound_is_minimum_possible =
+                    bound == incumbent.size() + 1 ||
+                    (params.mcsplit_down && bound == matching_size_goal);
+            if (!bound_is_minimum_possible || bd.left_len > bd.right_len)
                 possible_values.push_back(-1);
 
             remove_vtx_from_left_domain(domains[bd_idx], v);
@@ -668,19 +669,59 @@ namespace {
                     right[bd.r + bd.right_len] = w;
 
                     auto new_domains = filter_domains(domains, v, w, params.directed || params.edge_labelled);
-                    search_result = search(current, new_domains);
+                    search_result = search(current, new_domains, matching_size_goal);
                 } else {
                     bd.right_len++;
                     if (bd.left_len == 0)
                         remove_bidomain(domains, bd_idx);
-                    search_result = search(current, domains);
+                    search_result = search(current, domains, matching_size_goal);
                 }
                 current.pop();
-                if (search_result == Search::Aborted)
-                    return Search::Aborted;
+                switch (search_result)
+                {
+                case Search::Restart:     break;   // this should never happen
+                case Search::Aborted:     return Search::Aborted;
+                case Search::ReachedGoal: return Search::ReachedGoal;
+                case Search::Done:        break;
+                }
             }
 
             return Search::Done;
+        }
+
+        auto run_search(vector<Bidomain> domains, unsigned int matching_size_goal) -> void
+        {
+            VarAssignments current;
+
+            if (params.restarts) {
+                list<long long> luby = {{ 1 }};
+                auto current_luby = luby.begin();
+                unsigned number_of_restarts = 0;
+                while (true) {
+                    long long backtracks_until_restart = *current_luby * LUBY_MULTIPLIER;
+                    if (next(current_luby) == luby.end()) {
+                        luby.insert(luby.end(), luby.begin(), luby.end());
+                        luby.push_back(*luby.rbegin() * 2);
+                    }
+                    ++current_luby;
+
+                    ++number_of_restarts;
+
+                    current.clear();
+                    auto domains_copy = domains;
+        //            std::cout << "restarting search" << endl;
+        //            std::cout << "nogood count: " << nogoods.size() << endl;
+                    switch (restarting_search(current, domains_copy, backtracks_until_restart, matching_size_goal))
+                    {
+                    case Search::Done:        return;
+                    case Search::Aborted:     return;
+                    case Search::ReachedGoal: return;
+                    case Search::Restart:     break;
+                    }
+                }
+            } else {
+                search(current, domains, matching_size_goal);
+            }
         }
 
     public:
@@ -739,13 +780,18 @@ namespace {
                 domains.push_back({start_l, start_r, left_len, right_len, false});
             }
 
-            VarAssignments current;
 
-            if (params.restarts) {
-                run_with_restarts(current, domains);
-            } else {
-                search(current, domains);
-            }
+	    if (params.mcsplit_down) {
+		for (unsigned int goal = std::min(g0.n, g1.n) ; goal > 0 ; --goal) {
+		    run_search(domains, goal);
+		    if (incumbent.size() == goal || abort_due_to_timeout) break;
+		    if (!params.quiet) cout << "Upper bound: " << goal-1 << std::endl;
+                    clear_nogoods();
+		}
+	    } else {
+                run_search(domains, std::min(g0.n, g1.n));
+	    }
+
 
     //        for (auto & n : nogoods) {
     //            for (auto a : n.literals) {

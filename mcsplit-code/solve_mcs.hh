@@ -16,6 +16,7 @@ struct Params {
     bool directed;
     bool edge_labelled;
     bool vertex_labelled;
+    bool mcsplit_down;
     Heuristic heuristic;
 };
 

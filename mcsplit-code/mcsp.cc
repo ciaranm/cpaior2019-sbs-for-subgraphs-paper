@@ -36,6 +36,7 @@ static struct argp_option options[] = {
     {"connected", 'c', 0, 0, "Solve max common CONNECTED subgraph problem"},
     {"directed", 'i', 0, 0, "Use directed graphs"},
     {"labelled", 'a', 0, 0, "Use edge and vertex labels"},
+    {"mcsplit-down", 'm', 0, 0, "Use the McSplit-down algorithm rather than branch and bound"},
     {"vertex-labelled-only", 'x', 0, 0, "Use vertex labels, but not edge labels"},
     {"timeout", 't', "timeout", 0, "Specify a timeout (seconds)"},
     { 0 }
@@ -52,6 +53,7 @@ struct Arguments {
     bool directed;
     bool edge_labelled;
     bool vertex_labelled;
+    bool mcsplit_down;
     Heuristic heuristic;
     char *filename1;
     char *filename2;
@@ -105,6 +107,9 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state) {
             if (arguments.edge_labelled)
                 fail("The -a and -x options can't be used together.");
             arguments.vertex_labelled = true;
+            break;
+        case 'm':
+            arguments.mcsplit_down = true;
             break;
         case 't':
             arguments.timeout = std::stoi(arg);
@@ -212,6 +217,7 @@ int main(int argc, char** argv) {
         arguments.directed,
         arguments.edge_labelled,
         arguments.vertex_labelled,
+        arguments.mcsplit_down,
         arguments.heuristic
     };
 
