@@ -218,7 +218,8 @@ int main(int argc, char** argv) {
         arguments.edge_labelled,
         arguments.vertex_labelled,
         arguments.mcsplit_down,
-        arguments.heuristic
+        arguments.heuristic,
+        start
     };
 
     auto result = solve_mcs(g0, g1, params);

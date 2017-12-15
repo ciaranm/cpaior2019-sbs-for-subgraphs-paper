@@ -355,7 +355,10 @@ namespace {
             for (auto a : current.get_var_assignments())
                 if (a.assignment.w != -1)
                     incumbent.push_back(a.assignment);
-            if (!params.quiet) cout << "Incumbent size: " << incumbent.size() << endl;
+            if (!params.quiet) cout << "New incumbent " << incumbent.size() << " at time " <<
+                    std::chrono::duration_cast<std::chrono::milliseconds>(
+                            std::chrono::steady_clock::now() - params.start_time).count() <<
+                    " ms" << endl;
         }
 
         auto post_nogood(const VarAssignments & current) -> bool

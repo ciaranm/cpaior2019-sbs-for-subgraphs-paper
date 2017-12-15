@@ -1,4 +1,5 @@
 #include <atomic>
+#include <chrono>
 
 extern std::atomic<bool> abort_due_to_timeout;
 
@@ -18,6 +19,7 @@ struct Params {
     bool vertex_labelled;
     bool mcsplit_down;
     Heuristic heuristic;
+    std::chrono::time_point<std::chrono::steady_clock> start_time;
 };
 
 struct Assignment {
