@@ -1,0 +1,14 @@
+hostname = fatanode-03
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --restarts --shuffle --timeout 1000 ../instances/si/si2_m4D_m4D_256/si2_m4D_m256.05/pattern ../instances/si/si2_m4D_m4D_256/si2_m4D_m256.05/target
+started_at = 2017-12-14 17:58:19
+pattern_file = ../instances/si/si2_m4D_m4D_256/si2_m4D_m256.05/pattern
+target_file = ../instances/si/si2_m4D_m4D_256/si2_m4D_m256.05/target
+status = true
+nodes = 13
+mapping = (0 -> 70) (1 -> 198) (2 -> 69) (3 -> 57) (4 -> 168) (5 -> 52) (6 -> 121) (7 -> 160) (8 -> 145) (9 -> 201) (10 -> 148) (11 -> 22) (12 -> 80) (13 -> 182) (14 -> 75) (15 -> 133) (16 -> 78) (17 -> 197) (18 -> 163) (19 -> 188) (20 -> 8) (21 -> 245) (22 -> 146) (23 -> 58) (24 -> 208) (25 -> 130) (26 -> 85) (27 -> 233) (28 -> 77) (29 -> 86) (30 -> 72) (31 -> 236) (32 -> 47) (33 -> 138) (34 -> 169) (35 -> 2) (36 -> 45) (37 -> 9) (38 -> 254) (39 -> 204) (40 -> 50) (41 -> 71) (42 -> 149) (43 -> 84) (44 -> 128) (45 -> 251) (46 -> 217) (47 -> 83) (48 -> 131) (49 -> 253) (50 -> 118) 
+runtime = 2
+where = 0 -1 1 -1 -1 0 -1 0 -1 -1 -1 -1 1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+restarts = 1
+search_time = 0
+nogoods_size = 0
+nogoods_lengths =

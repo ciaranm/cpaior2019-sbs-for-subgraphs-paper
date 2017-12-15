@@ -1,0 +1,13 @@
+hostname = fatanode-04
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --dds --timeout 1000 ../instances/images-PR15/pattern12 ../instances/images-PR15/target
+started_at = 2017-12-14 19:25:19
+pattern_file = ../instances/images-PR15/pattern12
+target_file = ../instances/images-PR15/target
+status = true
+nodes = 3045
+mapping = (0 -> 2360) (1 -> 3589) (2 -> 2361) (3 -> 2362) (4 -> 2363) (5 -> 3590) (6 -> 3588) 
+runtime = 276
+where = 113 -1 1 -1 -1 -1 -1 0 -1 -1
+search_time = 43
+nogoods_size = 0
+nogoods_lengths =

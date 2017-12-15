@@ -1,0 +1,11 @@
+hostname = fatanode-04
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --dds --timeout 1000 ../instances/si/si2_rand_r01_400/si2_r01_m400.02/pattern ../instances/si/si2_rand_r01_400/si2_r01_m400.02/target
+started_at = 2017-12-14 18:11:45
+pattern_file = ../instances/si/si2_rand_r01_400/si2_r01_m400.02/pattern
+target_file = ../instances/si/si2_rand_r01_400/si2_r01_m400.02/target
+status = aborted
+nodes = 134296289
+runtime = 1000000
+search_time = 999939
+nogoods_size = 0
+nogoods_lengths =

@@ -1,0 +1,14 @@
+hostname = fatanode-06
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --restarts --softmax-shuffle --input-order --timeout 1000 ../instances/phase/phase-30-150-0.34-0.36-0.42-5-pattern ../instances/phase/phase-30-150-0.34-0.36-0.42-5-target
+started_at = 2017-12-13 07:23:27
+pattern_file = ../instances/phase/phase-30-150-0.34-0.36-0.42-5-pattern
+target_file = ../instances/phase/phase-30-150-0.34-0.36-0.42-5-target
+status = true
+nodes = 22250
+mapping = (0 -> 50) (1 -> 76) (2 -> 37) (3 -> 59) (4 -> 82) (5 -> 143) (6 -> 17) (7 -> 21) (8 -> 15) (9 -> 140) (10 -> 60) (11 -> 142) (12 -> 46) (13 -> 74) (14 -> 24) (15 -> 67) (16 -> 70) (17 -> 80) (18 -> 62) (19 -> 63) (20 -> 55) (21 -> 149) (22 -> 84) (23 -> 83) (24 -> 123) (25 -> 139) (26 -> 132) (27 -> 51) (28 -> 122) (29 -> 27) 
+runtime = 89
+where = 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 2 -1 1 -1 1 -1 -1 1 -1 0 -1 0 -1 1 -1 0 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 -1 -1 -1 -1 -1 -1 -1 0 -1 -1
+restarts = 17
+search_time = 81
+nogoods_size = 146
+nogoods_lengths = 5:7 6:18 7:50 8:20 9:17 10:8 11:14 12:4 13:8

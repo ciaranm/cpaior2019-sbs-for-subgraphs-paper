@@ -1,0 +1,13 @@
+hostname = fatanode-04
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --timeout 1000 ../instances/LV/g9 ../instances/largerGraphs/g105
+started_at = 2017-12-14 21:38:52
+pattern_file = ../instances/LV/g9
+target_file = ../instances/largerGraphs/g105
+status = true
+nodes = 32
+mapping = (0 -> 509) (1 -> 2171) (2 -> 187) (3 -> 872) (4 -> 520) (5 -> 1218) (6 -> 0) (7 -> 2685) (8 -> 3170) (9 -> 17) (10 -> 536) (11 -> 1333) (12 -> 659) (13 -> 925) (14 -> 650) (15 -> 1) (16 -> 565) (17 -> 1404) (18 -> 2400) (19 -> 2077) (20 -> 2705) (21 -> 3088) (22 -> 67) (23 -> 889) (24 -> 954) (25 -> 1605) (26 -> 288) (27 -> 2432) (28 -> 1437) (29 -> 2331) (30 -> 429) (31 -> 1454) (32 -> 2) (33 -> 1290) (34 -> 3) (35 -> 4) (36 -> 5) 
+runtime = 143
+where = 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1
+search_time = 0
+nogoods_size = 0
+nogoods_lengths =

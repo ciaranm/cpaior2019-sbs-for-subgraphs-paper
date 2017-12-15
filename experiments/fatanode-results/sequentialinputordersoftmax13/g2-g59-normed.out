@@ -1,0 +1,13 @@
+hostname = fatanode-06
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --softmax-shuffle --input-order --timeout 1000 ../instances/LV/g2 ../instances/largerGraphs/g59-normed
+started_at = 2017-12-13 06:54:45
+pattern_file = ../instances/LV/g2
+target_file = ../instances/largerGraphs/g59-normed
+status = true
+nodes = 11
+mapping = (0 -> 276) (1 -> 85) (2 -> 31) (3 -> 4) (4 -> 17) (5 -> 137) (6 -> 247) (7 -> 88) (8 -> 255) (9 -> 130) 
+runtime = 1
+where = 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1
+search_time = 0
+nogoods_size = 0
+nogoods_lengths =

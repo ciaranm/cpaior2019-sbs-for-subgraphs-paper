@@ -1,0 +1,11 @@
+hostname = fatanode-03
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --dds --timeout 1000 ../instances/LV/g41 ../instances/largerGraphs/g73-normed
+started_at = 2017-12-14 22:51:56
+pattern_file = ../instances/LV/g41
+target_file = ../instances/largerGraphs/g73-normed
+status = aborted
+nodes = 79371591
+runtime = 1000000
+search_time = 999988
+nogoods_size = 0
+nogoods_lengths =

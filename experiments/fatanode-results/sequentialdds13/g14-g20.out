@@ -1,0 +1,12 @@
+hostname = fatanode-03
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --dds --timeout 1000 ../instances/LV/g14 ../instances/LV/g20
+started_at = 2017-12-14 18:17:51
+pattern_file = ../instances/LV/g14
+target_file = ../instances/LV/g20
+status = false
+nodes = 8933177
+runtime = 14750
+last_discrepancy = 98
+search_time = 14748
+nogoods_size = 0
+nogoods_lengths =

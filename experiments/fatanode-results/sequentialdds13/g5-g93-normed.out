@@ -1,0 +1,13 @@
+hostname = fatanode-04
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --dds --timeout 1000 ../instances/LV/g5 ../instances/largerGraphs/g93-normed
+started_at = 2017-12-14 22:19:24
+pattern_file = ../instances/LV/g5
+target_file = ../instances/largerGraphs/g93-normed
+status = true
+nodes = 12
+mapping = (0 -> 314) (1 -> 405) (2 -> 1095) (3 -> 1365) (4 -> 255) (5 -> 455) (6 -> 1434) (7 -> 104) (8 -> 1425) (9 -> 75) (10 -> 1124) 
+runtime = 738
+where = 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1
+search_time = 0
+nogoods_size = 0
+nogoods_lengths =

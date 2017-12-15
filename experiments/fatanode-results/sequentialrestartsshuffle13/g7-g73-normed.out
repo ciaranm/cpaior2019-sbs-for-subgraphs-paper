@@ -1,0 +1,12 @@
+hostname = fatanode-03
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --restarts --shuffle --timeout 1000 ../instances/LV/g7 ../instances/largerGraphs/g73-normed
+started_at = 2017-12-14 23:00:45
+pattern_file = ../instances/LV/g7
+target_file = ../instances/largerGraphs/g73-normed
+status = false
+nodes = 940912
+runtime = 6544
+restarts = 382
+search_time = 6533
+nogoods_size = 10499
+nogoods_lengths = 1:70 2:502 3:2219 4:2697 5:2226 6:1557 7:824 8:356 9:48

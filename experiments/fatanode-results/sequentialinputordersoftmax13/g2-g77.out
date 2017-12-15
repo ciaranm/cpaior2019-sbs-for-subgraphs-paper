@@ -1,0 +1,13 @@
+hostname = fatanode-06
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --softmax-shuffle --input-order --timeout 1000 ../instances/LV/g2 ../instances/largerGraphs/g77
+started_at = 2017-12-13 05:50:23
+pattern_file = ../instances/LV/g2
+target_file = ../instances/largerGraphs/g77
+status = true
+nodes = 11
+mapping = (0 -> 607) (1 -> 63) (2 -> 608) (3 -> 180) (4 -> 543) (5 -> 28) (6 -> 538) (7 -> 282) (8 -> 539) (9 -> 230) 
+runtime = 255
+where = 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1
+search_time = 0
+nogoods_size = 0
+nogoods_lengths =

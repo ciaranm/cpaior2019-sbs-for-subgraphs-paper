@@ -1,0 +1,12 @@
+hostname = fatanode-06
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --dds --timeout 1000 ../instances/images-CVIU11/patterns/pattern1 ../instances/images-CVIU11/targets/target49
+started_at = 2017-12-15 01:27:54
+pattern_file = ../instances/images-CVIU11/patterns/pattern1
+target_file = ../instances/images-CVIU11/targets/target49
+status = false
+nodes = 50
+runtime = 229
+last_discrepancy = 49
+search_time = 8
+nogoods_size = 0
+nogoods_lengths =

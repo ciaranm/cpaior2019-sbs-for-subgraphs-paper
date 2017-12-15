@@ -1,0 +1,14 @@
+hostname = fatanode-03
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --restarts --shuffle --timeout 1000 ../instances/si/si2_rand_r005_200/si2_r005_m200.01/pattern ../instances/si/si2_rand_r005_200/si2_r005_m200.01/target
+started_at = 2017-12-14 17:54:45
+pattern_file = ../instances/si/si2_rand_r005_200/si2_r005_m200.01/pattern
+target_file = ../instances/si/si2_rand_r005_200/si2_r005_m200.01/target
+status = true
+nodes = 14476
+mapping = (0 -> 81) (1 -> 174) (2 -> 101) (3 -> 129) (4 -> 57) (5 -> 120) (6 -> 53) (7 -> 87) (8 -> 196) (9 -> 197) (10 -> 33) (11 -> 121) (12 -> 35) (13 -> 198) (14 -> 82) (15 -> 161) (16 -> 64) (17 -> 111) (18 -> 31) (19 -> 186) (20 -> 157) (21 -> 166) (22 -> 168) (23 -> 123) (24 -> 21) (25 -> 60) (26 -> 179) (27 -> 136) (28 -> 147) (29 -> 12) (30 -> 175) (31 -> 79) (32 -> 190) (33 -> 134) (34 -> 130) (35 -> 15) (36 -> 180) (37 -> 61) (38 -> 173) (39 -> 32) 
+runtime = 45
+where = 0 -1 1 -1 0 -1 0 -1 0 -1 -1 1 -1 1 -1 0 -1 1 -1 2 -1 0 -1 -1 -1 -1 0 -1 0 -1 -1 0 -1 0 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 0 -1 0 -1 -1 -1 0 -1 -1 -1 -1 0 -1 -1 0 -1 0 -1 0 -1 0 -1
+restarts = 14
+search_time = 41
+nogoods_size = 150
+nogoods_lengths = 2:9 3:7 4:3 5:2 6:10 7:12 8:22 9:20 10:23 11:23 12:8 13:5 14:4 16:2

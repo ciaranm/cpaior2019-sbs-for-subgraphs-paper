@@ -1,0 +1,13 @@
+hostname = fatanode-04
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --antiheuristic --timeout 1000 ../instances/si/si2_bvg_b03_200/si2_b03_m200.05/pattern ../instances/si/si2_bvg_b03_200/si2_b03_m200.05/target
+started_at = 2017-12-14 17:54:55
+pattern_file = ../instances/si/si2_bvg_b03_200/si2_b03_m200.05/pattern
+target_file = ../instances/si/si2_bvg_b03_200/si2_b03_m200.05/target
+status = true
+nodes = 3
+mapping = (0 -> 199) (1 -> 103) (2 -> 74) (3 -> 146) (4 -> 76) (5 -> 155) (6 -> 16) (7 -> 68) (8 -> 139) (9 -> 140) (10 -> 29) (11 -> 44) (12 -> 148) (13 -> 101) (14 -> 35) (15 -> 63) (16 -> 6) (17 -> 115) (18 -> 55) (19 -> 90) (20 -> 166) (21 -> 152) (22 -> 105) (23 -> 80) (24 -> 122) (25 -> 89) (26 -> 154) (27 -> 102) (28 -> 53) (29 -> 192) (30 -> 157) (31 -> 47) (32 -> 168) (33 -> 83) (34 -> 142) (35 -> 104) (36 -> 119) (37 -> 137) (38 -> 4) (39 -> 193) 
+runtime = 1
+where = 0 -1 0 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+search_time = 0
+nogoods_size = 0
+nogoods_lengths =

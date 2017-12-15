@@ -1,0 +1,13 @@
+hostname = fatanode-03
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --antiheuristic --timeout 1000 ../instances/LV/g2 ../instances/largerGraphs/g61
+started_at = 2017-12-14 20:27:36
+pattern_file = ../instances/LV/g2
+target_file = ../instances/largerGraphs/g61
+status = true
+nodes = 8
+mapping = (0 -> 330) (1 -> 329) (2 -> 328) (3 -> 327) (4 -> 326) (5 -> 315) (6 -> 316) (7 -> 317) (8 -> 318) (9 -> 319) 
+runtime = 1
+where = 0 -1 0 -1 0 -1 0 -1 0 -1 0 -1 1 -1 -1 -1 -1
+search_time = 0
+nogoods_size = 0
+nogoods_lengths =

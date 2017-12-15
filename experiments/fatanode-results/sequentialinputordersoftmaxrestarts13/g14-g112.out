@@ -1,0 +1,12 @@
+hostname = fatanode-06
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --restarts --softmax-shuffle --input-order --timeout 1000 ../instances/LV/g14 ../instances/largerGraphs/g112
+started_at = 2017-12-13 05:31:59
+pattern_file = ../instances/LV/g14
+target_file = ../instances/largerGraphs/g112
+status = false
+nodes = 0
+runtime = 601
+restarts = 1
+search_time = 0
+nogoods_size = 0
+nogoods_lengths =

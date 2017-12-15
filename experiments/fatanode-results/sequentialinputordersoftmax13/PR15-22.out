@@ -1,0 +1,13 @@
+hostname = fatanode-06
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --softmax-shuffle --input-order --timeout 1000 ../instances/images-PR15/pattern22 ../instances/images-PR15/target
+started_at = 2017-12-13 05:16:33
+pattern_file = ../instances/images-PR15/pattern22
+target_file = ../instances/images-PR15/target
+status = true
+nodes = 16
+mapping = (0 -> 4549) (1 -> 4550) (2 -> 852) (3 -> 851) (4 -> 850) (5 -> 849) (6 -> 848) (7 -> 847) (8 -> 4552) (9 -> 855) (10 -> 856) 
+runtime = 231
+where = 14 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1 -1
+search_time = 1
+nogoods_size = 0
+nogoods_lengths =

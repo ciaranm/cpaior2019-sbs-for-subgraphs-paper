@@ -1,0 +1,8 @@
+hostname = fatanode-04
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --shuffle --timeout 1000 ../instances/meshes-CVIU11/patterns/pattern2 ../instances/meshes-CVIU11/targets/target176
+started_at = 2017-12-15 01:13:58
+pattern_file = ../instances/meshes-CVIU11/patterns/pattern2
+target_file = ../instances/meshes-CVIU11/targets/target176
+status = false
+nodes = 0
+runtime = 2

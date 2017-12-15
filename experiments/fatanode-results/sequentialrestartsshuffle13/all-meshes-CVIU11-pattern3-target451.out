@@ -1,0 +1,12 @@
+hostname = fatanode-01
+commandline = ../code/solve_subgraph_isomorphism customisable-sequential --restarts --shuffle --timeout 1000 ../instances/meshes-CVIU11/patterns/pattern3 ../instances/meshes-CVIU11/targets/target451
+started_at = 2017-12-15 00:45:19
+pattern_file = ../instances/meshes-CVIU11/patterns/pattern3
+target_file = ../instances/meshes-CVIU11/targets/target451
+status = aborted
+nodes = 31348302
+runtime = 1000058
+restarts = 8189
+search_time = 999792
+nogoods_size = 107483
+nogoods_lengths = 1:44 2:146 3:139 4:1754 5:974 6:1105 7:1893 8:2471 9:3068 10:3782 11:4244 12:4669 13:4945 14:5101 15:5159 16:5407 17:5400 18:5233 19:5113 20:4891 21:4498 22:4083 23:3965 24:3454 25:3206 26:2892 27:2630 28:2381 29:2163 30:1987 31:1774 32:1580 33:1392 34:1156 35:926 36:908 37:742 38:599 39:469 40:328 41:259 42:173 43:135 44:82 45:51 46:34 47:32 48:15 49:13 50:8 51:3 52:3 53:2 54:2
