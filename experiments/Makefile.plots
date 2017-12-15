@@ -1,0 +1,92 @@
+SHELL := /bin/bash
+FILTER := -1
+MODULUS := 1
+INSTANCES_FILE := instances.txt
+CATTER := cat
+INSTANCES := $(shell cat $(INSTANCES_FILE) | $(CATTER) | cut -d' ' -f1 | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi)
+GLASGOW_ALGORITHMS := \
+    sequential13 \
+    sequentialinputordersoftmax13 \
+    sequentialshuffle13 \
+    sequentialantiheuristic13 \
+    sequentialinputordersoftmaxrestarts13 \
+    sequentialrestartsshuffle13 \
+    sequentialdds13
+
+LAD_ALGORITHMS := lad pathlad
+VF2_ALGORITHMS := vf2
+GLASGOWLION_ALGORITHMS := glasgow2 glasgow3
+MCSPLIT_ALGORITHMS := # non_ind_mcsp_2paths anti_non_ind_mcsp_2paths
+ALL_ALGORITHMS := vbs $(GLASGOW_ALGORITHMS) $(MCSPLIT_ALGORITHMS) $(LAD_ALGORITHMS) $(VF2_ALGORITHMS) $(GLASGOWLION_ALGORITHMS)
+RESULTS := results
+
+all : $(RESULTS)/runtimes.data $(RESULTS)/searchtimes.data $(RESULTS)/searchsizes.data
+
+$(RESULTS)/runtimes.data :
+	{ \
+	    echo instance family sat $(ALL_ALGORITHMS) ; \
+	    $(CATTER) $(INSTANCES_FILE) | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi | while read i p t f ; do \
+	        echo $$i $$f $$(cat $(RESULTS)/stats/$$i.sat ) $$(for a in $(ALL_ALGORITHMS) ; do cat $(RESULTS)/stats/$$i.runtime.$$a ; done ) ; \
+	    done ; \
+	} | tee $@
+
+$(RESULTS)/searchtimes.data :
+	{ \
+	    echo instance family sat $(GLASGOW_ALGORITHMS) ; \
+	    $(CATTER) $(INSTANCES_FILE) | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi | while read i p t f ; do \
+	        echo $$i $$f $$(cat $(RESULTS)/stats/$$i.sat ) $$(for a in $(GLASGOW_ALGORITHMS) ; do cat $(RESULTS)/stats/$$i.searchtime.$$a ; done ) ; \
+	    done ; \
+	} | tee $@
+
+$(RESULTS)/searchsizes.data :
+	{ \
+	    echo instance family sat $(GLASGOW_ALGORITHMS) ; \
+	    $(CATTER) $(INSTANCES_FILE) | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi | while read i p t f ; do \
+	        echo $$i $$f $$(cat $(RESULTS)/stats/$$i.sat ) $$(for a in $(GLASGOW_ALGORITHMS) ; do cat $(RESULTS)/stats/$$i.searchsize.$$a ; done ) ; \
+	    done ; \
+	} | tee $@
+
+$(RESULTS)/cheap-features.data :
+	{ \
+	    echo instance family \
+	        $$(../graph_stats/graph_stats $$(head -n1 $(INSTANCES_FILE) | cut -d' ' -f2 ) | cut -d= -f1 | sed -e 's,^,pattern-,') \
+	        $$(../graph_stats/graph_stats $$(head -n1 $(INSTANCES_FILE) | cut -d' ' -f3 ) | cut -d= -f1 | sed -e 's,^,target-,') ; \
+	    $(CATTER) $(INSTANCES_FILE) | while read i p t f ; do \
+	        echo $$i $$f $$(../graph_stats/graph_stats $$p | cut -d= -f2 ) $$(../graph_stats/graph_stats $$t | cut -d= -f2  ) ; \
+	    done ; \
+	} | tee $@
+
+$(RESULTS)/distance-features.data :
+	{ \
+	    echo instance family \
+	        $$(../graph_stats/graph_stats --distances $$(head -n1 $(INSTANCES_FILE) | cut -d' ' -f2 ) | grep 'distance\|connected\|time' | cut -d= -f1 | sed -e 's,^,pattern-,') \
+	        $$(../graph_stats/graph_stats --distances $$(head -n1 $(INSTANCES_FILE) | cut -d' ' -f3 ) | grep 'distance\|connected\|time' | cut -d= -f1 | sed -e 's,^,target-,') ; \
+	    cat $(INSTANCES_FILE) | while read i p t f ; do \
+	        echo $$i $$f $$(../graph_stats/graph_stats --distances $$p | grep 'distance\|connected\|time' | cut -d= -f2 ) $$(../graph_stats/graph_stats --distances $$t | grep 'distance\|connected\|time' | cut -d= -f2  ) ; \
+	    done ; \
+	} | tee $@
+
+$(RESULTS)/lad-features.data :
+	{ \
+	    echo instance family lad-values-removed lad-values-removed-percent lad-values-removed-min lad-values-removed-max lad-time lad-detected-inconsistent ; \
+	    $(CATTER) $(INSTANCES_FILE) | while read i p t f ; do \
+	        x=$$(../lad_stats/LADpreprocessing -p $$p -t $$t ) ; \
+	        vt=$$(echo $$x | sed -n -e 's/.* in \(.*\) seconds/\1/p' ) ; \
+	        vt=$$(dc -e "$$vt 1000 * p ") ; \
+	        [[ "$${vt#.}" != "$${vt}" ]] && vt=0.${vt} ; \
+	        vt=$${vt%.*} ; \
+	        if echo $$x | grep -q Inconsistency ; then \
+		    vn=0 ; vp=100 ; vx=0 ; vy=0 ; vi=true ; \
+		else \
+		    vn=$$(echo $$x | sed -n -e 's/\(.*\) removed values.*/\1/p' ) ; \
+		    vp=$$(echo $$x | sed -n -e 's/.* (percentage = \([^,]*\)\(, .*\)\?) in .* seconds/\1/p' ) ; \
+		    vy=$$(echo $$x | sed -n -e 's/.* (percentage = .*, min = \(.*\), max = .*) in .* seconds/\1/p' ) ; \
+		    vx=$$(echo $$x | sed -n -e 's/.* (percentage = .*, min = .*, max = \(.*\)) in .* seconds/\1/p' ) ; \
+		    [[ -z $$vx ]] && vx=0 ; \
+		    [[ -z $$vy ]] && vy=0 ; \
+		    vi=false ; \
+		fi ; \
+		[[ -z $$vn ]] || [[ -z $$vp ]] || [[ -z $$vt ]] && echo error parsing $$i: line is $$x, vn is $$vn, vp is $$vp, vt is $$vt 1>&2 && exit 1 ; \
+	        echo $$i $$f $$vn $$vp $$vy $$vx $$vt $$vi ; \
+	    done ; \
+	} | tee $@

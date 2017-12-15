@@ -1,0 +1,20 @@
+SHELL := /bin/bash
+FILTER := -1
+MODULUS := 1
+INSTANCES := $(shell cut -d' ' -f1 instances.txt | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi)
+TIMEOUT := 1000
+ALGORITHMS := vf2
+RESULTS := results
+
+all : $(foreach i, $(INSTANCES), $(foreach a, $(ALGORITHMS), $(RESULTS)/$(a)/$i.out ))
+
+dir-% :
+	mkdir -p $(RESULTS) $(RESULTS)/$*
+
+define ALGORITHM_template
+$(RESULTS)/$(1)/%.out : | dir-$(1)
+	../vflib/solve_vf $$(shell grep "^`basename $$*` " < instances.txt | cut -d' ' -f2-3 ) $$(TIMEOUT) > >(tee $$@ )
+endef
+
+$(foreach a,$(ALGORITHMS),$(eval $(call ALGORITHM_template,$(a))))
+
