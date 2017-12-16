@@ -112,6 +112,7 @@ auto main(int argc, char * argv[]) -> int
             ("format",             po::value<std::string>(), "Specify graph file format (lad, dimacs or vf)")
             ("except",             po::value<int>(),  "Allow this many pattern vertices to be excluded")
             ("induced",                               "Induced")
+            ("restarts",                              "Restarts")
             ;
 
         po::options_description all_options{ "All options" };
@@ -170,6 +171,7 @@ auto main(int argc, char * argv[]) -> int
         Params params;
 
         params.induced = options_vars.count("induced");
+        params.restarts = options_vars.count("restarts");
         if (options_vars.count("except"))
             params.except = options_vars["except"].as<int>();
 

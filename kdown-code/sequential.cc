@@ -24,9 +24,12 @@ using std::greater;
 using std::list;
 using std::make_pair;
 using std::map;
+using std::max;
+using std::move;
 using std::mt19937;
 using std::numeric_limits;
 using std::pair;
+using std::swap;
 using std::to_string;
 using std::tuple;
 using std::uniform_int_distribution;
@@ -37,7 +40,7 @@ using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::steady_clock;
 
-using std::cerr;
+using std::cout;
 using std::endl;
 
 namespace
@@ -222,6 +225,69 @@ namespace
             }
     };
 
+    enum class RestartingSearch
+    {
+        Aborted,
+        Unsatisfiable,
+        Satisfiable,
+        Restart
+    };
+
+    using Assignment = pair<unsigned, unsigned>;
+
+    struct Assignments
+    {
+        vector<tuple<Assignment, bool, int> > values;
+
+        bool contains(const Assignment & assignment) const
+        {
+            // this should not be a linear scan...
+            return values.end() != find_if(values.begin(), values.end(), [&] (const auto & a) {
+                    return get<0>(a) == assignment;
+                    });
+        }
+    };
+
+    // A nogood, aways of the form (list of assignments) -> false, where the
+    // last part is implicit. If there are at least two assignments, then the
+    // first two assignments are the watches (and the literals are permuted
+    // when the watches are updates).
+    struct Nogood
+    {
+        vector<Assignment> literals;
+    };
+
+    // nogoods stored here
+    using Nogoods = list<Nogood>;
+
+    // Two watched literals for our nogoods store.
+    struct Watches
+    {
+        // for each watched literal, we have a list of watched things, each of
+        // which is an iterator into the global watch list (so we can reorder
+        // the literal to keep the watches as the first two elements)
+        using WatchList = list<Nogoods::iterator>;
+
+        // two dimensional array, indexed by (target_size * p + t)
+        vector<WatchList> data;
+
+        unsigned pattern_size = 0, target_size = 0;
+
+        // not a ctor to avoid annoyingness with isolated vertices altering the
+        // pattern size
+        void initialise(unsigned p, unsigned t)
+        {
+            pattern_size = p;
+            target_size = t;
+            data.resize(p * t);
+        }
+
+        WatchList & operator[] (const Assignment & a)
+        {
+            return data[target_size * a.first + a.second];
+        }
+    };
+
     template <typename Bitset_>
     struct SIP
     {
@@ -234,43 +300,6 @@ namespace
 
         using Domains = vector<Domain>;
 
-        struct Assignments
-        {
-            vector<tuple<unsigned, unsigned, bool> > trail;
-
-            auto push_branch(unsigned a, unsigned b) -> void
-            {
-                trail.emplace_back(a, b, true);
-            }
-
-            auto push_implication(unsigned a, unsigned b) -> void
-            {
-                if (trail.end() == find_if(trail.begin(), trail.end(), [&] (const auto & x) {
-                            return get<0>(x) == a && get<1>(x) == b;
-                            }))
-                    trail.emplace_back(a, b, false);
-            }
-
-            auto pop() -> void
-            {
-                while ((! trail.empty()) && (! get<2>(trail.back())))
-                    trail.pop_back();
-
-                if (! trail.empty())
-                    trail.pop_back();
-            }
-
-            auto store_to(map<int, int> & m, unsigned wildcard_start) -> void
-            {
-                for (auto & t : trail) {
-                    if (get<1>(t) >= wildcard_start)
-                        m.emplace(get<0>(t), -1);
-                    else
-                        m.emplace(get<0>(t), get<1>(t));
-                }
-            }
-        };
-
         const Params & params;
         unsigned domain_size;
 
@@ -278,17 +307,25 @@ namespace
 
         list<pair<vector<Bitset_>, vector<Bitset_> > > adjacency_constraints;
         vector<unsigned> pattern_degrees, target_degrees;
+        unsigned largest_target_degree;
 
         Domains initial_domains;
 
         unsigned wildcard_start;
         Bitset_ all_wildcards;
 
+        Nogoods nogoods;
+        Watches watches;
+        list<typename Nogoods::iterator> need_to_watch;
+
+        mt19937 global_rand;
+
         SIP(const Params & k, const Graph & pattern, const Graph & target) :
             params(k),
             domain_size(target.size() + params.except),
             pattern_degrees(pattern.size()),
             target_degrees(domain_size),
+            largest_target_degree(0),
             initial_domains(pattern.size()),
             wildcard_start(target.size()),
             all_wildcards(domain_size)
@@ -302,12 +339,14 @@ namespace
             for (unsigned p = 0 ; p < pattern.size() ; ++p)
                 pattern_degrees[p] = pattern.degree(p);
 
-            for (unsigned t = 0 ; t < target.size() ; ++t)
+            for (unsigned t = 0 ; t < target.size() ; ++t) {
                 target_degrees[t] = target.degree(t);
+                largest_target_degree = max(largest_target_degree, target_degrees[t]);
+            }
 
             if (params.except >= 1)
                 for (unsigned v = 0 ; v < params.except ; ++v)
-                    target_degrees.at(wildcard_start + v) = 0;
+                    target_degrees.at(wildcard_start + v) = largest_target_degree + 1;
 
             vector<vector<vector<unsigned> > > p_nds(adjacency_constraints.size());
             vector<vector<vector<unsigned> > > t_nds(adjacency_constraints.size());
@@ -392,7 +431,33 @@ namespace
                 if (params.except >= 1)
                     for (unsigned v = wildcard_start ; v != domain_size ; ++v)
                         initial_domains[p].values.set(v);
+
+                // set up space for watches
+                if (params.restarts)
+                    watches.initialise(pattern.size(), domain_size);
             }
+        }
+
+        auto post_nogood(
+                const Assignments & assignments)
+        {
+            Nogood nogood;
+
+            for (auto & a : assignments.values)
+                if (get<1>(a))
+                    nogood.literals.emplace_back(get<0>(a));
+
+            nogoods.emplace_back(move(nogood));
+            need_to_watch.emplace_back(prev(nogoods.end()));
+        }
+
+        auto save_result(const Assignments & assignments, Result & result) -> void
+        {
+            for (auto & a : assignments.values)
+                if (get<0>(a).second >= wildcard_start)
+                    result.isomorphism.emplace(get<0>(a).first, -1);
+                else
+                    result.isomorphism.emplace(get<0>(a).first, get<0>(a).second);
         }
 
         auto add_complement_constraints(const Graph & pattern, const Graph & target) -> auto
@@ -474,7 +539,7 @@ namespace
                 }
         }
 
-        auto select_branch_domain(Domains & domains) -> typename Domains::iterator
+        auto select_branch_domain(const Domains & domains) -> typename Domains::const_iterator
         {
             auto best = domains.end();
 
@@ -514,7 +579,60 @@ namespace
                     });
         }
 
-        auto unit_propagate(Domains & domains, Assignments & assignments) -> bool
+        auto propagate_watches(Domains & new_domains, Assignments & assignments, const Assignment & current_assignment) -> bool
+        {
+            auto & watches_to_update = watches[current_assignment];
+            for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ) {
+                Nogood & nogood = **watch_to_update;
+
+                // make the first watch the thing we just triggered
+                if (nogood.literals[0] != current_assignment)
+                    swap(nogood.literals[0], nogood.literals[1]);
+
+                // can we find something else to watch?
+                bool success = false;
+                for (auto new_literal = next(nogood.literals.begin(), 2) ; new_literal != nogood.literals.end() ; ++new_literal) {
+                    if (! assignments.contains(*new_literal)) {
+                        // we can watch new_literal instead of current_assignment in this nogood
+                        success = true;
+
+                        // move the new watch to be the first item in the nogood
+                        swap(nogood.literals[0], *new_literal);
+
+                        // start watching it
+                        watches[nogood.literals[0]].push_back(*watch_to_update);
+
+                        // remove the current watch, and update the loop iterator
+                        watches_to_update.erase(watch_to_update++);
+
+                        break;
+                    }
+                }
+
+                // found something new? nothing to propagate (and we've already updated our loop iterator in the erase)
+                if (success)
+                    continue;
+
+                // no new watch, this nogood will now propagate. do a linear scan to find the variable for now... note
+                // that it might not exist if we've assigned it something other value anyway.
+                for (auto & d : new_domains) {
+                    if (d.fixed)
+                        continue;
+
+                    if (d.v == nogood.literals[1].first) {
+                        d.values.reset(nogood.literals[1].second);
+                        break;
+                    }
+                }
+
+                // step the loop variable, only if we've not already erased it
+                ++watch_to_update;
+            }
+
+            return true;
+        }
+
+        auto propagate(Domains & domains, Assignments & assignments) -> bool
         {
             while (! domains.empty()) {
                 auto unit_domain_iter = select_unit_domain(domains);
@@ -531,7 +649,12 @@ namespace
                 auto unit_domain_value = unit_domain_iter->values.find_first();
                 unit_domain_iter->fixed = true;
 
-                assignments.push_implication(unit_domain_v, unit_domain_value);
+                assignments.values.push_back({ { unit_domain_v, unit_domain_value }, false, -1 });
+
+                // propagate watches
+                if (params.restarts)
+                    if (! propagate_watches(domains, assignments, { unit_domain_v, unit_domain_value }))
+                        return false;
 
                 for (auto & d : domains) {
                     if (d.fixed)
@@ -598,20 +721,20 @@ namespace
         }
 
         auto solve(
-                Domains & domains,
-                Assignments & assignments) -> bool
+                const Domains & domains,
+                Assignments & assignments,
+                int depth,
+                long long & backtracks_until_restart) -> RestartingSearch
         {
             if (*params.abort)
-                return false;
+                return RestartingSearch::Aborted;
 
             ++result.nodes;
 
             auto branch_domain = select_branch_domain(domains);
 
-            if (domains.end() == branch_domain) {
-                assignments.store_to(result.isomorphism, wildcard_start);
-                return true;
-            }
+            if (domains.end() == branch_domain)
+                return RestartingSearch::Satisfiable;
 
             vector<unsigned> branch_values;
             for (auto branch_value = branch_domain->values.find_first() ;
@@ -619,15 +742,53 @@ namespace
                     branch_value = branch_domain->values.find_next(branch_value))
                 branch_values.push_back(branch_value);
 
-            sort(branch_values.begin(), branch_values.end(), [&] (const auto & a, const auto & b) {
-                    return target_degrees.at(a) < target_degrees.at(b) || (target_degrees.at(a) == target_degrees.at(b) && a < b);
-                    });
+            if (params.restarts) {
+                // repeatedly pick a softmax-biased vertex, move it to the front of branch_values,
+                // and then only consider items further to the right in the next iteration.
+
+                // Using floating point here turned out to be way too slow. Fortunately the base
+                // of softmax doesn't seem to matter, so we use 2 instead of e, and do everything
+                // using bit voodoo.
+                auto expish = [largest_target_degree = this->largest_target_degree] (int degree) {
+                    constexpr int sufficient_space_for_adding_up = numeric_limits<long long>::digits - 18;
+                    auto shift = max<int>(degree - largest_target_degree + sufficient_space_for_adding_up, 0);
+                    return 1ll << shift;
+                };
+
+                long long total = 0;
+                for (unsigned v = 0 ; v < branch_values.size() ; ++v)
+                    total += expish(target_degrees[branch_values[v]]);
+
+                for (unsigned start = 0 ; start < branch_values.size() ; ++start) {
+                    // pick a random number between 1 and total inclusive
+                    uniform_int_distribution<long long> dist(1, total);
+                    long long select_score = dist(global_rand);
+
+                    // go over the list until we hit the score
+                    unsigned select_element = start;
+                    for ( ; select_element + 1 < branch_values.size() ; ++select_element) {
+                        select_score -= expish(target_degrees[branch_values[select_element]]);
+                        if (select_score <= 0)
+                            break;
+                    }
+
+                    // move to front
+                    total -= expish(target_degrees[branch_values[select_element]]);
+                    swap(branch_values[select_element], branch_values[start]);
+                }
+            }
+            else {
+                sort(branch_values.begin(), branch_values.end(), [&] (const auto & a, const auto & b) {
+                        return target_degrees.at(a) > target_degrees.at(b) || (target_degrees.at(a) == target_degrees.at(b) && a < b);
+                        });
+            }
 
             bool already_did_a_wildcard = false;
 
+            int discrepancy_count = 0;
             for (auto & branch_value : branch_values) {
                 if (*params.abort)
-                    return false;
+                    return RestartingSearch::Aborted;
 
                 if (already_did_a_wildcard && branch_value >= wildcard_start)
                     continue;
@@ -635,7 +796,8 @@ namespace
                 if (branch_value >= wildcard_start)
                     already_did_a_wildcard = true;
 
-                assignments.push_branch(branch_domain->v, branch_value);
+                auto assignments_size = assignments.values.size();
+                assignments.values.push_back({ { branch_domain->v, branch_value }, true, discrepancy_count });
 
                 Domains new_domains;
                 new_domains.reserve(domains.size());
@@ -653,25 +815,140 @@ namespace
                         new_domains.emplace_back(Domain{ unsigned(d.v), false, d.values });
                 }
 
-                if (unit_propagate(new_domains, assignments))
-                    if (solve(new_domains, assignments))
-                        return true;
+                // propagate
+                if (! propagate(new_domains, assignments)) {
+                    // failure? restore assignments and go on to the next thing
+                    assignments.values.resize(assignments_size);
+                    continue;
+                }
+
+                // recursive search
+                auto search_result = solve(new_domains, assignments, depth + 1, backtracks_until_restart);
+
+                switch (search_result) {
+                    case RestartingSearch::Satisfiable:
+                        return RestartingSearch::Satisfiable;
+
+                    case RestartingSearch::Aborted:
+                        return RestartingSearch::Aborted;
+
+                    case RestartingSearch::Restart:
+                        // restore assignments before posting nogoods, it's easier
+                        assignments.values.resize(assignments_size);
+
+                        // post nogoods for everything we've done so far, except wildcards
+                        for (auto l = branch_values.begin() ; *l != branch_value ; ++l) {
+                            if (*l < wildcard_start) {
+                                assignments.values.push_back({ { branch_domain->v, *l }, true, -2 });
+                                post_nogood(assignments);
+                                assignments.values.pop_back();
+                            }
+                        }
+
+                        // wildcards need special care and attention
+                        if (already_did_a_wildcard) {
+                            for (auto l = wildcard_start ; l != domain_size ; ++l) {
+                                assignments.values.push_back({ { branch_domain->v, l }, true, -2 });
+                                post_nogood(assignments);
+                                assignments.values.pop_back();
+                            }
+                        }
+
+                        return RestartingSearch::Restart;
+
+                    case RestartingSearch::Unsatisfiable:
+                        // restore assignments
+                        assignments.values.resize(assignments_size);
+                        break;
+                }
 
                 // restore assignments
-                assignments.pop();
+                assignments.values.resize(assignments_size);
+                ++discrepancy_count;
             }
 
-            return false;
+            // no values remaining, backtrack, or possibly kick off a restart
+            if (backtracks_until_restart > 0 && 0 == --backtracks_until_restart) {
+                post_nogood(assignments);
+                return RestartingSearch::Restart;
+            }
+            else
+                return RestartingSearch::Unsatisfiable;
         }
 
         auto run()
         {
             Assignments assignments;
 
-            // eliminate isolated vertices?
+            if (params.restarts) {
+                bool done = false;
+                list<long long> luby = {{ 1 }};
+                auto current_luby = luby.begin();
+                unsigned number_of_restarts = 0;
 
-            if (unit_propagate(initial_domains, assignments)) {
-                solve(initial_domains, assignments);
+                while (! done) {
+                    long long backtracks_until_restart;
+
+                    backtracks_until_restart = *current_luby * params.luby_multiplier;
+                    if (next(current_luby) == luby.end()) {
+                        luby.insert(luby.end(), luby.begin(), luby.end());
+                        luby.push_back(*luby.rbegin() * 2);
+                    }
+                    ++current_luby;
+
+                    ++number_of_restarts;
+
+                    // start watching new nogoods. we're not backjumping so this is a bit icky.
+                    for (auto & n : need_to_watch) {
+                        if (n->literals.empty()) {
+                            done = true;
+                            break;
+                        }
+                        else if (1 == n->literals.size()) {
+                            for (auto & d : initial_domains)
+                                if (d.v == n->literals[0].first) {
+                                    d.values.reset(n->literals[0].second);
+                                    break;
+                                }
+                        }
+                        else {
+                            watches[n->literals[0]].push_back(n);
+                            watches[n->literals[1]].push_back(n);
+                        }
+                    }
+                    need_to_watch.clear();
+
+                    if (done)
+                        break;
+
+                    if (propagate(initial_domains, assignments)) {
+                        auto assignments_copy = assignments;
+
+                        switch (solve(initial_domains, assignments_copy, 0, backtracks_until_restart)) {
+                            case RestartingSearch::Satisfiable:
+                                save_result(assignments_copy, result);
+                                done = true;
+                                break;
+
+                            case RestartingSearch::Unsatisfiable:
+                            case RestartingSearch::Aborted:
+                                done = true;
+                                break;
+
+                            case RestartingSearch::Restart:
+                                break;
+                        }
+                    }
+                    else
+                        done = true;
+                }
+            }
+            else {
+                if (propagate(initial_domains, assignments)) {
+                    long long never_restart = -1;
+                    if (RestartingSearch::Satisfiable == solve(initial_domains, assignments, 0, never_restart))
+                        save_result(assignments, result);
+                }
             }
         }
     };
@@ -734,7 +1011,7 @@ auto sequential_ix_subgraph_isomorphism(const pair<Graph, Graph> & graphs, const
             return modified_result;
         }
         else {
-            cerr << "-- " << pass_time.count() << " <" << graphs.first.size() - modified_params.except << endl;
+            cout << "-- " << pass_time.count() << " <" << graphs.first.size() - modified_params.except << endl;
             modified_result.stats.emplace("FAIL" + to_string(modified_params.except), to_string(pass_time.count()));
         }
 
