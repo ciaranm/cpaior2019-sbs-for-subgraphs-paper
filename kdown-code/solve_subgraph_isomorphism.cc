@@ -110,16 +110,8 @@ auto main(int argc, char * argv[]) -> int
             ("help",                                  "Display help information")
             ("timeout",            po::value<int>(),  "Abort after this many seconds")
             ("format",             po::value<std::string>(), "Specify graph file format (lad, dimacs or vf)")
-            ("d2graphs",                              "Use d2 graphs")
-            ("d2cgraphs",                             "Use d2 complement graphs")
-            ("degree",                                "Use degree filtering")
-            ("nds",                                   "Use NDS filtering")
-            ("cnds",                                  "Use Combined NDS filtering")
-            ("ilf",                                   "Use ILF filtering")
             ("except",             po::value<int>(),  "Allow this many pattern vertices to be excluded")
-            ("high-wildcards",                        "Treat wildcard vertices as having high degree")
             ("induced",                               "Induced")
-            ("expensive-stats",                       "Calculate expensive stats")
             ;
 
         po::options_description all_options{ "All options" };
@@ -177,15 +169,7 @@ auto main(int argc, char * argv[]) -> int
         /* Figure out what our options should be. */
         Params params;
 
-        params.d2graphs = options_vars.count("d2graphs");
-        params.d2cgraphs = options_vars.count("d2cgraphs");
         params.induced = options_vars.count("induced");
-        params.degree = options_vars.count("degree");
-        params.nds = options_vars.count("nds");
-        params.cnds = options_vars.count("cnds");
-        params.expensive_stats = options_vars.count("expensive-stats");
-        params.high_wildcards = options_vars.count("high-wildcards");
-        params.ilf = options_vars.count("ilf");
         if (options_vars.count("except"))
             params.except = options_vars["except"].as<int>();
 

@@ -14,15 +14,7 @@ struct Params
     /// The start time of the algorithm.
     std::chrono::time_point<std::chrono::steady_clock> start_time;
 
-    bool d2graphs = false;
-    bool d2cgraphs = false;
     bool induced = false;
-    bool nds = false;
-    bool cnds = false;
-    bool degree = false;
-    bool expensive_stats = false;
-    bool high_wildcards = false;
-    bool ilf = false;
 
     unsigned except = 0;
 };
