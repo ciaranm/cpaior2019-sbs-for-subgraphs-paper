@@ -28,8 +28,8 @@ anti="sequentialantiheuristic13"
 final="sequentialinputordersoftmaxrestarts13"
 dds="sequentialdds13"
 
-mcsplit="mcsplit"
-mcsplitbiasedrestarts="mcsplitbiasedrestarts"
+mcsplit="mcsplitdown2"
+mcsplitbiasedrestarts="mcsplitdownbiasedrestarts2"
 kdown="kdown"
 kdownbiasedrestarts="kdownbiasedrestarts"
 
