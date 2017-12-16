@@ -792,6 +792,7 @@ namespace {
 	    if (params.mcsplit_down) {
 		for (unsigned int goal = std::min(g0.n, g1.n) ; goal > 0 ; --goal) {
                     clear_nogoods();
+		    if (incumbent.size() == goal) break;
 		    run_search(domains, goal);
 		    if (incumbent.size() == goal || abort_due_to_timeout) break;
 		    if (!params.quiet) cout << "Upper bound: " << goal-1 << std::endl;
