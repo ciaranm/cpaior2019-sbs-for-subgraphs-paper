@@ -1,4 +1,4 @@
-#define LUBY_MULTIPLIER 500 
+#define LUBY_MULTIPLIER 500
 
 #include "graph.hh"
 #include "solve_mcs.hh"
@@ -437,15 +437,14 @@ namespace {
 
                 if (!can_find_another_watch(nogood, watches_to_update, watch_to_update, current))
                     return true;
-                
+
                 watch_to_update = next_watch_to_update;
             }
 
             return false;
         }
 
-        auto contains_a_nogood(VarAssignments & current,
-                vector<Bidomain> & domains) -> bool
+        auto contains_a_nogood(VarAssignments & current) -> bool
         {
             if (current.get_var_assignments().empty())
                 return false;
@@ -462,6 +461,43 @@ namespace {
             Restart,
             ReachedGoal
         };
+
+        auto make_possible_values(Bidomain & bd, bool bound_is_minimum_possible,
+                VarAssignments & current, int v) -> vector<int>
+        {
+            // Try assigning v to each vertex w in the colour class beginning at bd.r
+            std::vector<int> possible_values;
+            possible_values.reserve(bd.right_len);
+
+            auto end = right.begin() + bd.r + bd.right_len;
+            for (auto it = right.begin() + bd.r; it < end; ++it) {
+                int w = *it;
+                current.push({{v, w}, true});
+                if (!contains_a_nogood(current))
+                    possible_values.push_back(w);
+                current.pop();
+            }
+
+            std::sort(possible_values.begin(), possible_values.end());
+
+            if (params.biased_shuffle)
+                biased_shuffle(possible_values);
+
+            if (!bound_is_minimum_possible || bd.left_len > bd.right_len) {
+                current.push({{v, -1}, true});
+                if (!contains_a_nogood(current))
+                    possible_values.push_back(-1);
+                current.pop();
+            }
+
+            return possible_values;
+        }
+
+        auto is_bound_minimum_possible(unsigned bound, unsigned matching_size_goal) -> bool
+        {
+            return bound == incumbent.size() + 1 ||
+                    (params.mcsplit_down && bound == matching_size_goal);
+        }
 
         auto restarting_search(
                 VarAssignments & current,
@@ -494,26 +530,14 @@ namespace {
 
             if (bound > incumbent.size() &&
                     (!params.mcsplit_down || bound >= matching_size_goal) &&
-                    !contains_a_nogood(current, domains) &&
                     -1 != (bd_idx = select_bidomain(domains, current.get_num_vtx_assignments())))
             {
                 Bidomain &bd = domains[bd_idx];
 
                 int v = find_min_value(left, bd.l, bd.left_len);
 
-                // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
-                std::vector<int> possible_values(right.begin() + bd.r,  // the vertices in the colour class beginning at bd.r
-                        right.begin() + bd.r + bd.right_len);
-                std::sort(possible_values.begin(), possible_values.end());
-
-                if (params.biased_shuffle)
-                    biased_shuffle(possible_values);
-
-                bool bound_is_minimum_possible =
-                        bound == incumbent.size() + 1 ||
-                        (params.mcsplit_down && bound == matching_size_goal);
-                if (!bound_is_minimum_possible || bd.left_len > bd.right_len)
-                    possible_values.push_back(-1);
+                auto possible_values = make_possible_values(bd,
+                        is_bound_minimum_possible(bound, matching_size_goal), current, v);
 
                 if (possible_values.size() > 1)
                     is_decision = true;
@@ -658,10 +682,7 @@ namespace {
             if (params.biased_shuffle)
                 biased_shuffle(possible_values);
 
-            bool bound_is_minimum_possible =
-                    bound == incumbent.size() + 1 ||
-                    (params.mcsplit_down && bound == matching_size_goal);
-            if (!bound_is_minimum_possible || bd.left_len > bd.right_len)
+            if (!is_bound_minimum_possible(bound, matching_size_goal) || bd.left_len > bd.right_len)
                 possible_values.push_back(-1);
 
             remove_vtx_from_left_domain(domains[bd_idx], v);
