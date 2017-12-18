@@ -16,7 +16,7 @@ set key bottom right at 1e6, 20 width -9 Left invert
 plot \
     "kdownruntimes.data" u (cumx(kdown)):(cumy(kdown)) smooth cumulative w l ti '~~~~Degree' ls 7 dt (18,2), \
     "kdownruntimes.data" u (cumx(kdownbiasedrestarts)):(cumy(kdownbiasedrestarts)) smooth cumulative w l ti '~~~~Biased + Restarts' ls 6 dt (6,2), \
-    "mcsruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'k${\downarrow}$:', \
+    "kdownruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'k${\downarrow}$:', \
     "mcsruntimes.data" u (cumx(mcsplit)):(cumy(mcsplit)) smooth cumulative w l ti '~~~~Degree' ls 2 dt (2,2), \
     "mcsruntimes.data" u (cumx(mcsplitbiasedrestarts)):(cumy(mcsplitbiasedrestarts)) smooth cumulative w l ti '~~~~Biased + Restarts' ls 1, \
     "mcsruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'McSplit:'

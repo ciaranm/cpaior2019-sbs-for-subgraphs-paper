@@ -16,6 +16,12 @@ plot "<grep -v XXX mcsruntimes.data" u (fc(mcsplit)):(fc(mcsplit)>=1e6?1e-10:1) 
 set table 'gen-as-mcs-mcsplitbiasedrestarts.data'
 plot "<grep -v XXX mcsruntimes.data" u (fc(mcsplitbiasedrestarts)):(fc(mcsplitbiasedrestarts)>=1e6?1e-10:1) smooth cumulative
 
+set table 'gen-as-mcs-kdown.data'
+plot "kdownruntimes.data" u (fc(kdown)):(fc(kdown)>=1e6?1e-10:1) smooth cumulative
+
+set table 'gen-as-mcs-kdownbiasedrestarts.data'
+plot "kdownruntimes.data" u (fc(kdownbiasedrestarts)):(fc(kdownbiasedrestarts)>=1e6?1e-10:1) smooth cumulative
+
 unset table
 
 set xlabel "Runtime (ms)"
@@ -30,5 +36,6 @@ set grid xtics ytics mytics
 set key top left Left
 
 plot \
-    '<./asify.sh gen-as-mcs-mcsplitbiasedrestarts.data gen-as-mcs-mcsplit.data' u 3:($3/$2) w l ls 1 ti "McSplit"
+    '<./asify.sh gen-as-mcs-mcsplitbiasedrestarts.data gen-as-mcs-mcsplit.data' u 3:($3/$2) w l ls 1 ti "McSplit", \
+    '<./asify.sh gen-as-mcs-kdownbiasedrestarts.data gen-as-mcs-kdown.data' u 3:($3/$2) w l ls 4 ti "kdown"
 
