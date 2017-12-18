@@ -467,7 +467,7 @@ namespace {
         {
             // Try assigning v to each vertex w in the colour class beginning at bd.r
             std::vector<int> possible_values;
-            possible_values.reserve(bd.right_len);
+            possible_values.reserve(bd.right_len + 1);  // reserve space for "-1" too
 
             auto end = right.begin() + bd.r + bd.right_len;
             for (auto it = right.begin() + bd.r; it < end; ++it) {
