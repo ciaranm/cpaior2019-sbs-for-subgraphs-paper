@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <fstream>
 #include <functional>
 #include <limits>
 #include <list>
@@ -16,6 +17,7 @@
 #include <utility>
 
 using std::array;
+using std::endl;
 using std::iota;
 using std::fill;
 using std::find_if;
@@ -28,6 +30,7 @@ using std::move;
 using std::mt19937;
 using std::numeric_limits;
 using std::next;
+using std::ofstream;
 using std::pair;
 using std::sort;
 using std::string;
@@ -159,6 +162,8 @@ namespace
 
         vector<unsigned long long> target_vertex_biases;
 
+        ofstream runtime_stats_out;
+
         mt19937 global_rand;
 
         SIP(const Graph & target, const Graph & pattern, const Params & a) :
@@ -219,6 +224,9 @@ namespace
                         target_vertex_biases.push_back(1ull << (50 - (max_degree - degree)));
                 }
             }
+
+            if (params.runtime_stats_path.size())
+                runtime_stats_out.open(params.runtime_stats_path);
         }
 
         auto build_supplemental_graphs(vector<FixedBitSet<n_words_> > & graph_rows, unsigned size) -> void
@@ -665,6 +673,29 @@ namespace
 
                 switch (search_result) {
                     case RestartingSearch::Satisfiable:
+                        // Okay, before we succesfully leave we want to print info about the choices we made.
+                        // Idea: is there any meaningful distribution of "correct" choices?
+                        // Only testing this on restarting search for now.
+                        if (runtime_stats_out.is_open()) {
+                            runtime_stats_out << "[";
+                            for (auto f_v2 = branch_v.begin() ; f_v2 != f_end ; ++f_v2) {
+                                if (f_v2 != branch_v.begin())
+                                    runtime_stats_out << ", ";
+
+                                runtime_stats_out
+                                    << *f_v2 << "-"
+                                    << targets_degrees[0][*f_v2]; // Vertex num and degree, respectively.
+                            }
+                            runtime_stats_out << "]";
+
+                            runtime_stats_out
+                                << ", "
+                                << f_v - branch_v.begin() << ", " // index into the list.
+                                << *f_v << ", " // target vertex number.
+                                << targets_degrees[0][*f_v] // degree of chosen target vertex.
+                                << endl;
+
+                        }
                         return RestartingSearch::Satisfiable;
 
                     case RestartingSearch::Aborted:

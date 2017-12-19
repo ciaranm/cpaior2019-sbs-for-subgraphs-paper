@@ -146,6 +146,7 @@ auto main(int argc, char * argv[]) -> int
             ("algorithm",    "Specify which algorithm to use (start with \"restarting\" or \"simple\")")
             ("pattern-file", "Specify the pattern file (LAD format)")
             ("target-file",  "Specify the target file (LAD format)")
+            ("stats-output", po::value<string>(), "Specify where to save statistics on i.e. successful choices")
             ;
 
         all_options.add(display_options);
@@ -245,6 +246,9 @@ auto main(int argc, char * argv[]) -> int
 
         if (options_vars.count("threads"))
             params.n_threads = options_vars["threads"].as<unsigned>();
+
+        if (options_vars.count("stats-output"))
+            params.runtime_stats_path = options_vars["stats-output"].as<std::string>();
 
         char hostname_buf[255];
         if (0 == gethostname(hostname_buf, 255))

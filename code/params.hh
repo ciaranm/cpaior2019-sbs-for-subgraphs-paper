@@ -6,6 +6,7 @@
 #include <chrono>
 #include <atomic>
 #include <cmath>
+#include <string>
 
 struct Params
 {
@@ -56,6 +57,9 @@ struct Params
 
     /// Number of threads to use (default: hardware_concurrency)
     unsigned n_threads = 0;
+
+    /// File location to place any extra (mid-search) statistics.
+    std::string runtime_stats_path;
 };
 
 #endif
