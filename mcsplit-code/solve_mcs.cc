@@ -402,13 +402,45 @@ namespace {
             nogoods.erase(nogood_it);
         }
 
-        auto can_find_another_watch(Nogood & nogood,
+        auto can_find_another_watch(Nogood & nogood, VarAssignments & current) -> bool
+        {
+            for (auto new_literal = next(nogood.literals.begin()) ; new_literal != nogood.literals.end() ; ++new_literal)
+                if (!current.contains(*new_literal))
+                    return true;
+            return false;
+        }
+
+        auto current_contains_nogood(Assignment most_recent_assignment, VarAssignments & current) -> bool
+        {
+            auto & watches_to_update = watches[most_recent_assignment];
+            for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ++watch_to_update) {
+                Nogood & nogood = **watch_to_update;
+                if (!can_find_another_watch(nogood, current))
+                    return true;
+            }
+
+            return false;
+        }
+
+        /*
+         * Check if the any of the clauses watched by the most recent assignment
+         * conflict with current set of assignments.  Do not change any watch lists.
+         */
+        auto contains_a_nogood(VarAssignments & current) -> bool
+        {
+            if (current.get_var_assignments().empty())
+                return false;
+            auto most_recent_assignment = current.get_var_assignments().back().assignment;
+            return current_contains_nogood(most_recent_assignment, current);
+        }
+
+        auto change_watched_literal(Nogood & nogood,
                 list<Nogoods::iterator> & watches_to_update,
                 list<Nogoods::iterator>::iterator watch_to_update,
-                VarAssignments & current) -> bool
+                VarAssignments & current) -> void
         {
             // can we find something else to watch?
-            for (auto new_literal = next(nogood.literals.begin(), 1) ; new_literal != nogood.literals.end() ; ++new_literal) {
+            for (auto new_literal = next(nogood.literals.begin()) ; new_literal != nogood.literals.end() ; ++new_literal) {
                 if (!current.contains(*new_literal)) {
                     // move the new watch to be the first item in the nogood
                     std::swap(nogood.literals[0], *new_literal);
@@ -419,39 +451,26 @@ namespace {
                     // remove the current watch, and update the loop iterator
                     watches_to_update.erase(watch_to_update++);
 
-                    return true;
+                    return;
                 }
             }
-            return false;
         }
 
-        auto current_contains_nogood(
-                Assignment most_recent_assignment,
-                VarAssignments & current) -> bool
+        /*
+         * Find a new literal to watch in each clause in the watch list
+         * of the most recent assignment in `current`.
+         *
+         * Precondition: each of these clauses contains a literal that is
+         * not in the current list of assignments.
+         */
+        auto find_new_watches(VarAssignments & current) -> void
         {
+            auto most_recent_assignment = current.get_var_assignments().back().assignment;
             auto & watches_to_update = watches[most_recent_assignment];
             for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ) {
                 Nogood & nogood = **watch_to_update;
-
-                auto next_watch_to_update = next(watch_to_update);
-
-                if (!can_find_another_watch(nogood, watches_to_update, watch_to_update, current))
-                    return true;
-
-                watch_to_update = next_watch_to_update;
+                change_watched_literal(nogood, watches_to_update, watch_to_update++, current);
             }
-
-            return false;
-        }
-
-        auto contains_a_nogood(VarAssignments & current) -> bool
-        {
-            if (current.get_var_assignments().empty())
-                return false;
-
-            auto most_recent_assignment = current.get_var_assignments().back().assignment;
-
-            return current_contains_nogood(most_recent_assignment, current);
         }
 
         enum class Search
@@ -547,6 +566,7 @@ namespace {
 
                 for (int w : possible_values) {
                     current.push({{v, w}, is_decision});
+                    find_new_watches(current);
                     Search search_result;
                     if (w != -1) {
                         // swap w to the end of its colour class
