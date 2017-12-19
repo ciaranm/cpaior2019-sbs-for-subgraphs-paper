@@ -404,7 +404,7 @@ namespace {
 
         auto can_find_another_watch(Nogood & nogood, VarAssignments & current) -> bool
         {
-            for (auto new_literal = next(nogood.literals.begin()) ; new_literal != nogood.literals.end() ; ++new_literal)
+            for (auto new_literal = prev(nogood.literals.end()) ; new_literal != nogood.literals.begin() ; --new_literal)
                 if (!current.contains(*new_literal))
                     return true;
             return false;
@@ -440,7 +440,7 @@ namespace {
                 VarAssignments & current) -> void
         {
             // can we find something else to watch?
-            for (auto new_literal = next(nogood.literals.begin()) ; new_literal != nogood.literals.end() ; ++new_literal) {
+            for (auto new_literal = prev(nogood.literals.end()) ; new_literal != nogood.literals.begin() ; --new_literal) {
                 if (!current.contains(*new_literal)) {
                     // move the new watch to be the first item in the nogood
                     std::swap(nogood.literals[0], *new_literal);
