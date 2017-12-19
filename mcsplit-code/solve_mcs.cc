@@ -18,6 +18,8 @@ using std::vector;
 
 std::atomic<bool> abort_due_to_timeout;
 
+const constexpr int Unassigned = -2;
+
 namespace {
     std::mt19937 global_rand;
 
@@ -30,19 +32,23 @@ namespace {
     class VarAssignments
     {
         vector<VarAssignment> var_assignments;
+        vector<int> current_vals;
         unsigned num_vtx_assignments = 0;
     public:
         auto push(VarAssignment a) -> void
         {
             var_assignments.push_back(a);
+            current_vals[a.assignment.v] = a.assignment.w;
             if (a.assignment.w != -1)
                 ++num_vtx_assignments;
         }
 
         auto pop() -> void
         {
-            if (var_assignments.back().assignment.w != -1)
+            auto last_assignment = var_assignments.back().assignment;
+            if (last_assignment.w != -1)
                 --num_vtx_assignments;
+            current_vals[last_assignment.v] = Unassigned;
             var_assignments.pop_back();
         }
 
@@ -63,9 +69,11 @@ namespace {
 
         bool contains(const Assignment & assignment) const
         {
-            return var_assignments.end() != find_if(var_assignments.begin(), var_assignments.end(),
-                    [&] (const VarAssignment & a) { return a.assignment == assignment; });
+            return current_vals[assignment.v] == assignment.w;
         }
+
+        VarAssignments(unsigned pattern_sz)
+                : current_vals(pattern_sz, Unassigned) {}
     };
 
     struct Bidomain
@@ -349,7 +357,7 @@ namespace {
             }
         }
 
-        auto update_incumbent(VarAssignments current) -> void
+        auto update_incumbent(VarAssignments & current) -> void
         {
             incumbent.clear();
             for (auto a : current.get_var_assignments())
@@ -650,7 +658,7 @@ namespace {
             // literal `*literal_with_lowest_tally`
             auto & lst = literal_clause_membership[*literal_with_lowest_tally];
 
-            std::fill(assignments_in_nogood.begin(), assignments_in_nogood.end(), -2);
+            std::fill(assignments_in_nogood.begin(), assignments_in_nogood.end(), Unassigned);
             for (auto lit : n.literals)
                 assignments_in_nogood[lit.v] = lit.w;
 
@@ -740,7 +748,7 @@ namespace {
 
         auto run_search(vector<Bidomain> domains, unsigned int matching_size_goal) -> void
         {
-            VarAssignments current;
+            VarAssignments current(g0.n);
 
             if (params.restarts) {
                 list<long long> luby = {{ 1 }};
