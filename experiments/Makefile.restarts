@@ -51,6 +51,7 @@ $(RESULTS)/$(1)/%.out : | dir-$(1)
 	    $$$$(if echo $(1) | grep -q dds ; then echo --dds ; fi ) \
 	    $$$$(if echo $(1) | grep -q ddds ; then echo --ddds ; fi ) \
 	    --timeout $$(TIMEOUT) \
+	    --stats-output="$$@.choices" \
 	    $$(shell grep "^`basename $$*` " < instances.txt | cut -d' ' -f2-3 ) > >(tee $$@ )
 endef
 
