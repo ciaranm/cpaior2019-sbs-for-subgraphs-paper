@@ -370,12 +370,18 @@ namespace {
             nogoods.push_back({});
             auto & nogood = nogoods.back();
 
+            unsigned num_decisions = 0;
+            for (auto & a : current.get_var_assignments())
+                num_decisions += a.is_decision;
+            nogood.literals.reserve(num_decisions);
+            nogood.clause_memberships.reserve(num_decisions);
+
+            if (0 == num_decisions)
+                return false;
+
             for (auto & a : current.get_var_assignments())
                 if (a.is_decision)
                     nogood.add_literal(a.assignment);
-
-            if (nogood.literals.empty())
-                return false;
 
             auto nogood_it = prev(nogoods.end());
 
