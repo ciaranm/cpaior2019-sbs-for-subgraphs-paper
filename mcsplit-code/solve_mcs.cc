@@ -414,9 +414,9 @@ namespace {
 
         auto current_contains_nogood(Assignment most_recent_assignment, VarAssignments & current) -> bool
         {
-            auto & watches_to_update = watches[most_recent_assignment];
-            for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ++watch_to_update) {
-                Nogood & nogood = **watch_to_update;
+            auto & watches_to_check = watches[most_recent_assignment];
+            for (auto watch_to_check = watches_to_check.begin() ; watch_to_check != watches_to_check.end() ; ++watch_to_check) {
+                Nogood & nogood = **watch_to_check;
                 if (!can_find_another_watch(nogood, current))
                     return true;
             }
