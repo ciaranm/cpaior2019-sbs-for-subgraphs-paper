@@ -115,15 +115,9 @@ namespace {
         // if this clause is erased.
         vector<ClauseMembership> clause_memberships;
 
-        // a hash of the nogood, used in a quick, incomplete subsumption test
-        unsigned long long signature = 0;
-
         auto add_literal(Assignment literal) -> void
         {
             literals.emplace_back(literal);
-            // Set a couple of bits in the signature.  I'm sure this could be done better!
-            signature |= 1ull << ((11400714819323198549ull * (literal.v + literal.w + 1)) >> 58);
-            signature |= 1ull << ((11400714819323198549ull * (literal.v * (literal.w + 2))) >> 58);
         }
         auto add_clause_membership(list<Nogoods::iterator> & lst,
                 list<Nogoods::iterator>::iterator it) -> void
@@ -629,10 +623,6 @@ namespace {
             // 374 of Knuth's TAOCP fascicle on SAT.
 
             if (a.literals.size() > b.literals.size())
-                return false;
-
-            // do a quick partial test to rule out some non-subsumptions
-            if (a.signature & ~b.signature)
                 return false;
 
             // Return false if some literal in `a` does not appear in `b`.
