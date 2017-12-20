@@ -441,7 +441,7 @@ namespace {
                 list<Nogoods::iterator>::iterator watch_to_update,
                 VarAssignments & current) -> void
         {
-            // can we find something else to watch?
+            // find something else to watch
             for (auto new_literal = prev(nogood.literals.end()) ; new_literal != nogood.literals.begin() ; --new_literal) {
                 if (!current.contains(*new_literal)) {
                     // move the new watch to be the first item in the nogood
