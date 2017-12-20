@@ -456,8 +456,8 @@ namespace {
                     // start watching it
                     watches[nogood.literals[0]].push_back(*watch_to_update);
 
-                    // remove the current watch, and update the loop iterator
-                    watches_to_update.erase(watch_to_update++);
+                    // remove the current watch
+                    watches_to_update.erase(watch_to_update);
 
                     return;
                 }
