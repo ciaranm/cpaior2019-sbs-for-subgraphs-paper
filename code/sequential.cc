@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <array>
-#include <fstream>
 #include <functional>
 #include <limits>
 #include <list>
@@ -17,7 +16,6 @@
 #include <utility>
 
 using std::array;
-using std::endl;
 using std::iota;
 using std::fill;
 using std::find_if;
@@ -30,7 +28,6 @@ using std::move;
 using std::mt19937;
 using std::numeric_limits;
 using std::next;
-using std::ofstream;
 using std::pair;
 using std::sort;
 using std::string;
@@ -162,7 +159,7 @@ namespace
 
         vector<unsigned long long> target_vertex_biases;
 
-        ofstream runtime_stats_out;
+        vector<tuple<array<unsigned, n_words_ * bits_per_word + 1>, unsigned, unsigned>> choices_made;
 
         mt19937 global_rand;
 
@@ -224,9 +221,6 @@ namespace
                         target_vertex_biases.push_back(1ull << (50 - (max_degree - degree)));
                 }
             }
-
-            if (params.runtime_stats_path.size())
-                runtime_stats_out.open(params.runtime_stats_path);
         }
 
         auto build_supplemental_graphs(vector<FixedBitSet<n_words_> > & graph_rows, unsigned size) -> void
@@ -457,8 +451,21 @@ namespace
 
             auto remaining = branch_domain->values;
 
+            // For stats purposes.
+            array<unsigned, n_words_ * bits_per_word + 1> branch_v;
+            unsigned branch_v_end = 0;
+
+            if (params.save_choices) { // Don't work harder than we have to.
+                for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
+                    remaining.unset(f_v);
+                    branch_v[branch_v_end++] = f_v;
+                }
+
+                remaining = branch_domain->values; //recover for benefit of rest of algorithm.
+            }
+
             int discrepancy_count = 0;
-            for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
+            for (int f_v = remaining.first_set_bit(), choice_num = 0 ; f_v != -1 ; f_v = remaining.first_set_bit(), ++choice_num) {
                 remaining.unset(f_v);
 
                 auto assignments_size = assignments.values.size();
@@ -471,7 +478,10 @@ namespace
                     auto search_result = search(assignments, new_domains, nodes, depth + 1);
 
                     switch (search_result) {
-                        case Search::Satisfiable:    return Search::Satisfiable;
+                        case Search::Satisfiable:
+                            if (params.save_choices)
+                                choices_made.emplace_back(branch_v, choice_num, branch_v_end);
+                            return Search::Satisfiable;
                         case Search::Aborted:        return Search::Aborted;
                         case Search::Unsatisfiable:  break;
                     }
@@ -503,8 +513,21 @@ namespace
 
             auto remaining = branch_domain->values;
 
+            // For stats purposes.
+            array<unsigned, n_words_ * bits_per_word + 1> branch_v;
+            unsigned branch_v_end = 0;
+
+            if (params.save_choices) { // Don't work harder than we have to.
+                for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
+                    remaining.unset(f_v);
+                    branch_v[branch_v_end++] = f_v;
+                }
+
+                remaining = branch_domain->values; //recover for benefit of rest of algorithm.
+            }
+
             int discrepancy_count = 0;
-            for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
+            for (int f_v = remaining.first_set_bit(), choice_num = 0 ; f_v != -1 ; f_v = remaining.first_set_bit(), ++choice_num) {
                 remaining.unset(f_v);
 
                 if (discrepancy_k != -1) {
@@ -518,7 +541,9 @@ namespace
                         auto search_result = dds_search(assignments, new_domains, nodes, depth + 1, discrepancy_k, used_all_discrepancies);
 
                         switch (search_result) {
-                            case Search::Satisfiable:    return Search::Satisfiable;
+                            case Search::Satisfiable:
+                                choices_made.emplace_back(branch_v, choice_num, branch_v_end);
+                                return Search::Satisfiable;
                             case Search::Aborted:        return Search::Aborted;
                             case Search::Unsatisfiable:  break;
                         }
@@ -673,29 +698,7 @@ namespace
 
                 switch (search_result) {
                     case RestartingSearch::Satisfiable:
-                        // Okay, before we succesfully leave we want to print info about the choices we made.
-                        // Idea: is there any meaningful distribution of "correct" choices?
-                        // Only testing this on restarting search for now.
-                        if (runtime_stats_out.is_open()) {
-                            runtime_stats_out << "[";
-                            for (auto f_v2 = branch_v.begin() ; f_v2 != f_end ; ++f_v2) {
-                                if (f_v2 != branch_v.begin())
-                                    runtime_stats_out << ", ";
-
-                                runtime_stats_out
-                                    << *f_v2 << "-"
-                                    << targets_degrees[0][*f_v2]; // Vertex num and degree, respectively.
-                            }
-                            runtime_stats_out << "]";
-
-                            runtime_stats_out
-                                << ", "
-                                << f_v - branch_v.begin() << ", " // index into the list.
-                                << *f_v << ", " // target vertex number.
-                                << targets_degrees[0][*f_v] // degree of chosen target vertex.
-                                << endl;
-
-                        }
+                        choices_made.emplace_back(branch_v, f_v - branch_v.begin(), branch_v_end);
                         return RestartingSearch::Satisfiable;
 
                     case RestartingSearch::Aborted:
@@ -889,6 +892,41 @@ namespace
             for (auto & a : assignments.values)
                 where.append(" " + to_string(get<2>(a)));
             result.extra_stats.push_back(where);
+
+            if (params.save_choices) {
+                string choices = "choices =";
+
+                // Reverse -- these are written in from last-to-first choice.
+                for (auto c = choices_made.rbegin(), c_end = choices_made.rend(); c != c_end; ++c) {
+                    array<unsigned, n_words_ * bits_per_word + 1> branch_v;
+                    unsigned index, branch_v_end;
+                    std::tie(branch_v, index, branch_v_end) = *c;
+
+                    choices += " [";
+                    for (auto f_v2 = branch_v.begin(), f_end = branch_v.begin() + branch_v_end; f_v2 != f_end ; ++f_v2) {
+                        if (f_v2 != branch_v.begin())
+                            choices += ",";
+
+                        choices += to_string(*f_v2);
+                        choices += "-";
+                        choices += to_string(targets_degrees[0][*f_v2]); // Vertex num and degree, respectively.
+                    }
+                    choices += "]";
+
+                    // auto vertex = branch_v[index];
+
+                    choices += ", ";
+                    choices += to_string(index); // index into the list.
+                    // choices += ", ";
+                    // choices += to_string(vertex); // target vertex number.
+                    // choices += ", ";
+                    // choices += to_string(targets_degrees[0][vertex]); // degree of chosen target vertex.
+                    choices += ".";
+
+                }
+                
+                result.extra_stats.push_back(choices);                
+            }
         }
 
         auto run() -> Result
