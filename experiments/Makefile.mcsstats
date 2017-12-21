@@ -1,0 +1,29 @@
+SHELL := /bin/bash
+FILTER := -1
+MODULUS := 1
+INSTANCES_FILE := instances.txt
+CATTER := cat
+INSTANCES := $(shell cat $(INSTANCES_FILE) | $(CATTER) | cut -d' ' -f1 | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi)
+KDOWN_ALGORITHMS := \
+    sequentialixinduced3 \
+    sequentialixinducedrestarts3
+
+ALL_ALGORITHMS := $(KDOWN_ALGORITHMS)
+RESULTS := results
+
+RUNTIMES = $(foreach i, $(INSTANCES), $(foreach a, $(ALL_ALGORITHMS), $(RESULTS)/stats/$i.runtime.$a ))
+
+all : $(RUNTIMES)
+
+dir-% :
+	mkdir -p $(RESULTS) $(RESULTS)/$*
+
+define KDOWN_ALGORITHM_template
+$(RESULTS)/stats/%.runtime.$(1) : | dir-stats
+	if grep -q aborted $(RESULTS)/$(1)/$$*.out ; then echo NaN > $$@ ; \
+	elif grep -q true $(RESULTS)/$(1)/$$*.out ; then tail -n2 $(RESULTS)/$(1)/$$*.out | head -n1 | cut -d' ' -f1 > $$@ ; \
+	fi
+	test -s $$@
+endef
+
+$(foreach a,$(KDOWN_ALGORITHMS),$(eval $(call KDOWN_ALGORITHM_template,$(a))))
