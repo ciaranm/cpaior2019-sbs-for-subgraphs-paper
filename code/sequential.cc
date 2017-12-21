@@ -907,7 +907,7 @@ namespace
                         if (f_v2 != branch_v.begin())
                             choices += ",";
 
-                        choices += to_string(*f_v2);
+                        choices += to_string(target_permutation.at(*f_v2));
                         choices += "-";
                         choices += to_string(targets_degrees[0][*f_v2]); // Vertex num and degree, respectively.
                     }
