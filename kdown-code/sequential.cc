@@ -783,18 +783,20 @@ namespace
                         });
             }
 
-            bool already_did_a_wildcard = false;
+            bool already_did_a_wildcard = false, already_started_a_wildcard = false;
 
             int discrepancy_count = 0;
             for (auto & branch_value : branch_values) {
                 if (*params.abort)
                     return RestartingSearch::Aborted;
 
+                already_did_a_wildcard = already_did_a_wildcard || already_started_a_wildcard;
                 if (already_did_a_wildcard && branch_value >= wildcard_start)
                     continue;
 
+                // a bit of jiggerypokery to get nogoods right (this loop contains continues)
                 if (branch_value >= wildcard_start)
-                    already_did_a_wildcard = true;
+                    already_started_a_wildcard = true;
 
                 auto assignments_size = assignments.values.size();
                 assignments.values.push_back({ { branch_domain->v, branch_value }, true, discrepancy_count });
