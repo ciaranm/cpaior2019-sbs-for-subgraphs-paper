@@ -621,6 +621,10 @@ namespace
 
                     if (d.v == nogood.literals[1].first) {
                         d.values.reset(nogood.literals[1].second);
+                        if (nogood.literals[1].second >= wildcard_start) {
+                            for (unsigned v = wildcard_start ; v != domain_size ; ++v)
+                                d.values.reset(v);
+                        }
                         break;
                     }
                 }
@@ -652,9 +656,13 @@ namespace
                 assignments.values.push_back({ { unit_domain_v, unit_domain_value }, false, -1 });
 
                 // propagate watches
-                if (params.restarts)
-                    if (! propagate_watches(domains, assignments, { unit_domain_v, unit_domain_value }))
+                if (params.restarts) {
+                    Assignment normalised_current_assignment = { unit_domain_v, unit_domain_value };
+                    if (normalised_current_assignment.second >= wildcard_start)
+                        normalised_current_assignment.second = wildcard_start;
+                    if (! propagate_watches(domains, assignments, normalised_current_assignment))
                         return false;
+                }
 
                 for (auto & d : domains) {
                     if (d.fixed)
@@ -783,20 +791,19 @@ namespace
                         });
             }
 
-            bool already_did_a_wildcard = false, already_started_a_wildcard = false;
+            bool already_did_a_wildcard = false;
 
             int discrepancy_count = 0;
             for (auto & branch_value : branch_values) {
                 if (*params.abort)
                     return RestartingSearch::Aborted;
 
-                already_did_a_wildcard = already_did_a_wildcard || already_started_a_wildcard;
                 if (already_did_a_wildcard && branch_value >= wildcard_start)
                     continue;
 
                 // a bit of jiggerypokery to get nogoods right (this loop contains continues)
                 if (branch_value >= wildcard_start)
-                    already_started_a_wildcard = true;
+                    already_did_a_wildcard = true;
 
                 auto assignments_size = assignments.values.size();
                 assignments.values.push_back({ { branch_domain->v, branch_value }, true, discrepancy_count });
@@ -838,21 +845,23 @@ namespace
                         // restore assignments before posting nogoods, it's easier
                         assignments.values.resize(assignments_size);
 
-                        // post nogoods for everything we've done so far, except wildcards
-                        for (auto l = branch_values.begin() ; *l != branch_value ; ++l) {
-                            if (*l < wildcard_start) {
-                                assignments.values.push_back({ { branch_domain->v, *l }, true, -2 });
-                                post_nogood(assignments);
-                                assignments.values.pop_back();
-                            }
-                        }
-
-                        // wildcards need special care and attention
-                        if (already_did_a_wildcard) {
-                            for (auto l = wildcard_start ; l != domain_size ; ++l) {
-                                assignments.values.push_back({ { branch_domain->v, l }, true, -2 });
-                                post_nogood(assignments);
-                                assignments.values.pop_back();
+                        // post nogoods for everything we've done so far
+                        {
+                            bool already_posted_a_wildcard = false;
+                            for (auto l = branch_values.begin() ; *l != branch_value ; ++l) {
+                                if (*l >= wildcard_start) {
+                                    if (already_posted_a_wildcard)
+                                        continue;
+                                    already_posted_a_wildcard = true;
+                                    assignments.values.push_back({ { branch_domain->v, wildcard_start }, true, -2 });
+                                    post_nogood(assignments);
+                                    assignments.values.pop_back();
+                                }
+                                else {
+                                    assignments.values.push_back({ { branch_domain->v, *l }, true, -2 });
+                                    post_nogood(assignments);
+                                    assignments.values.pop_back();
+                                }
                             }
                         }
 
