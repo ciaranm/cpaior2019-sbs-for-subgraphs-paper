@@ -14,13 +14,10 @@ set yrange [0:]
 set key top left width -9 Left invert
 
 plot \
-    "kdownruntimes.data" u (cumx(kdown)):(cumy(kdown)) smooth cumulative w l ti '~~~~Degree' ls 8 dt (18,2,2,2), \
-    "kdownruntimes.data" u (cumx(kdownbiasedrestarts)):(cumy(kdownbiasedrestarts)) smooth cumulative w l ti '~~~~Biased + Restarts' ls 7 dt (6,2,2,2), \
+    "kdownruntimes.data" u (cumx(kdown)):(cumy(kdown)) smooth cumulative w l ti '~~~~Degree' ls 8 dt (18,2), \
+    "kdownruntimes.data" u (cumx(kdownbiasedrestarts)):(cumy(kdownbiasedrestarts)) smooth cumulative w l ti '~~~~Biased + Restarts' ls 6 dt (6,2), \
     "kdownruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'k${\downarrow}$:', \
-    "mcsruntimes.data" u (cumx(mcsplitdown)):(cumy(mcsplitdown)) smooth cumulative w l ti '~~~~Degree' ls 6 dt (18,2), \
-    "mcsruntimes.data" u (cumx(mcsplitdownbiasedrestarts)):(cumy(mcsplitdownbiasedrestarts)) smooth cumulative w l ti '~~~~Biased + Restarts' ls 4 dt (6,2), \
-    "mcsruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'McSplit${\downarrow}$:', \
-    "mcsruntimes.data" u (cumx(mcsplit)):(cumy(mcsplit)) smooth cumulative w l ti '~~~~Degree' ls 2 dt (2,2), \
-    "mcsruntimes.data" u (cumx(mcsplitbiasedrestarts)):(cumy(mcsplitbiasedrestarts)) smooth cumulative w l ti '~~~~Biased + Restarts' ls 1, \
-    "mcsruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'McSplit:'
+    "mcsruntimes.data" u (cumx(mcsplitdown)):(cumy(mcsplitdown)) smooth cumulative w l ti '~~~~Degree' ls 3 dt (2,2), \
+    "mcsruntimes.data" u (cumx(mcsplitdownbiasedrestarts)):(cumy(mcsplitdownbiasedrestarts)) smooth cumulative w l ti '~~~~Biased + Restarts' ls 1, \
+    "mcsruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'McSplit${\downarrow}$:'
 

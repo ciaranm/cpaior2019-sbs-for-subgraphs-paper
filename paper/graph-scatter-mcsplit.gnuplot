@@ -5,8 +5,8 @@ set output "gen-graph-scatter-mcsplit.tex"
 
 load "common.gnuplot"
 
-set xlabel "McSplit Runtime (ms)"
-set ylabel "Biased + Restarts McSplit Runtime (ms)"
+set xlabel "McSplit${\\downarrow}$ Runtime (ms)"
+set ylabel "Biased + Restarts McSplit${\\downarrow}$ Runtime (ms)"
 set logscale x
 set logscale y
 set format x '$10^{%T}$'
@@ -16,8 +16,8 @@ set size square
 
 plotfile="<grep -v XXX mcsruntimes.data"
 famcol="family"
-xcol=mcsplit
-ycol=mcsplitbiasedrestarts
+xcol=mcsplitdown
+ycol=mcsplitdownbiasedrestarts
 
 load "optscatter.gnuplot"
 
