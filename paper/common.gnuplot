@@ -31,7 +31,7 @@ dds="sequentialdds13"
 mcsplitdown="mcsplitdown5"
 mcsplitdownbiasedrestarts="mcsplitdownbiasedrestarts5"
 kdown="sequentialixinduced3"
-kdownbiasedrestarts="sequentialixinducedrestarts5"
+kdownbiasedrestarts="sequentialixinducedrestarts6"
 
 glasgow2="glasgow2"
 glasgow3="glasgow3"
