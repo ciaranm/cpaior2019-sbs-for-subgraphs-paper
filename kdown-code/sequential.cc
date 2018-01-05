@@ -239,11 +239,16 @@ namespace
     {
         vector<tuple<Assignment, bool, int> > values;
 
-        bool contains(const Assignment & assignment) const
+        bool contains(const Assignment & assignment, unsigned wildcard_start) const
         {
             // this should not be a linear scan...
             return values.end() != find_if(values.begin(), values.end(), [&] (const auto & a) {
-                    return get<0>(a) == assignment;
+                    if (get<0>(a).first != assignment.first)
+                        return false;
+                    if (get<0>(a).second >= wildcard_start)
+                        return assignment.second >= wildcard_start;
+                    else
+                        return false;
                     });
         }
     };
@@ -344,9 +349,11 @@ namespace
                 largest_target_degree = max(largest_target_degree, target_degrees[t]);
             }
 
-            if (params.except >= 1)
+            if (params.except >= 1) {
                 for (unsigned v = 0 ; v < params.except ; ++v)
                     target_degrees.at(wildcard_start + v) = largest_target_degree + 1;
+                ++largest_target_degree;
+            }
 
             vector<vector<vector<unsigned> > > p_nds(adjacency_constraints.size());
             vector<vector<vector<unsigned> > > t_nds(adjacency_constraints.size());
@@ -444,8 +451,12 @@ namespace
             Nogood nogood;
 
             for (auto & a : assignments.values)
-                if (get<1>(a))
-                    nogood.literals.emplace_back(get<0>(a));
+                if (get<1>(a)) {
+                    auto normalised_assignment = get<0>(a);
+                    if (normalised_assignment.second >= wildcard_start)
+                        normalised_assignment.second = wildcard_start;
+                    nogood.literals.emplace_back(normalised_assignment);
+                }
 
             nogoods.emplace_back(move(nogood));
             need_to_watch.emplace_back(prev(nogoods.end()));
@@ -592,7 +603,7 @@ namespace
                 // can we find something else to watch?
                 bool success = false;
                 for (auto new_literal = next(nogood.literals.begin(), 2) ; new_literal != nogood.literals.end() ; ++new_literal) {
-                    if (! assignments.contains(*new_literal)) {
+                    if (! assignments.contains(*new_literal, wildcard_start)) {
                         // we can watch new_literal instead of current_assignment in this nogood
                         success = true;
 
@@ -853,15 +864,10 @@ namespace
                                     if (already_posted_a_wildcard)
                                         continue;
                                     already_posted_a_wildcard = true;
-                                    assignments.values.push_back({ { branch_domain->v, wildcard_start }, true, -2 });
-                                    post_nogood(assignments);
-                                    assignments.values.pop_back();
                                 }
-                                else {
-                                    assignments.values.push_back({ { branch_domain->v, *l }, true, -2 });
-                                    post_nogood(assignments);
-                                    assignments.values.pop_back();
-                                }
+                                assignments.values.push_back({ { branch_domain->v, *l }, true, -2 });
+                                post_nogood(assignments);
+                                assignments.values.pop_back();
                             }
                         }
 
@@ -1022,7 +1028,7 @@ auto sequential_ix_subgraph_isomorphism(const pair<Graph, Graph> & graphs, const
             return modified_result;
         }
         else {
-            cout << "-- " << pass_time.count() << " <" << graphs.first.size() - modified_params.except << endl;
+            cout << "-- " << pass_time.count() << " <" << graphs.first.size() - modified_params.except << " " << sip.result.nodes << endl;
             modified_result.stats.emplace("FAIL" + to_string(modified_params.except), to_string(pass_time.count()));
         }
 
