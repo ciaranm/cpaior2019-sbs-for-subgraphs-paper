@@ -6,7 +6,7 @@ CATTER := cat
 INSTANCES := $(shell cat $(INSTANCES_FILE) | $(CATTER) | cut -d' ' -f1 | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi)
 KDOWN_ALGORITHMS := \
     sequentialixinduced3 \
-    sequentialixinducedrestarts3
+    sequentialixinducedrestarts6 \
 
 ALL_ALGORITHMS := $(KDOWN_ALGORITHMS)
 RESULTS := results

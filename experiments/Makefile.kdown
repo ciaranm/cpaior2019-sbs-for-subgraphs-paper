@@ -7,7 +7,7 @@ INSTANCES := $(shell cat $(INSTANCES_FILE) | $(CATTER) | cut -d' ' -f1 | if [[ $
 TIMEOUT := 1000
 ALGORITHMS := \
     sequentialixinduced3 \
-    sequentialixinducedrestarts3 \
+    sequentialixinducedrestarts7 \
 
 STACK_SPACE := 10485760
 RESULTS := results
