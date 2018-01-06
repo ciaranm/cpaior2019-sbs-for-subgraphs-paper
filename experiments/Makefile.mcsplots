@@ -7,6 +7,7 @@ INSTANCES := $(shell cat $(INSTANCES_FILE) | $(CATTER) | cut -d' ' -f1 | if [[ $
 KDOWN_ALGORITHMS := \
     sequentialixinduced3 \
     sequentialixinducedrestarts6 \
+    sequentialixinducedrestarts7
 
 ALL_ALGORITHMS := $(KDOWN_ALGORITHMS)
 RESULTS := results
