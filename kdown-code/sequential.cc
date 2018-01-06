@@ -248,7 +248,7 @@ namespace
                     if (get<0>(a).second >= wildcard_start)
                         return assignment.second >= wildcard_start;
                     else
-                        return false;
+                        return get<0>(a).second == assignment.second;
                     });
         }
     };
