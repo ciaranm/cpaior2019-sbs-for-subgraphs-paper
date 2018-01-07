@@ -7,11 +7,11 @@ load "common.gnuplot"
 
 set xlabel "Runtime (ms)"
 set ylabel "Number of Instances Solved"
-set xrange [1e0:1e6]
+set xrange [1e2:1e6]
 set logscale x
 set format x '$10^{%T}$'
 set yrange [0:]
-set key top left width -9 Left invert
+set key bottom right at 1e6, 100 width -9.5 Left invert
 
 plot \
     "kdownruntimes.data" u (cumx(kdown)):(cumy(kdown)) smooth cumulative w l ti '~~~~Degree' ls 8 dt (18,2), \

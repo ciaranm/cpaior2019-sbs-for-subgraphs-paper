@@ -500,7 +500,7 @@ history of science.
 attempts to solve the problem by first trying to solve the induced subgraph isomorphism problem, and
 then if that fails, retries allowing a single unmatched vertex (and thus using weaker invariants),
 and so on. Due to its similarity to \cref{algorithm:sip}, we can introduce the same bias and restart
-strategy.
+strategy, requiring only a small amount of jiggery-pokery to handle wildcards in nogoods.
 
 The McSplit algorithm, meanwhile, uses a constraint programming style search, but with special
 propagators and backtrackable data structures that exploit special properties of the problem. The
@@ -515,22 +515,19 @@ extra work and this shows, but it's still worthwhile.
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-mcsplit.pdf}
-    \caption{McSplit speedups ?? partial data, can cut for space and just use
-    cumulatives if necessary}\label{figure:mcsplit}
+    \caption{McSplit speedups}\label{figure:mcsplit}
 \end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-kdown.pdf}
-    \caption{k${\downarrow}$ speedups ?? missing data, can cut for space and just use
-    cumulatives if necessary}\label{figure:kdown}
+    \caption{k${\downarrow}$ speedups}\label{figure:kdown}
 \end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-mcs.pdf}
-    \caption{k${\downarrow}$ and McSplit cumulative curves ?? partial and missing
-    data}\label{figure:mcs}
+    \caption{k${\downarrow}$ and McSplit cumulative curves}\label{figure:mcs}
 \end{figure}
 
 \section{Conclusion}
