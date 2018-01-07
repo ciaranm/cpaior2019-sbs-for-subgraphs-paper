@@ -26,7 +26,7 @@ unset table
 
 set xlabel "Runtime (ms)"
 set ylabel "Aggregate Speedup"
-set xrange [1e0:1e5]
+set xrange [1e0:1e6]
 set logscale x
 set format x '$10^{%T}$'
 set yrange [0:]
