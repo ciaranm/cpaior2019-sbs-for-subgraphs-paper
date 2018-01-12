@@ -18,6 +18,7 @@
 
 \newcommand{\citet}[1]{\citeauthor{#1} \shortcite{#1}}
 \newcommand{\citep}[1]{\cite{#1}}
+\newcommand{\citepos}[1]{\citeauthor{#1}'s \shortcite{#1}}
 
 \newcommand{\siplabel}[1]{\label{line:sip:#1}}
 \newcommand{\siplineref}[1]{line~\ref{line:sip:#1}}
@@ -48,15 +49,15 @@ supported by the Engineering and Physical Sciences Research Council [grant numbe
 \maketitle
 
 \begin{abstract}
-    Modern subgraph isomorphism solvers use value-ordering heuristics to direct a constraint
-    programming style search. Although these heuristics are far from perfect, discrepancy-based
-    searches are too expensive to be effective in this setting.  However, we show that a random
-    value-ordering heuristic with restarts beats conventional search with the best-known tailored
-    heuristic. This motivates the introduction of a slightly-random value-ordering heuristic with
-    similar behaviour to the tailored heuristic: when combined with restarts, this new search
-    strategy is over ?? times more effective on satisfiable instances, and does not
-    significantly decrease performance on unsatisfiable instances. Finally, we show that this
-    strategy also improves two maximum common induced subgraph algorithms.
+    Modern subgraph isomorphism solvers use degree-based heuristics to direct a constraint
+    programming style search. We show that discrepancy-based searches are too expensive to be
+    effective in offsetting mistakes made by value-ordering heuristic in this setting.  We then
+    demonstrate that a random heuristic with restarts beats conventional search with the best-known
+    tailored heuristic. This motivates the introduction of a slightly-random heuristic with similar
+    behaviour to the tailored heuristic: when combined with restarts, this new search strategy is
+    over a hundred times more effective on satisfiable instances, and does not affect performance on
+    unsatisfiable instances. Finally, we show that the same strategy also improves two maximum
+    common induced subgraph algorithms.
 \end{abstract}
 
 \section{Introduction}
@@ -72,26 +73,26 @@ fruitful to investigate alternatives to simple backtracking (depth-first) search
 evaluates two such approaches: discrepancy search (which performs poorly), and restarts (which are
 extremely beneficial). To explore different parts of the search space when restarting, we introduce
 a new value-ordering heuristic, which adds a small amount of randomness to the ``highest degree
-first'' heuristic.  The effects of the changes we propose are shown in
+first'' heuristic.  The effects of these changes are shown in
 \cref{figure:scatter-by-family}: we can make a state-of-the-art algorithm perform much better on a
 large number of satisfiable instances, whilst performing worse only rarely on satisfiable instances,
 and never on unsatisfiable instances.  Further, these properties are \emph{not} shared by
 discrepancy searches (\cref{figure:scatter-dds}) or by random value-ordering with restarts
 (\cref{figure:scatter-random}). Finally, we show that this strategy is also effective in an
-optimisation setting, producing clear benefits in two maximum common induced subgraph algorithms.
+optimisation setting, producing benefits in two maximum common induced subgraph algorithms.
 
 \section{Definitions and Algorithms}
 
 Let $G$ be a graph. We denote its set of vertices by $\vertexset(G)$, and write $v \sim_G w$ to mean
-that vertices $v$ and $w$ are adjacent. The \emph{neighbourhood} of a vertex, $\neighbourhood_G(v)$,
-is the set of vertices adjacent to $v$, and the \emph{degree} of $v$, $\deg_G(v)$, is the
-cardinality of its neighbourhood; when the graph is clear from the context, we omit the $G$
-subscript. The \emph{neighbourhood degree sequence} of $v$, $\nds_G(v)$, is the sequence of degrees
-of the neighbours of $v$ in descending order, and we denote by $\preceq$ the inclusion relation of
-\citet{DBLP:journals/constraints/ZampelliDS10}. As per \citet{DBLP:conf/aaai/HoffmannMR17},
-$G^{n,\ell}$ denotes the graph with vertex set $\vertexset(G)$, and with edges between vertices $v$
-and $v$ if there are at least $n$ simple paths of length exactly $\ell$ between vertices $v$ and $w$
-in $G$.
+that vertices $v$ and $w$ are adjacent; we allow a vertex to be adjacent to itself. The
+\emph{neighbourhood} of a vertex, $\neighbourhood_G(v)$, is the set of vertices adjacent to $v$, and
+the \emph{degree} of $v$, $\deg_G(v)$, is the cardinality of its neighbourhood; when the graph is
+clear from the context, we omit the $G$ subscript. The \emph{neighbourhood degree sequence} of $v$,
+$\nds_G(v)$, is the sequence of degrees of the neighbours of $v$ in descending order, and we denote
+by $\preceq$ the inclusion relation of \citet{DBLP:journals/constraints/ZampelliDS10}. As per
+\citet{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with vertex set $\vertexset(G)$,
+and with edges between vertices $v$ and $v$ if there are at least $n$ simple paths of length exactly
+$\ell$ between vertices $v$ and $w$ in $G$.
 
 The non-induced subgraph isomorphism problem is to find an injective mapping from the vertices of a
 pattern graph $\mathcal{P}$ to a target graph $\mathcal{T}$, such that adjacent vertices in
@@ -238,9 +239,9 @@ smallest domain first, tiebreaking on highest degree. Variable ordering is not t
 paper---as far as possible, we will leave it intact, so as not to affect the performance of the
 algorithm on unsatisfiable instances.  For value ordering, which occurs on
 \siplineref{valueordering} of \cref{algorithm:sip}, we will initially select vertices from highest
-degree to lowest degree; we return to value ordering in the second half of this paper.
-
-?? note that variable ordering affects unsat, whereas value ordering affects only sat.
+degree to lowest degree; we return to value ordering in the second half of this paper. Note that the
+variable-ordering heuristic affects both unsatisfiable and satisfiable instances, whilst the
+value-ordering heuristic is relevant only for satisfiable instances.
 
 \section{Empirical Evaluation}
 
@@ -256,7 +257,8 @@ Other studies use a random selection of 200 of each of the instances from the ``
 ``images'' families because some earlier solvers find many of these instances extremely hard. We
 would like to have a larger number of satisfiable instances in our test set, and so we include all
 pattern / target pairs. This gives a total of 14,621 instances (rather than the original 5,725). At
-least ?? of these instances are known to be satisfiable, and at least ?? are unsatisfiable.
+least \input{gen-n-sat.tex}\unskip\ of these instances are known to be satisfiable, and at least
+\input{gen-n-unsat.tex}\unskip\ are unsatisfiable.
 
 \subsection{Baseline Performance}
 
@@ -281,7 +283,8 @@ implementation (both with the degree heuristic, and with the modifications descr
 remainder of this paper), the Glasgow2 and Glasgow3 algorithms from which \cref{algorithm:sip} is derived
 \citep{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}, the PathLAD variation of the LAD
 algorithm \citep{DBLP:journals/ai/Solnon10,DBLP:conf/lion/KotthoffMS16}, and VF2
-\citep{DBLP:journals/pami/CordellaFSV04}. For each algorithm, the $y$ value
+\citep{DBLP:journals/pami/CordellaFSV04}, in each case using the original implementation provided
+by the algorithm's authors. For each algorithm, the $y$ value
 gives the cumulative number of instances which (individually) can be solved in no more than $x$
 milliseconds.  The vertical distance between two lines therefore shows how many more instances can
 be solved by one solver than another, if every instance is run separately with the chosen $x$
@@ -311,7 +314,7 @@ reliable, and that most solutions can be found with only a small number of discr
 cases, the heavy commitment to early branching choices made by conventional backtracking search can
 be extremely costly.
 
-\Cref{figure:scatter-dds} shows the effects of adding \citet{DBLP:conf/ijcai/Walsh97}'s
+\Cref{figure:scatter-dds} shows the effects of adding \citepos{DBLP:conf/ijcai/Walsh97}
 depth-bounded discrepancy search (DDS) to \cref{algorithm:sip}. Each point represents the solving
 time for one instance---to avoid noise for easier instances, we measure only time spent during
 search, and exclude time spent in preprocessing and initialisation.  Points below the $x-y$ diagonal
@@ -473,9 +476,9 @@ randomisation and restarts. ?? Quantify this a bit
     \label{figure:scatter-by-family}
 \end{figure}
 
-\Cref{figure:restarts} shows that either biased heuristic together with restarts is better
-still---that is, if we are introducing restarts, then it is better to add a small amount of
-randomness to a tailored deterministic heuristic than it is to throw away the heuristic altogether.
+\Cref{figure:restarts} shows that the biased heuristic together with restarts is better still---that
+is, if we are introducing restarts, then it is better to add a small amount of randomness to a
+tailored deterministic heuristic than it is to throw away the heuristic altogether.
 
 In the more detailed view in \cref{figure:scatter-by-family}, comparing the basic algorithm with the
 degree heuristic to the degree-biased algorithm with restarts, all of the unsatisfiable instances
@@ -509,19 +512,19 @@ when introducing restarts, we cannot propagate using nogoods. Instead, we can on
 are inside an already-visited branch. We must therefore use the one watched literal scheme instead.
 
 ?? Benchmark results on the same families of instances are shown in
-\cref{figure:mcsplit,figure:kdown,figure:mcs}. Clearly beneficial. Note that on McSplit we're doing
+\cref{figure:kdown,figure:mcsplit,figure:mcs}. Clearly beneficial. Note that on McSplit we're doing
 extra work and this shows, but it's still worthwhile.
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-mcsplit.pdf}
-    \caption{McSplit speedups}\label{figure:mcsplit}
-\end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-kdown.pdf}
     \caption{k${\downarrow}$ speedups}\label{figure:kdown}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-mcsplit.pdf}
+    \caption{McSplit speedups}\label{figure:mcsplit}
 \end{figure}
 
 \begin{figure}[p]

@@ -11,16 +11,16 @@ set format y '%.0f'
 fc(c)=stringcolumn(c)eq"NaN"?timeout:column(c)
 
 set table 'gen-as-sequential.data'
-plot "<sed -n -e '/^[^ ]\\+ [^ ]\\+ 1 /p ' -e '/family/p' runtimes.data" u (fc(norestarts)):(fc(norestarts)>=1e6?1e-10:1) smooth cumulative
+plot "<sed -n -e '/^[^ ]\\+ [^ ]\\+ [01] /p ' -e '/family/p' runtimes.data" u (fc(norestarts)):(fc(norestarts)>=1e6?1e-10:1) smooth cumulative
 
 set table 'gen-as-random.data'
-plot "<sed -n -e '/^[^ ]\\+ [^ ]\\+ 1 /p ' -e '/family/p' runtimes.data" u (fc(random)):(fc(random)>=1e6?1e-10:1) smooth cumulative
+plot "<sed -n -e '/^[^ ]\\+ [^ ]\\+ [01] /p ' -e '/family/p' runtimes.data" u (fc(random)):(fc(random)>=1e6?1e-10:1) smooth cumulative
 
 set table 'gen-as-anti.data'
-plot "<sed -n -e '/^[^ ]\\+ [^ ]\\+ 1 /p ' -e '/family/p' runtimes.data" u (fc(anti)):(fc(anti)>=1e6?1e-10:1) smooth cumulative
+plot "<sed -n -e '/^[^ ]\\+ [^ ]\\+ [01] /p ' -e '/family/p' runtimes.data" u (fc(anti)):(fc(anti)>=1e6?1e-10:1) smooth cumulative
 
 set table 'gen-as-sequentialinputorderbiasedrestarts.data'
-plot "<sed -n -e '/^[^ ]\\+ [^ ]\\+ 1 /p ' -e '/family/p' runtimes.data" u (fc(final)):(fc(final)>=1e6?1e-10:1) smooth cumulative
+plot "<sed -n -e '/^[^ ]\\+ [^ ]\\+ [01] /p ' -e '/family/p' runtimes.data" u (fc(final)):(fc(final)>=1e6?1e-10:1) smooth cumulative
 
 unset table
 

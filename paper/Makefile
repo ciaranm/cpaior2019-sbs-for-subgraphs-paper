@@ -1,4 +1,4 @@
-all : tables graphs
+all : tables graphs gen-n-sat.tex gen-n-unsat.tex
 	latexmk -pdf -pdflatex='pdflatex -interaction=nonstopmode %O %S' -shell-escape paper
 
 TABLES =
@@ -18,6 +18,12 @@ GRAPHS = \
 	 gen-graph-scatter-kdown.pdf \
 	 gen-graph-mcs.pdf \
 	 gen-graph-as-mcs.pdf
+
+gen-n-sat.tex : runtimes.data
+	cut -d' ' -f3 < runtimes.data | grep --count 1 | sed -e 's#\([0-9][0-9][0-9]\)$$#,\1#'> $@
+
+gen-n-unsat.tex : runtimes.data
+	cut -d' ' -f3 < runtimes.data | grep --count 0 | sed -e 's#\([0-9][0-9][0-9]\)$$#,\1#'> $@
 
 tables : $(TABLES)
 
