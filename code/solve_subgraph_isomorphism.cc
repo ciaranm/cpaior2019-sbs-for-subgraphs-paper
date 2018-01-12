@@ -205,7 +205,7 @@ auto main(int argc, char * argv[]) -> int
                     || options_vars.count("antiheuristic")) {
                 cerr << "Parallel algorithm currently requires --restarts --input-order" << endl;
                 cerr << "  --softmax-shuffle, and cannot use any of --dds --shuffle " << endl;
-                cerr << "  --softmax-shuffle --goods --antiheuristic" << endl;
+                cerr << "  --goods --antiheuristic" << endl;
                 return EXIT_FAILURE;
             }
         }
