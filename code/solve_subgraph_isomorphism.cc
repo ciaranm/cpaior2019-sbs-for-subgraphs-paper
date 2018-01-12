@@ -197,7 +197,7 @@ auto main(int argc, char * argv[]) -> int
         // Some sanity checking
         if (options_vars["algorithm"].as<string>() == "customisable-parallel") {
             if (! options_vars.count("restarts")
-                    || options_vars.count("softmax-shuffle")
+                    || ! options_vars.count("softmax-shuffle")
                     || ! options_vars.count("input-order")
                     || options_vars.count("dds")
                     || options_vars.count("shuffle")
