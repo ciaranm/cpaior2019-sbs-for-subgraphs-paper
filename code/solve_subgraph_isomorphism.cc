@@ -131,7 +131,6 @@ auto main(int argc, char * argv[]) -> int
             ("restarts",                                     "Use restarts")
             ("dds",                                          "Use dds")
             ("shuffle",                                      "Use shuffling")
-            ("biased-shuffle",                               "Use biased shuffling")
             ("softmax-shuffle",                              "Use softmax shuffling")
             ("antiheuristic",                                "Use antiheuristic")
             ("input-order",                                  "Use input order")
@@ -198,7 +197,6 @@ auto main(int argc, char * argv[]) -> int
         // Some sanity checking
         if (options_vars["algorithm"].as<string>() == "customisable-parallel") {
             if (! options_vars.count("restarts")
-                    || ! options_vars.count("biased-shuffle")
                     || options_vars.count("softmax-shuffle")
                     || ! options_vars.count("input-order")
                     || options_vars.count("dds")
@@ -206,7 +204,7 @@ auto main(int argc, char * argv[]) -> int
                     || options_vars.count("goods")
                     || options_vars.count("antiheuristic")) {
                 cerr << "Parallel algorithm currently requires --restarts --input-order" << endl;
-                cerr << "  --biased-shuffle, and cannot use any of --dds --shuffle " << endl;
+                cerr << "  --softmax-shuffle, and cannot use any of --dds --shuffle " << endl;
                 cerr << "  --softmax-shuffle --goods --antiheuristic" << endl;
                 return EXIT_FAILURE;
             }
@@ -221,7 +219,6 @@ auto main(int argc, char * argv[]) -> int
             params.restarts = options_vars.count("restarts");
             params.dds = options_vars.count("dds");
             params.shuffle = options_vars.count("shuffle");
-            params.biased_shuffle = options_vars.count("biased-shuffle");
             params.softmax_shuffle = options_vars.count("softmax-shuffle");
             params.antiheuristic = options_vars.count("antiheuristic");
             params.input_order = options_vars.count("input-order");
@@ -233,6 +230,11 @@ auto main(int argc, char * argv[]) -> int
                 params.geometric_multiplier = options_vars["geometric-multiplier"].as<double>();
             if (options_vars.count("geometric-start"))
                 params.geometric_start = options_vars["geometric-start"].as<unsigned>();
+        }
+        else if (options_vars["algorithm"].as<std::string>() == "parallel") {
+            params.restarts = true;
+            params.softmax_shuffle = true;
+            params.input_order = true;
         }
         else if (options_vars["algorithm"].as<std::string>() == "restarting") {
             params.restarts = true;

@@ -36,6 +36,7 @@ using std::move;
 using std::mt19937;
 using std::mutex;
 using std::next;
+using std::numeric_limits;
 using std::pair;
 using std::sort;
 using std::string;
@@ -164,8 +165,7 @@ namespace
 
         vector<int> pattern_permutation, target_permutation, isolated_vertices;
         vector<vector<int> > patterns_degrees, targets_degrees;
-
-        vector<unsigned long long> target_vertex_biases;
+        int largest_target_degree;
 
         mutex new_nogoods_mutex;
         Nogoods nogoods;
@@ -185,7 +185,8 @@ namespace
             target_size(target.size()),
             target_permutation(target.size()),
             patterns_degrees(max_graphs),
-            targets_degrees(max_graphs)
+            targets_degrees(max_graphs),
+            largest_target_degree(0)
         {
             // strip out isolated vertices in the pattern, and build pattern_permutation
             for (unsigned v = 0 ; v < full_pattern_size ; ++v)
@@ -212,19 +213,6 @@ namespace
                 for (unsigned j = 0 ; j < target_size ; ++j)
                     if (target.adjacent(target_permutation.at(i), target_permutation.at(j)))
                         target_graph_rows[i * max_graphs + 0].set(j);
-
-            // build up vertex selection biases
-            unsigned max_degree = 0;
-            for (unsigned j = 0 ; j < target_size ; ++j)
-                max_degree = max(max_degree, target_graph_rows[j * max_graphs + 0].popcount());
-
-            for (unsigned j = 0 ; j < target_size ; ++j) {
-                unsigned degree = target_graph_rows[j * max_graphs + 0].popcount();
-                if (max_degree - degree >= 50)
-                    target_vertex_biases.push_back(1);
-                else
-                    target_vertex_biases.push_back(1ull << (50 - (max_degree - degree)));
-            }
         }
 
         auto build_supplemental_graphs(vector<FixedBitSet<n_words_> > & graph_rows, unsigned size) -> void
@@ -488,30 +476,43 @@ namespace
                 branch_v[branch_v_end++] = f_v;
             }
 
-            // sum up the bias scores of every branch vertex
-            unsigned long long remaining_score = 0;
-            for (unsigned v = 0 ; v < branch_v_end ; ++v)
-                remaining_score += target_vertex_biases[branch_v[v]];
+            if (params.shuffle) {
+                shuffle(branch_v.begin(), branch_v.begin() + branch_v_end, my_thread_data.rand);
+            }
+            else if (params.softmax_shuffle) {
+                // repeatedly pick a softmax-biased vertex, move it to the front of branch_v,
+                // and then only consider items further to the right in the next iteration.
 
-            // now repeatedly pick a biased-random vertex, move it to the front of branch_v,
-            // and then only consider items further to the right in the next iteration.
-            for (unsigned start = 0 ; start < branch_v_end ; ++start) {
-                // pick a random number between 0 and remaining_score inclusive
-                uniform_int_distribution<unsigned long long> dist(1, remaining_score);
-                unsigned long long select_score = dist(my_thread_data.rand);
+                // Using floating point here turned out to be way too slow. Fortunately the base
+                // of softmax doesn't seem to matter, so we use 2 instead of e, and do everything
+                // using bit voodoo.
+                auto expish = [largest_target_degree = this->largest_target_degree] (int degree) {
+                    constexpr int sufficient_space_for_adding_up = numeric_limits<long long>::digits - 18;
+                    auto shift = max<int>(degree - largest_target_degree + sufficient_space_for_adding_up, 0);
+                    return 1ll << shift;
+                };
 
-                // go over the list until we've used up bias values totalling our
-                // random number
-                unsigned select_element = start;
-                for ( ; select_element < branch_v_end ; ++select_element) {
-                    if (select_score <= target_vertex_biases[branch_v[select_element]])
-                        break;
-                    select_score -= target_vertex_biases[branch_v[select_element]];
+                long long total = 0;
+                for (unsigned v = 0 ; v < branch_v_end ; ++v)
+                    total += expish(targets_degrees[0][branch_v[v]]);
+
+                for (unsigned start = 0 ; start < branch_v_end ; ++start) {
+                    // pick a random number between 1 and total inclusive
+                    uniform_int_distribution<long long> dist(1, total);
+                    long long select_score = dist(my_thread_data.rand);
+
+                    // go over the list until we hit the score
+                    unsigned select_element = start;
+                    for ( ; select_element + 1 < branch_v_end ; ++select_element) {
+                        select_score -= expish(targets_degrees[0][branch_v[select_element]]);
+                        if (select_score <= 0)
+                            break;
+                    }
+
+                    // move to front
+                    total -= expish(targets_degrees[0][branch_v[select_element]]);
+                    swap(branch_v[select_element], branch_v[start]);
                 }
-
-                // move to front, and update remaining_score
-                remaining_score -= target_vertex_biases[branch_v[select_element]];
-                swap(branch_v[select_element], branch_v[start]);
             }
 
             int discrepancy_count = 0;
