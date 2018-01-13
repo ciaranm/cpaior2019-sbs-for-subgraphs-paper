@@ -814,6 +814,7 @@ namespace
                         &updated_nogoods_barrier, &thread_search_times] () {
                     auto current_luby = luby.begin();
                     unsigned number_of_restarts = 0;
+                    double current_geometric = params.geometric_start;
 
                     // assignments
                     Assignments assignments;
@@ -824,7 +825,15 @@ namespace
                     unsigned long long my_nodes = 0;
 
                     while (! done) {
-                        long long backtracks_until_restart = *current_luby * params.luby_multiplier;
+                        long long backtracks_until_restart;
+
+                        if (0.0 != params.geometric_multiplier) {
+                            backtracks_until_restart = current_geometric;
+                            current_geometric *= params.geometric_multiplier;
+                        }
+                        else {
+                            backtracks_until_restart = *current_luby * params.luby_multiplier;
+                        }
 
                         if (0 == thread_number && next(current_luby) == luby.end()) {
                             luby.insert(luby.end(), luby.begin(), luby.end());
