@@ -246,7 +246,7 @@ auto main(int argc, char * argv[]) -> int
         }
 
         if (options_vars.count("threads"))
-            params.n_threads = options_vars["threads"].as<unsigned>();
+            params.n_threads = options_vars["threads"].as<int>();
 
         char hostname_buf[255];
         if (0 == gethostname(hostname_buf, 255))
