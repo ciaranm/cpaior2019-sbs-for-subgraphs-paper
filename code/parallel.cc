@@ -770,6 +770,9 @@ namespace
                     targets_degrees.at(g).at(i) = target_graph_rows[i * max_graphs + g].popcount();
             }
 
+            for (unsigned i = 0 ; i < target_size ; ++i)
+                largest_target_degree = max(largest_target_degree, targets_degrees[0][i]);
+
             // pattern adjacencies, compressed
             pattern_adjacencies_bits.resize(pattern_size * pattern_size);
             for (int g = 0 ; g < max_graphs ; ++g)
