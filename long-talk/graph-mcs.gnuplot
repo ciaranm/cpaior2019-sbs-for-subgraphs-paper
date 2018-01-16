@@ -1,0 +1,23 @@
+# vim: set et ft=gnuplot sw=4 :
+
+set terminal tikz standalone color size 11cm,6.5cm font '\scriptsize' preamble '\usepackage{microtype}'
+set output "gen-graph-mcs.tex"
+
+load "common.gnuplot"
+
+set xlabel "Runtime (ms)"
+set ylabel "Number of Instances Solved"
+set xrange [1e2:1e6]
+set logscale x
+set format x '$10^{%T}$'
+set yrange [0:]
+set key bottom right at 1e6, 100 Left invert
+
+plot \
+    "../paper/kdownruntimes.data" u (cumx(kdown)):(cumy(kdown)) smooth cumulative w l ti '~~~~Degree' ls 8 dt (18,2), \
+    "../paper/kdownruntimes.data" u (cumx(kdownbiasedrestarts)):(cumy(kdownbiasedrestarts)) smooth cumulative w l ti '~~~~Biased + Restarts' ls 6 dt (6,2), \
+    "../paper/kdownruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'k${\downarrow}$:', \
+    "../paper/mcsruntimes.data" u (cumx(mcsplitdown)):(cumy(mcsplitdown)) smooth cumulative w l ti '~~~~Degree' ls 3 dt (2,2), \
+    "../paper/mcsruntimes.data" u (cumx(mcsplitdownbiasedrestarts)):(cumy(mcsplitdownbiasedrestarts)) smooth cumulative w l ti '~~~~Biased + Restarts' ls 1, \
+    "../paper/mcsruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'McSplit${\downarrow}$:'
+
