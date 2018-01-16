@@ -1,0 +1,21 @@
+# vim: set et ft=gnuplot sw=4 :
+
+set terminal tikz standalone color size 9cm,4.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set output "gen-graph-parallel.tex"
+
+load "common.gnuplot"
+
+set xlabel "Runtime (ms)"
+set ylabel "Number of Sat Instances Solved"
+set xrange [1e2:1e6]
+set logscale x
+set format x '$10^{%T}$'
+set yrange [1500:2100]
+set key bottom right width -4.5 Left
+
+plot \
+    "runtimes.data" u (cumx(final)):(cumsaty(final)) smooth cumulative w l ti 'Luby' ls 1, \
+    "runtimes.data" u (cumx(constant)):(cumsaty(constant)) smooth cumulative w l ti 'Constant' ls 2 dt (2,2), \
+    "runtimes.data" u (cumx(lubypar)):(cumsaty(lubypar)) smooth cumulative w l ti 'Luby Parallel' ls 4 dt (6,2), \
+    "runtimes.data" u (cumx(constantpar)):(cumsaty(constantpar)) smooth cumulative w l ti 'Constant Parallel' ls 6 dt (18,2)
+
