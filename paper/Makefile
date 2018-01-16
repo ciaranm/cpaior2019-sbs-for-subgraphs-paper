@@ -17,7 +17,11 @@ GRAPHS = \
 	 gen-graph-scatter-mcsplit.pdf \
 	 gen-graph-scatter-kdown.pdf \
 	 gen-graph-mcs.pdf \
-	 gen-graph-as-mcs.pdf
+	 gen-graph-as-mcs.pdf \
+	 gen-graph-scatter-constant.pdf \
+	 gen-graph-parallel.pdf \
+	 gen-graph-scatter-parallel.pdf \
+	 gen-graph-scatter-parallel-constant.pdf
 
 gen-n-sat.tex : runtimes.data
 	cut -d' ' -f3 < runtimes.data | grep --count 1 | sed -e 's#\([0-9][0-9][0-9]\)$$#,\1#'> $@
