@@ -19,6 +19,7 @@ isfail(x)=(stringcolumn(x) eq "NaN" || column(x) >= timeout)
 cumx(x)=(isfail(x) ? 1e6 : column(x))
 cumy(x)=(isfail(x) ? 1e-10 : 1)
 cumsaty(x)=(stringcolumn("sat") eq "1" ? cumy(x) : 1e-10)
+cumunsaty(x)=(stringcolumn("sat") eq "0" ? cumy(x) : 1e-10)
 
 norestarts="sequential13"
 softmax="sequentialinputordersoftmax13"

@@ -7,6 +7,7 @@ GRAPHS = \
 	 gen-graph-others.pdf \
 	 gen-graph-others-zoom.pdf \
 	 gen-graph-value-ordering-heuristics.pdf \
+	 gen-graph-value-ordering-heuristics-unsat.pdf \
 	 gen-graph-scatter-dds.pdf \
 	 gen-graph-random-restarts.pdf \
 	 gen-graph-scatter-random.pdf \
