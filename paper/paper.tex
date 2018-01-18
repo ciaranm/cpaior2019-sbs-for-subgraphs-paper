@@ -51,7 +51,7 @@ supported by the Engineering and Physical Sciences Research Council [grant numbe
 \begin{abstract}
     Modern subgraph isomorphism solvers use degree-based heuristics to direct a constraint
     programming style search. We show that discrepancy-based searches are too expensive to be
-    effective in offsetting mistakes made by value-ordering heuristic in this setting.  We then
+    effective in offsetting mistakes made by value-ordering heuristics in this situation.  We then
     demonstrate that a random heuristic with restarts beats conventional search with the best-known
     tailored heuristic. This motivates the introduction of a slightly-random heuristic with similar
     behaviour to the tailored heuristic: when combined with restarts, this new search strategy is
@@ -91,7 +91,7 @@ clear from the context, we omit the $G$ subscript. The \emph{neighbourhood degre
 $\nds_G(v)$, is the sequence of degrees of the neighbours of $v$ in descending order, and we denote
 by $\preceq$ the inclusion relation of \citet{DBLP:journals/constraints/ZampelliDS10}. As per
 \citet{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with vertex set $\vertexset(G)$,
-and with edges between vertices $v$ and $v$ if there are at least $n$ simple paths of length exactly
+and with edges between vertices $v$ and $w$ if there are at least $n$ simple paths of length exactly
 $\ell$ between vertices $v$ and $w$ in $G$.
 
 The non-induced subgraph isomorphism problem is to find an injective mapping from the vertices of a
@@ -115,7 +115,7 @@ values.
 
 The $\FuncSty{search}$ procedure recursively selects an unassigned domain $D$
 (\siplineref{variableordering}), and tries assigning
-it each of its remaining value in turn (\siplineref{valueordering}). The effects of this assignment
+it each of its remaining values in turn (\siplineref{valueordering}). The effects of this assignment
 are propagated (\siplineref{dopropagate}). If an
 inconsistency is detected, we continue and try another value; otherwise, we recurse
 (\siplineref{recurse}) until a solution is found. Finally, if we run out of values, we backtrack
@@ -365,7 +365,7 @@ In \cref{figure:value-ordering-heuristics} we show the cumulative number of sati
 solved over time using four different value-ordering heuristics:
 
 \paragraph{Degree} We select vertices from highest degree to lowest degree. This heuristic is the
-current state of the art.
+current state of the art \citep{DBLP:conf/ijcai/McCreeshPT16}.
 
 \paragraph{Random} We select vertices uniformly at random.
 
@@ -388,7 +388,7 @@ biased heuristic has slightly worse performance below a 400s timeout, and effect
 performance above it. This shows that we can introduce an element of randomness into the degree
 value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.
 \Cref{figure:scatter-heuristics} gives a more detailed look at these results. This scatter plot
-shows that despite the aggregate performance being very similar, on an case by case basis, the two
+shows that despite the aggregate performance being very similar, on a case by case basis, the two
 heuristics can make a large difference to the performance of satisfiable instances.
 
 \subsection{Adding Restarts to the Algorithm}
