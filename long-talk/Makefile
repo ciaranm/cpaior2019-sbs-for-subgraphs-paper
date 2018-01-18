@@ -19,7 +19,8 @@ GRAPHS = \
 	 gen-graph-scatter-mcsplit.pdf \
 	 gen-graph-parallel.pdf \
 	 gen-graph-as-parallel.pdf \
-	 gen-graph-scatter-parallel.pdf
+	 gen-graph-scatter-parallel.pdf \
+	 gen-graph-scatter-biased.pdf
 
 tables : $(TABLES)
 
