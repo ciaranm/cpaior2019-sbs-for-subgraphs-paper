@@ -1,6 +1,6 @@
 pcs-file = params.pcs
 runObj = RUNTIME
-cutoffTime = 1000
+cutoffTime = 100
 wallclock-limit = 64800
 deterministic = 1
 instance_file = ../instances-reformatted.txt
