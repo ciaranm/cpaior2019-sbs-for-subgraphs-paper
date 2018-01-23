@@ -21,13 +21,23 @@ cmd = "../../code/solve_subgraph_isomorphism --luby-multiplier {} --timeout {} -
         configMap['-luby-multiplier'], cutoff, filename1, filename2)
 
 # Execute the call and track its runtime.
-start_time = time.time()
-res = os.system(cmd)
-runtime = time.time() - start_time
+#start_time = time.time()
+#res = os.system(cmd)
+#runtime = time.time() - start_time
+
+io = Popen(cmd.split(" "), stdout=PIPE, stderr=PIPE)
+(stdout_, stderr_) = io.communicate()
 
 status = "SUCCESS"
-if res != 0:
+if io.returncode != 0:
     status = "CRASHED"
+elif re.search('status = aborted', stdout_):
+    status = "TIMEOUT"
+
+lines = stdout_.split("\n")
+for line in lines:
+    if re.search('runtime =', line):
+        runtime = float(line.split()[2]) / 1000
 
 # status, runtime, runlength, quality, seed, additional stuff
 print("Result of algorithm run: %s, %f, 0, 0, %i" %(status, runtime, seed))
