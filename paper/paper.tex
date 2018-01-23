@@ -49,15 +49,15 @@ supported by the Engineering and Physical Sciences Research Council [grant numbe
 \maketitle
 
 \begin{abstract}
-    Modern subgraph isomorphism solvers use degree-based heuristics to direct a constraint
-    programming style search. We show that discrepancy-based searches are too expensive to be
-    effective in offsetting mistakes made by value-ordering heuristics in this situation.  We then
-    demonstrate that a random heuristic with restarts beats conventional search with the best-known
-    tailored heuristic. This motivates the introduction of a slightly-random heuristic with similar
-    behaviour to the tailored heuristic: when combined with restarts, this new search strategy is
-    over a hundred times more effective on satisfiable instances, and does not affect performance on
-    unsatisfiable instances. Finally, we show that the same strategy also improves two maximum
-    common induced subgraph algorithms.
+    Modern subgraph isomorphism solvers use degree-based value-ordering heuristics to direct
+    backtracking search. We show that discrepancy-based searches are too expensive to be effective
+    in offsetting heuristic mistakes in this situation.  We then demonstrate that a random heuristic
+    with restarts beats conventional search with the best-known tailored heuristic. This motivates
+    the introduction of a slightly-random heuristic with similar behaviour to the tailored
+    heuristic: when combined with restarts, this new search strategy is over a hundred times more
+    effective on satisfiable instances, and does not affect performance on unsatisfiable instances.
+    Finally, we show that this strategy also improves two maximum common induced subgraph
+    algorithms.
 \end{abstract}
 
 \section{Introduction}
@@ -303,37 +303,37 @@ upon improving the performance on the remaining hard satisfiable instances, and 
 plot in \cref{figure:others} (and in subsequent cumulative plots) we show only satisfiable
 instances, and use a reduced range on both axes.
 
-\subsection{Discrepancy Searches}
-
-A \emph{discrepancy} is where search goes against a value-ordering heuristic.  Discrepancy searches
-\citep{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97} are alternatives to
-backtracking search that initially search disallowing all discrepancies, and then retry search
-allowing an increasing number of discrepancies at each iteration until either a solution is found or
-unsatisfiability is proven. These schemes assume that value-ordering heuristics are usually
-reliable, and that most solutions can be found with only a small number of discrepancies; in such
-cases, the heavy commitment to early branching choices made by conventional backtracking search can
-be extremely costly.
-
-\Cref{figure:scatter-dds} shows the effects of adding \citepos{DBLP:conf/ijcai/Walsh97}
-depth-bounded discrepancy search (DDS) to \cref{algorithm:sip}. Each point represents the solving
-time for one instance---to avoid noise for easier instances, we measure only time spent during
-search, and exclude time spent in preprocessing and initialisation.  Points below the $x-y$ diagonal
-are speedups, whilst points on the top and right axes represent instances which timed out after one
-thousand seconds with one algorithm, but not the other. For satisfiable instances, the different
-point styles show the different families, whilst all unsatisfiable instances are shown as dark dots.
-
-The points well below the diagonal line and along the right-hand axis show that DDS can sometimes be
-extremely beneficial on satisfiable instances.  However, on both unsatisfiable and most satisfiable
-instances, the overheads can be extremely large, and DDS is much worse in aggregate (even when only
-considering satisfiable instances).
-
-These large overheads are to be expected: discrepancy searches are aimed primarily at getting better
-feasible solutions in optimisation problems which are too large for a proof of optimality to be a
-realistic prospect, and they are not well-suited for unsatisfiable decision problems. However, the
-extremely large gains on some satisfiable instances confirm our suspicions that we should look at
-value-ordering heuristics in more detail.
-
 \subsection{Value-Ordering Heuristics}
+
+\Cref{figure:value-ordering-heuristics} shows the cumulative number of satisfiable instances
+solved over time using different value-ordering heuristics:
+
+\paragraph{Degree} We select vertices from highest degree to lowest degree
+\citep{DBLP:conf/ijcai/McCreeshPT16}.
+
+\paragraph{Random} We select vertices uniformly at random.
+
+\paragraph{Anti} We select vertices from lowest degree to highest degree. This heuristic is used as
+a sanity check: as expected, degree beats random, and random beats anti.
+
+\paragraph{Biased} We branch by selecting a vertex $v'$ from the chosen domain $D_v$ with
+probability \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \] This heuristic
+continues to prefer vertices of high degree, but will give the same chance of being selected next to
+two vertices of equal degree.  It also introduces an element of randomness, which is needed to make
+restarts have an effect.
+
+The biased heuristic resembles the well-known \emph{softmax} weighting scheme applied to the degree
+heuristic, although usually \emph{softmax} uses a base of $e$ rather than $2$.  Experiments showed
+that in this context, the choice of base is not important to the search space size; however, a base
+of $2$ avoids the need to use floating point arithmetic, which was a substantial overhead.
+
+The performance of the degree and biased heuristics are very similar: the
+biased heuristic has slightly worse performance below a 400s timeout, and effectively equal
+performance above it. This shows that we can introduce an element of randomness into the degree
+value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.
+\Cref{figure:scatter-heuristics} gives a more detailed look at these results. This scatter plot
+shows that despite the aggregate performance being very similar, on a case by case basis, the two
+heuristics can make a large difference to the performance of satisfiable instances.
 
 \begin{figure}[p]
     \centering
@@ -361,35 +361,35 @@ value-ordering heuristics in more detail.
     \label{figure:scatter-heuristics}
 \end{figure}
 
-In \cref{figure:value-ordering-heuristics} we show the cumulative number of satisfiable instances
-solved over time using four different value-ordering heuristics:
+\subsection{Discrepancy Searches}
 
-\paragraph{Degree} We select vertices from highest degree to lowest degree. This heuristic is the
-current state of the art \citep{DBLP:conf/ijcai/McCreeshPT16}.
+A \emph{discrepancy} is where search goes against a value-ordering heuristic.  Discrepancy searches
+\citep{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97} are alternatives to
+backtracking search that initially search disallowing all discrepancies, and then retry search
+allowing an increasing number of discrepancies at each iteration until either a solution is found or
+unsatisfiability is proven. These schemes assume that value-ordering heuristics are usually
+reliable, and that most solutions can be found with only a small number of discrepancies; in such
+cases, the heavy commitment to early branching choices made by conventional backtracking search can
+be extremely costly.
 
-\paragraph{Random} We select vertices uniformly at random.
+\Cref{figure:scatter-dds} shows the effects of adding \citepos{DBLP:conf/ijcai/Walsh97}
+depth-bounded discrepancy search (DDS) to \cref{algorithm:sip}. Each point represents the solving
+time for one instance---to avoid noise for easier instances, we measure only time spent during
+search, and exclude time spent in preprocessing and initialisation.  Points below the $x-y$ diagonal
+are speedups, whilst points on the top and right axes represent instances which timed out after one
+thousand seconds with one algorithm, but not the other. For satisfiable instances, the different
+point styles show the different families, whilst all unsatisfiable instances are shown as dark dots.
 
-\paragraph{Anti} We select vertices from lowest degree to highest degree. This heuristic is used as
-a sanity check: as expected, degree beats random, and random beats anti.
+The points well below the diagonal line and along the right-hand axis show that DDS can sometimes be
+extremely beneficial on satisfiable instances.  However, on both unsatisfiable and most satisfiable
+instances, the overheads can be extremely large, and DDS is much worse in aggregate (even when only
+considering satisfiable instances).
 
-\paragraph{Biased} We branch by selecting a vertex $v'$ from the chosen domain $D_v$ with
-probability \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \] This heuristic
-continues to prefer vertices of high degree, but will give the same chance of being selected next to
-two vertices of equal degree.  It also introduces an element of randomness, which is needed to make
-restarts have an effect.
-
-The biased heuristic resembles the well-known \emph{softmax} weighting scheme applied to the degree
-heuristic, although usually \emph{softmax} uses a base of $e$ rather than $2$.  Experiments showed
-that in this context, the choice of base is not important to the search space size; however, a base
-of $2$ avoids the need to use floating point arithmetic, which was a substantial overhead.
-
-The performance of the degree and biased heuristics are very similar: the
-biased heuristic has slightly worse performance below a 400s timeout, and effectively equal
-performance above it. This shows that we can introduce an element of randomness into the degree
-value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.
-\Cref{figure:scatter-heuristics} gives a more detailed look at these results. This scatter plot
-shows that despite the aggregate performance being very similar, on a case by case basis, the two
-heuristics can make a large difference to the performance of satisfiable instances.
+These large overheads are to be expected: discrepancy searches are aimed primarily at getting better
+feasible solutions in optimisation problems which are too large for a proof of optimality to be a
+realistic prospect, and they are not well-suited for unsatisfiable decision problems. However, the
+extremely large gains on some satisfiable instances confirm our suspicions that we should find an
+alternative to heavy-commitment backtracking search.
 
 \subsection{Adding Restarts to the Algorithm}
 
@@ -485,31 +485,23 @@ degree heuristic to the degree-biased algorithm with restarts, all of the unsati
 are very close to the $x-y$ diagonal, showing that their performance is nearly unchanged. On the
 other hand, there are ?? large numbers of satisfiable instances well below the diagonal line,
 indicating large speedups.  Better yet, there are only ?? satisfiable instances that are more than a
-factor of ?? times worse.
-
-?? By family
-
-?? This has made up the consistency we lost from introducing randomness.
-
-?? Explain why this is so amazingly awesome and the most important idea ever to happen in the entire
-history of science.
-
-?? Justify aggregate speedups on sat instances
+factor of ten times worse. In other words, as well as improving performance, we have made up most of
+the consistency we lost by introducing randomness.
 
 \section{Maximum Common Subgraph Algorithms}
 
-?? Two recent maximum common induced subgraph algorithms: k${\downarrow}$
-\citep{DBLP:conf/aaai/HoffmannMR17}, and McSplit \citep{DBLP:conf/ijcai/McCreeshPT17}. The former
-attempts to solve the problem by first trying to solve the induced subgraph isomorphism problem, and
-then if that fails, retries allowing a single unmatched vertex (and thus using weaker invariants),
-and so on. Due to its similarity to \cref{algorithm:sip}, we can introduce the same bias and restart
-strategy, requiring only a small amount of jiggery-pokery to handle wildcards in nogoods.
-
-The McSplit algorithm, meanwhile, uses a constraint programming style search, but with special
+Two recent maximum common induced subgraph algorithms also make use of backtracking search with
+degree as a value-ordering heuristic. The k${\downarrow}$ algorithm
+\citep{DBLP:conf/aaai/HoffmannMR17} attempts to solve the problem by first trying to solve the
+induced subgraph isomorphism problem, and then if that fails, retries allowing a single unmatched
+vertex (and thus using weaker invariants), and so on. Due to its similarity to \cref{algorithm:sip},
+we can introduce the same bias and restart strategy, requiring only a small amount of jiggery-pokery
+to handle wildcards in nogoods.  Meanwhile, the McSplit algorithm
+\citep{DBLP:conf/ijcai/McCreeshPT17} uses a constraint programming style search, but with special
 propagators and backtrackable data structures that exploit special properties of the problem. The
 unconventional domain store used by McSplit precludes the use of arbitrary unit propagation, and so
-when introducing restarts, we cannot propagate using nogoods. Instead, we can only detect when we
-are inside an already-visited branch. We must therefore use the one watched literal scheme instead.
+when introducing restarts, we cannot propagate using nogoods.  Instead, we can only detect when we
+are inside an already-visited branch.  We must therefore use the one watched literal scheme instead.
 
 ?? Benchmark results on the same families of instances are shown in
 \cref{figure:kdown,figure:mcsplit,figure:mcs}. Clearly beneficial. Note that on McSplit we're doing
@@ -552,63 +544,6 @@ $\left|D_v\right|$ as the base. Using $e$ (or for that matter, $2$ or $\pi$) as 
 
 \bibliographystyle{named}
 \bibliography{dblp}
-
-\clearpage
-\appendix
-
-\section{Extra Plots not for the Final Paper}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-as.pdf}
-    \caption{?? Aggregate speedups on satisfiable instances}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-as-mcs.pdf}
-    \caption{?? Aggregate speedups on MCS instances}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-scatter-degree.pdf}
-
-    \caption{When is the degree heuristic good?}
-    \label{figure:scatter-degree}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-scatter-constant.pdf}
-
-    \caption{Constant restarts?}
-    \label{figure:scatter-constant}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-parallel.pdf}
-
-    \caption{Parallel}
-    \label{figure:parallel}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-scatter-parallel.pdf}
-
-    \caption{Parallel Luby}
-    \label{figure:parallel-luby}
-\end{figure}
-
-\begin{figure}[h]
-    \centering
-    \includegraphics*{gen-graph-scatter-parallel-constant.pdf}
-
-    \caption{Parallel Constant}
-    \label{figure:parallel-constant}
-\end{figure}
 
 \end{document}
 
