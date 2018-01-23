@@ -1,0 +1,2 @@
+#!/bin/bash
+../SMAC/smac-v2.10.03-master-778/smac --scenario-file scenario.txt --seed 1 --validation false

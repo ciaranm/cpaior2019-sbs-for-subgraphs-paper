@@ -1,0 +1,8 @@
+pcs-file = params.pcs
+runObj = RUNTIME
+cutoffTime = 1
+wallclock-limit = 6
+deterministic = 1
+instance_file = ../instances-reformatted.txt
+test_instance_file = ../instances-reformatted.txt
+algo = ./wrapper.py
