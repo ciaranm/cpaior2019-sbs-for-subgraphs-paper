@@ -172,7 +172,7 @@ namespace
         {
             // strip out isolated vertices in the pattern, and build pattern_permutation
             for (unsigned v = 0 ; v < full_pattern_size ; ++v)
-                if ((! params.induced) && (0 == pattern.degree(v))) {
+                if ((! params.induced) && (! params.enumerate) && (0 == pattern.degree(v))) {
                     isolated_vertices.push_back(v);
                     --pattern_size;
                 }
@@ -419,6 +419,7 @@ namespace
                 Assignments & assignments,
                 const Domains & domains,
                 unsigned long long & nodes,
+                unsigned long long & solution_count,
                 int depth) -> Search
         {
             if (params.abort->load())
@@ -427,8 +428,14 @@ namespace
             ++nodes;
 
             const Domain * branch_domain = find_branch_domain(domains);
-            if (! branch_domain)
-                return Search::Satisfiable;
+            if (! branch_domain) {
+                if (params.enumerate) {
+                    ++solution_count;
+                    return Search::Unsatisfiable;
+                }
+                else
+                    return Search::Satisfiable;
+            }
 
             auto remaining = branch_domain->values;
 
@@ -443,7 +450,7 @@ namespace
                 Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
 
                 if (propagate(new_domains, assignments)) {
-                    auto search_result = search(assignments, new_domains, nodes, depth + 1);
+                    auto search_result = search(assignments, new_domains, nodes, solution_count, depth + 1);
 
                     switch (search_result) {
                         case Search::Satisfiable:    return Search::Satisfiable;
@@ -463,6 +470,7 @@ namespace
                 Assignments & assignments,
                 const Domains & domains,
                 unsigned long long & nodes,
+                unsigned long long & solution_count,
                 int depth,
                 int discrepancy_k,
                 bool & used_all_discrepancies) -> Search
@@ -473,8 +481,15 @@ namespace
             ++nodes;
 
             const Domain * branch_domain = find_branch_domain(domains);
-            if (! branch_domain)
-                return Search::Satisfiable;
+            if (! branch_domain) {
+                if (params.enumerate) {
+                    if (discrepancy_k == 0)
+                        ++solution_count;
+                    return Search::Unsatisfiable;
+                }
+                else
+                    return Search::Satisfiable;
+            }
 
             auto remaining = branch_domain->values;
 
@@ -482,7 +497,7 @@ namespace
             for (int f_v = remaining.first_set_bit() ; f_v != -1 ; f_v = remaining.first_set_bit()) {
                 remaining.unset(f_v);
 
-                if (discrepancy_k != -1) {
+                if (discrepancy_k != 1) {
                     auto assignments_size = assignments.values.size();
                     assignments.values.push_back({ { branch_domain->v, f_v }, true, discrepancy_count });
 
@@ -490,7 +505,8 @@ namespace
                     Domains new_domains = prepare_domains(domains, branch_domain->v, f_v);
 
                     if (propagate(new_domains, assignments)) {
-                        auto search_result = dds_search(assignments, new_domains, nodes, depth + 1, discrepancy_k, used_all_discrepancies);
+                        auto search_result = dds_search(assignments, new_domains, nodes, solution_count,
+                                depth + 1, max(0, discrepancy_k - 1), used_all_discrepancies);
 
                         switch (search_result) {
                             case Search::Satisfiable:    return Search::Satisfiable;
@@ -534,6 +550,7 @@ namespace
                 Assignments & assignments,
                 const Domains & domains,
                 unsigned long long & nodes,
+                unsigned long long & solution_count,
                 int depth,
                 long long & backtracks_until_restart) -> RestartingSearch
         {
@@ -544,8 +561,14 @@ namespace
 
             // find ourselves a domain, or succeed if we're all assigned
             const Domain * branch_domain = find_branch_domain(domains);
-            if (! branch_domain)
-                return RestartingSearch::Satisfiable;
+            if (! branch_domain) {
+                if (params.enumerate) {
+                    ++solution_count;
+                    return RestartingSearch::Unsatisfiable;
+                }
+                else
+                    return RestartingSearch::Satisfiable;
+            }
 
             // pull out the remaining values in this domain for branching
             auto remaining = branch_domain->values;
@@ -617,7 +640,7 @@ namespace
                 }
 
                 // recursive search
-                auto search_result = restarting_search(assignments, new_domains, nodes, depth + 1, backtracks_until_restart);
+                auto search_result = restarting_search(assignments, new_domains, nodes, solution_count, depth + 1, backtracks_until_restart);
 
                 switch (search_result) {
                     case RestartingSearch::Satisfiable:
@@ -925,7 +948,7 @@ namespace
                     if (propagate(domains, assignments)) {
                         auto assignments_copy = assignments;
 
-                        switch (restarting_search(assignments_copy, domains, result.nodes, 0, backtracks_until_restart)) {
+                        switch (restarting_search(assignments_copy, domains, result.nodes, result.solution_count, 0, backtracks_until_restart)) {
                             case RestartingSearch::Satisfiable:
                                 save_result(assignments_copy, result);
                                 done = true;
@@ -950,7 +973,7 @@ namespace
                 if (propagate(domains, assignments)) {
                     // still need to use the restarts variant
                     long long backtracks_until_restart = -1;
-                    switch (restarting_search(assignments, domains, result.nodes, 0, backtracks_until_restart)) {
+                    switch (restarting_search(assignments, domains, result.nodes, result.solution_count, 0, backtracks_until_restart)) {
                         case RestartingSearch::Satisfiable:
                             save_result(assignments, result);
                             break;
@@ -966,7 +989,7 @@ namespace
                 bool done = false;
                 for (int discrepancy_k = 0 ; ! done ; ++discrepancy_k) {
                     bool used_all_discrepancies = false;
-                    switch (dds_search(assignments, domains, result.nodes, 0, discrepancy_k, used_all_discrepancies)) {
+                    switch (dds_search(assignments, domains, result.nodes, result.solution_count, 0, discrepancy_k, used_all_discrepancies)) {
                         case Search::Satisfiable:
                             save_result(assignments, result);
                             done = true;
@@ -987,7 +1010,7 @@ namespace
             }
             else {
                 if (propagate(domains, assignments)) {
-                    switch (search(assignments, domains, result.nodes, 0)) {
+                    switch (search(assignments, domains, result.nodes, result.solution_count, 0)) {
                         case Search::Satisfiable:
                             save_result(assignments, result);
                             break;

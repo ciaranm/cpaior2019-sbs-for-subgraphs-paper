@@ -15,11 +15,11 @@ struct Result
     /// Total number of nodes processed.
     unsigned long long nodes = 0;
 
-    /// A count, if enumerating.
-    unsigned result_count = 0;
-
     /// Extra stats, to output
     std::list<std::string> extra_stats;
+
+    /// Number of solutions, only if enumerating
+    unsigned long long solution_count = 0;
 };
 
 #endif

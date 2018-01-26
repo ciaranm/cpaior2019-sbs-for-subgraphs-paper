@@ -39,6 +39,9 @@ struct Params
     /// Induced?
     bool induced = false;
 
+    /// Enumerate?
+    bool enumerate = false;
+
     /// Default chosen by divine revelation
     static constexpr unsigned long long dodgy_default_magic_luby_multiplier = 666;
 

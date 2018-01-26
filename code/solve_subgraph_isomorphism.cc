@@ -120,7 +120,8 @@ auto main(int argc, char * argv[]) -> int
             ("help",                                         "Display help information")
             ("timeout",            po::value<int>(),         "Abort after this many seconds")
             ("dimacs",                                       "Read DIMACS format instead of LAD")
-            ("induced",                                      "Solve the induced version");
+            ("induced",                                      "Solve the induced version")
+            ("enumerate",                                    "Count the number of solutions");
 
         po::options_description parallel_options{ "Options for parallel algorithms" };
         parallel_options.add_options()
@@ -214,6 +215,7 @@ auto main(int argc, char * argv[]) -> int
         Params params;
 
         params.induced = options_vars.count("induced");
+        params.enumerate = options_vars.count("enumerate");
 
         if (0 == options_vars["algorithm"].as<std::string>().compare(0, 13, "customisable-", 0, 13)) {
             params.restarts = options_vars.count("restarts");
@@ -281,11 +283,14 @@ auto main(int argc, char * argv[]) -> int
         cout << "status = ";
         if (aborted)
             cout << "aborted";
-        else if (! result.isomorphism.empty())
+        else if ((! result.isomorphism.empty()) || (params.enumerate && result.solution_count > 0))
             cout << "true";
         else
             cout << "false";
         cout << endl;
+
+        if (params.enumerate)
+            cout << "solution_count = " << result.solution_count << endl;
 
         cout << "nodes = " << result.nodes << endl;
 
