@@ -42,8 +42,8 @@ struct Params
     /// Enumerate?
     bool enumerate = false;
 
-    /// Default chosen by divine revelation
-    static constexpr unsigned long long dodgy_default_magic_luby_multiplier = 666;
+    /// Default chosen by SMAC
+    static constexpr unsigned long long dodgy_default_magic_luby_multiplier = 660;
 
     /// Multiplier for Luby sequence
     unsigned long long luby_multiplier = dodgy_default_magic_luby_multiplier;
