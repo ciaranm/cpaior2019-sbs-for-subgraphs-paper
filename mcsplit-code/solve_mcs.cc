@@ -1,4 +1,4 @@
-#define LUBY_MULTIPLIER 500
+#define LUBY_MULTIPLIER 660
 
 #include "graph.hh"
 #include "solve_mcs.hh"

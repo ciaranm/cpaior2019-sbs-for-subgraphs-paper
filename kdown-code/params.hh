@@ -19,7 +19,7 @@ struct Params
     bool restarts = false;
 
     /// Default chosen by divine revelation
-    static constexpr unsigned long long dodgy_default_magic_luby_multiplier = 666;
+    static constexpr unsigned long long dodgy_default_magic_luby_multiplier = 660;
 
     /// Multiplier for Luby sequence
     unsigned long long luby_multiplier = dodgy_default_magic_luby_multiplier;
