@@ -20,16 +20,13 @@ cumx(x)=(isfail(x) ? 1e6 : column(x))
 cumy(x)=(isfail(x) ? 1e-10 : 1)
 cumsaty(x)=(stringcolumn("sat") eq "1" ? cumy(x) : 1e-10)
 
-norestarts="sequential13"
-softmax="sequentialinputordersoftmax13"
-random="sequentialshuffle13"
-randomrestarts="sequentialrestartsshuffle13"
-anti="sequentialantiheuristic13"
-final="sequentialinputordersoftmaxrestarts13"
-constant="sequentialinputordersoftmaxrestartsconstant13"
-dds="sequentialdds13"
-lubypar="parallelinputordersoftmaxrestarts13"
-constantpar="parallelinputordersoftmaxrestartsconstant13"
+norestarts="sequential14"
+softmax="sequentialinputordersoftmax14"
+random="sequentialshuffle14"
+randomrestarts="sequentialrestartsshuffle14"
+anti="sequentialantiheuristic14"
+final="sequentialinputordersoftmaxrestarts14"
+dds="sequentialdds14"
 
 mcsplitdown="mcsplitdown5"
 mcsplitdownbiasedrestarts="mcsplitdownbiasedrestarts5"

@@ -1,8 +1,14 @@
 % vim: set spell spelllang=en tw=100 et sw=4 sts=4 :
 
 \documentclass{article}
-\usepackage{ijcai17}
+\pdfpagewidth=8.5in
+\pdfpageheight=11in
+\usepackage{ijcai18}
 \usepackage{times}
+\usepackage{xcolor}
+\usepackage{soul}
+\usepackage[utf8]{inputenc}
+\usepackage[small]{caption}
 \usepackage{microtype}
 \usepackage{amsmath}
 \usepackage[ruled,vlined]{algorithm2e}
@@ -39,10 +45,10 @@
 \crefname{section}{Section}{Sections}
 \Crefname{section}{Section}{Sections}
 
-\title{Value Ordering, Discrepancies, and Restarts for Subgraph Algorithms\thanks{This work was
-supported by the Engineering and Physical Sciences Research Council [grant numbers EP/026842/1 and EP/M508056/1]}}
-\author{Ciaran McCreesh \and Patrick Prosser \and James Trimble\\ University of Glasgow, Glasgow, Scotland \\
-    ciaran.mccreesh@glasgow.ac.uk}
+\title{Value Ordering, Discrepancies, and Restarts for Subgraph Algorithms\thanks{This footnote
+leaves room for a piece of text saying how grateful we are to our funding agency. This includes a
+magic grant number, so it takes up three precious lines of space.}}
+\author{Anonymous \and Anonymous \and Anonymous \\ Somewhere \\ Some Email Address}
 
 \begin{document}
 
@@ -86,13 +92,13 @@ optimisation setting, producing benefits in two maximum common induced subgraph 
 Let $G$ be a graph. We denote its set of vertices by $\vertexset(G)$, and write $v \sim_G w$ to mean
 that vertices $v$ and $w$ are adjacent; we allow a vertex to be adjacent to itself. The
 \emph{neighbourhood} of a vertex, $\neighbourhood_G(v)$, is the set of vertices adjacent to $v$, and
-the \emph{degree} of $v$, $\deg_G(v)$, is the cardinality of its neighbourhood; when the graph is
-clear from the context, we omit the $G$ subscript. The \emph{neighbourhood degree sequence} of $v$,
-$\nds_G(v)$, is the sequence of degrees of the neighbours of $v$ in descending order, and we denote
-by $\preceq$ the inclusion relation of \citet{DBLP:journals/constraints/ZampelliDS10}. As per
-\citet{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with vertex set $\vertexset(G)$,
-and with edges between vertices $v$ and $w$ if there are at least $n$ simple paths of length exactly
-$\ell$ between vertices $v$ and $w$ in $G$.
+the \emph{degree} of $v$, $\deg_G(v)$, is the cardinality of its neighbourhood. The
+\emph{neighbourhood degree sequence} of $v$, $\nds_G(v)$, is the sequence of degrees of the
+neighbours of $v$ in descending order, and we denote by $\preceq$ the inclusion relation of
+\citet{DBLP:journals/constraints/ZampelliDS10}. When the graph is clear from the context, we omit
+the $G$ subscripts. As per \citet{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with
+vertex set $\vertexset(G)$, and with edges between vertices $v$ and $w$ if there are at least $n$
+simple paths of length exactly $\ell$ between vertices $v$ and $w$ in $G$.
 
 The non-induced subgraph isomorphism problem is to find an injective mapping from the vertices of a
 pattern graph $\mathcal{P}$ to a target graph $\mathcal{T}$, such that adjacent vertices in
@@ -337,14 +343,6 @@ heuristics can make a large difference to the performance of satisfiable instanc
 
 \begin{figure}[p]
     \centering
-    \includegraphics*{gen-graph-scatter-dds.pdf}
-
-    \caption{Comparing depth-bounded discrepancy search to backtracking search, both with the degree
-    heuristic.}\label{figure:scatter-dds}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
     \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
 
     \caption{The cumulative number of satisfiable instances solved over time, using four
@@ -359,6 +357,14 @@ heuristics can make a large difference to the performance of satisfiable instanc
     \caption{An instance by instance comparison of the degree and biased heuristics on all
     instances. Points on the outer axes are timeouts, and point style shows instance family.}
     \label{figure:scatter-heuristics}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-dds.pdf}
+
+    \caption{Comparing depth-bounded discrepancy search to backtracking search, both with the degree
+    heuristic.}\label{figure:scatter-dds}
 \end{figure}
 
 \subsection{Discrepancy Searches}
@@ -402,10 +408,10 @@ this is usually the variable-ordering heuristic
 In this paper, we instead rely upon randomness in the \emph{value}-ordering heuristic, and keep the
 variable ordering fixed.\footnote{It may be possible to further improve \cref{algorithm:sip} by also
 introducing randomness or some form of learning into its variable-ordering heuristic. However,
-introducing a second change would considerably complicate the empirical analysis. We therefore leave
-this change as future work.} Using restarts on value-ordering heuristics appears to be uncommon,
-although \citet{DBLP:conf/flairs/RazgonOP07} look at learning value-ordering heuristics from
-restarts, and \citet{DBLP:conf/cp/ChuSS09} use a similar scheme in the context of parallel search.
+simultaneously introducing a second change would considerably complicate the empirical analysis.}
+Using restarts on value-ordering heuristics appears to be uncommon, although
+\citet{DBLP:conf/flairs/RazgonOP07} look at learning value-ordering heuristics from restarts, and
+\citet{DBLP:conf/cp/ChuSS09} use a similar scheme in the context of parallel search.
 
 The shaded code shows how to introduce restarts to \cref{algorithm:sip}. The recursive
 $\FuncSty{search}$ procedure is modified to return either true (if the instance is satisfiable),
@@ -416,12 +422,10 @@ a solution is found.
 We use the Luby scheme \citep{DBLP:journals/ipl/LubySZ93} to determine when to restart. We count the
 number of backtracks (that is, when we reach the end of the main $\KwSty{foreach}$ loop on
 \siplineref{countrestarts}) to decide when to restart, rather than counting recursive calls.
-Following established wisdom, we multiply each item in the Luby sequence by a magic constant.
-Preliminary experiments demonstrated that a constant 100 is slightly too small and 1,000 is slightly
-too large, but lacking a more principled way of selecting the constant's value, we fell back on
-divine revelation and use a multiplier of 666. (We also tried a geometric scheme. The results were
-less favourable---it appears that value-ordering heuristics benefit from a very aggressive restart
-strategy.)
+Following established wisdom, we multiply each item in the Luby sequence by a magic constant---we
+used SMAC \citep{DBLP:conf/lion/HutterHL11} to select a value of 660. (We also tried a geometric
+restart scheme. The results were less favourable---it appears that value-ordering heuristics benefit
+from a very aggressive restart strategy.)
 
 The remainder of the changes are to introduce nogoods. To avoid exploring portions of the search
 space that we have already visitied, every time we restart, we add new constraints to the problem
@@ -429,7 +433,7 @@ which eliminate already-explored subtrees. We generate simple decision nogoods, 
 argument to $\FuncSty{search}$ tracks the branching choices made so far, in the form of a CNF clause
 with each literal being a guessed $(v \mapsto v')$ assignment. Upon backtracking due to a decision to
 restart, we post a nogood of the form $(v \mapsto v') \wedge (w \mapsto w') \wedge (x \mapsto x')
-\Rightarrow \bot$ for the current branch, and for every branch to its left in the search tree.
+\Rightarrow \bot$ for every branch to the left of the current (incomplete) branch in the search tree.
 
 Finally, we use the two watched literals technique \citep{DBLP:conf/dac/MoskewiczMZZM01} to
 propagate stored nogoods (\siplineref{2wl}). This has two benefits: the propagation complexity does
@@ -448,7 +452,7 @@ particular random choice. \Cref{figure:scatter-random} looks at this in more det
 on unsatisfiable instances, drawn as dark dots, remains unchanged as expected (which shows that the
 overheads of nogoods and restarting are negligible). However, although better in aggregate on
 satisfiable instances, on a case by case basis many instances perform substantially worse with
-randomisation and restarts. ?? Quantify this a bit
+randomisation and restarts.
 
 \begin{figure}[p]
     \centering
@@ -476,17 +480,20 @@ randomisation and restarts. ?? Quantify this a bit
     \label{figure:scatter-by-family}
 \end{figure}
 
-\Cref{figure:restarts} shows that the biased heuristic together with restarts is better still---that
-is, if we are introducing restarts, then it is better to add a small amount of randomness to a
-tailored deterministic heuristic than it is to throw away the heuristic altogether.
+\Cref{figure:restarts} also shows that the biased heuristic together with restarts is better
+still---that is, if we are introducing restarts, then it is better to add a small amount of
+randomness to a tailored deterministic heuristic than it is to throw away the heuristic altogether.
+Indeed, the original algorithm can solve 1,983 satisfiable instances by 993.0 seconds, whilst the
+biased and random restarting algorithms require only 9.2 seconds and 33.8 seconds respectively to
+solve the same number.
 
 In the more detailed view in \cref{figure:scatter-by-family}, comparing the basic algorithm with the
 degree heuristic to the degree-biased algorithm with restarts, all of the unsatisfiable instances
 are very close to the $x-y$ diagonal, showing that their performance is nearly unchanged. On the
-other hand, there are ?? large numbers of satisfiable instances well below the diagonal line,
-indicating large speedups.  Better yet, there are only ?? satisfiable instances that are more than a
-factor of ten times worse. In other words, as well as improving performance, we have made up most of
-the consistency we lost by introducing randomness.
+other hand, there are large numbers of satisfiable instances well below the diagonal line,
+indicating large speedups.  Better yet, there are only a handful of satisfiable instances that are
+more than a factor of ten times worse. In other words, as well as improving performance, we have
+made up most of the consistency we lost by introducing randomness.
 
 \section{Maximum Common Subgraph Algorithms}
 
@@ -496,51 +503,66 @@ degree as a value-ordering heuristic. The k${\downarrow}$ algorithm
 induced subgraph isomorphism problem, and then if that fails, retries allowing a single unmatched
 vertex (and thus using weaker invariants), and so on. Due to its similarity to \cref{algorithm:sip},
 we can introduce the same bias and restart strategy, requiring only a small amount of jiggery-pokery
-to handle wildcards in nogoods.  Meanwhile, the McSplit algorithm
+to handle wildcards in nogoods.  Meanwhile, the McSplit${\downarrow}$ algorithm
 \citep{DBLP:conf/ijcai/McCreeshPT17} uses a constraint programming style search, but with special
 propagators and backtrackable data structures that exploit special properties of the problem. The
-unconventional domain store used by McSplit precludes the use of arbitrary unit propagation, and so
+unconventional domain store used by McSplit${\downarrow}$ precludes the use of arbitrary unit propagation, and so
 when introducing restarts, we cannot propagate using nogoods.  Instead, we can only detect when we
 are inside an already-visited branch.  We must therefore use the one watched literal scheme instead.
 
-?? Benchmark results on the same families of instances are shown in
-\cref{figure:kdown,figure:mcsplit,figure:mcs}. Clearly beneficial. Note that on McSplit we're doing
-extra work and this shows, but it's still worthwhile.
+Performance results from these two modified algorithms, using the same families of instances as in
+the previous section, are shown in \cref{figure:kdown,figure:mcsplit,figure:mcs}. Although we have
+moved from a decision problem to an optimisation problem, the same changes remain clearly
+beneficial. For the $k{\downarrow}$ algorithm, the change has a minimal effect on many instances
+(typically, where the $k = 0$ subproblem is unsatisfiable and hard, and the $k = 1$ subproblem is
+satisfiable and easy), but gives large benefits on many more instances than it penalises: it is over
+an order of magnitude better on nearly a hundred instances, whilst being an order of magnitude worse
+on only five.
+
+With McSplit${\downarrow}$, the inability to use two watched literals means that in many cases we
+introduce a small slowdown. However, the overall pattern is the same: when introducing restarts and
+a biased value ordering heuristic, it is much more common to see a large speedup than it is a large
+slowdown.
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-mcs.pdf}
+    \caption{The cumulative number of maximum common induced subgraph instances solved by
+    k${\downarrow}$ and McSplit${\downarrow}$ over time, with and without restarts.}\label{figure:mcs}
+\end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-kdown.pdf}
-    \caption{k${\downarrow}$ speedups}\label{figure:kdown}
+    \caption{Comparing k${\downarrow}$ with and without restarts on an instance by instance basis.}\label{figure:kdown}
 \end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-mcsplit.pdf}
-    \caption{McSplit speedups}\label{figure:mcsplit}
+    \caption{Comparing McSplit${\downarrow}$ with and without restarts on an instance by instance
+    basis.}\label{figure:mcsplit}
 \end{figure}
 
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-mcs.pdf}
-    \caption{k${\downarrow}$ and McSplit cumulative curves}\label{figure:mcs}
-\end{figure}
+\section{Conclusion and Future Work}
 
-\section{Conclusion}
+We have shown that it is both possible and beneficial to introduce a small amount of randomness into
+backtracking search algorithms for hard subgraph problems, without compromising existing search
+order heuristics, and without paying a penalty for unsatisfiable instances.
 
-?? This stuff is quite good.
+The success of this approach raises a number of interesting questions and avenues for possible
+future research. For example, will this same technique work for other problems where we have a good
+value-ordering heuristic? Are there further benefits to be had from also modifying variable-ordering
+heuristics? Are there theoretical rather than just empirical reasons for using the
+\emph{softmax}-like bias scheme? And how can such a search process be parallelised?
 
-?? We can keep good value-ordering heuristics, and get large improvement. Importantly, we can do
-this with almost no effect on unsatisfiable instances, and rare to make satisfiable much worse.
+\section*{Acknowledgments}
 
-?? No theoretical justification for biased. Also tried polynomial weightings, exponential using
-$\left|D_v\right|$ as the base. Using $e$ (or for that matter, $2$ or $\pi$) as a base seems to be
-``just the right amount'' of randomness.
+We would like to thank some anonymous people for their comments. These people have names that take
+up approximately this amount of space, which is helpful for us getting the page layout right when
+anonymising the paper for review.
 
-?? Variable ordering
-
-?? Bigger CP picture.
-
-?? Parallel future work
+% Ruth Hoffmann, Christophe Lecoutre, Christine Solnon, Craig Reilly.
 
 \bibliographystyle{named}
 \bibliography{dblp}
