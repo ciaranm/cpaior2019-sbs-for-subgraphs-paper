@@ -30,8 +30,8 @@ dds="sequentialdds14"
 
 mcsplitdown="mcsplitdown5"
 mcsplitdownbiasedrestarts="mcsplitdownbiasedrestarts5"
-kdown="sequentialixinduced3"
-kdownbiasedrestarts="sequentialixinducedrestarts7"
+kdown="sequentialixinduced14"
+kdownbiasedrestarts="sequentialixinducedrestarts14"
 
 glasgow2="glasgow2"
 glasgow3="glasgow3"
