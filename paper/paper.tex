@@ -242,12 +242,12 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
 
 For the variable-ordering heuristic on \siplineref{variableordering} of \cref{algorithm:sip}, we use
 smallest domain first, tiebreaking on highest degree. Variable ordering is not the focus of this
-paper---as far as possible, we will leave it intact, so as not to affect the performance of the
-algorithm on unsatisfiable instances.  For value ordering, which occurs on
-\siplineref{valueordering} of \cref{algorithm:sip}, we will initially select vertices from highest
-degree to lowest degree; we return to value ordering in the second half of this paper. Note that the
-variable-ordering heuristic affects both unsatisfiable and satisfiable instances, whilst the
-value-ordering heuristic is relevant only for satisfiable instances.
+paper---as far as possible, we use this same dynamic ordering throughout the paper, so as not to
+affect the performance of the algorithm on unsatisfiable instances.  For value ordering, which
+occurs on \siplineref{valueordering} of \cref{algorithm:sip}, we will initially select vertices from
+highest degree to lowest degree; we return to value ordering in the second half of this paper. Note
+that the variable-ordering heuristic affects both unsatisfiable and satisfiable instances, whilst
+the value-ordering heuristic is relevant only for satisfiable instances.
 
 \section{Empirical Evaluation}
 
@@ -405,13 +405,14 @@ has not been proven), to abandon search and restart from the beginning. Obviousl
 can only be beneficial if something changes after restarting---in a constraint programming setting,
 this is usually the variable-ordering heuristic
 \citep{DBLP:journals/jsat/LecoutreSTV07,DBLP:conf/cp/GayHLS15,DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}.
-In this paper, we instead rely upon randomness in the \emph{value}-ordering heuristic, and keep the
-variable ordering fixed.\footnote{It may be possible to further improve \cref{algorithm:sip} by also
-introducing randomness or some form of learning into its variable-ordering heuristic. However,
-simultaneously introducing a second change would considerably complicate the empirical analysis.}
-Using restarts on value-ordering heuristics appears to be uncommon, although
-\citet{DBLP:conf/flairs/RazgonOP07} look at learning value-ordering heuristics from restarts, and
-\citet{DBLP:conf/cp/ChuSS09} use a similar scheme in the context of parallel search.
+In this paper, we instead rely upon randomness in the \emph{value}-ordering heuristic, and continue
+to use smallest domain first with static tiebreaking for variable-ordering.\footnote{It may be
+possible to further improve \cref{algorithm:sip} by also introducing randomness or some form of
+learning into its variable-ordering heuristic. However, simultaneously introducing a second change
+would considerably complicate the empirical analysis.} Using restarts on value-ordering heuristics
+appears to be uncommon, although \citet{DBLP:conf/flairs/RazgonOP07} look at learning value-ordering
+heuristics from restarts, and \citet{DBLP:conf/cp/ChuSS09} use a similar scheme in the context of
+parallel search.
 
 The shaded code shows how to introduce restarts to \cref{algorithm:sip}. The recursive
 $\FuncSty{search}$ procedure is modified to return either true (if the instance is satisfiable),
@@ -424,8 +425,7 @@ number of backtracks (that is, when we reach the end of the main $\KwSty{foreach
 \siplineref{countrestarts}) to decide when to restart, rather than counting recursive calls.
 Following established wisdom, we multiply each item in the Luby sequence by a magic constant---we
 used SMAC \citep{DBLP:conf/lion/HutterHL11} to select the value 660. (We also tried a geometric
-restart scheme. The results were less favourable---it appears that value-ordering heuristics benefit
-from a very aggressive restart strategy.)
+restart scheme, which gave less favourable results.)
 
 The remainder of the changes are to introduce nogoods. To avoid exploring portions of the search
 space that we have already visitied, every time we restart, we add new constraints to the problem
@@ -446,7 +446,7 @@ beneficial in a setting where we are not maintaining arc consistency.
 
 In \cref{figure:restarts} we show the effects of adding restarts to the algorithm. With restarts,
 the random value-ordering heuristic comfortably beats the degree strategy without restarts. In other
-words, although having a good variable-ordering heuristic is beneficial, introducing randomness into
+words, although having a good value-ordering heuristic is beneficial, introducing randomness into
 the search is better, if it is done alongside a mechanism to avoid heavy commitment to any
 particular random choice. \Cref{figure:scatter-random} looks at this in more detail. The performance
 on unsatisfiable instances, drawn as dark dots, remains unchanged as expected (which shows that the
@@ -466,7 +466,7 @@ randomisation and restarts.
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-random.pdf}
-    \caption{Comparing basic backtracking with the degree heuristic, versus the Random heuristic
+    \caption{Comparing basic backtracking with the degree heuristic, versus the random heuristic
     with restarts.}
     \label{figure:scatter-random}
 \end{figure}
@@ -503,8 +503,10 @@ backtracking search with degree as a value-ordering heuristic. The k${\downarrow
 \citep{DBLP:conf/aaai/HoffmannMR17} attempts to solve the problem by first trying to solve the
 induced subgraph isomorphism problem, and then if that fails, retries allowing a single unmatched
 vertex (and thus using weaker invariants), and so on. Due to its similarity to \cref{algorithm:sip},
-we can introduce the same bias and restart strategy, requiring only a small amount of jiggery-pokery
-to handle wildcards in nogoods.  Meanwhile, the McSplit${\downarrow}$ algorithm
+we can introduce the same bias and restart strategy, requiring only small changes
+to handle wildcards in nogoods.
+
+Meanwhile, the McSplit${\downarrow}$ algorithm
 \citep{DBLP:conf/ijcai/McCreeshPT17} uses a constraint programming style search, but with special
 propagators and backtrackable data structures that exploit special properties of the problem. The
 unconventional domain store used by McSplit${\downarrow}$ precludes the use of arbitrary unit
