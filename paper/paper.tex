@@ -74,7 +74,7 @@ first'' as a value-ordering heuristic to direct a constraint programming style s
 \citep{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:conf/ijcai/McCreeshPT16}. This
 heuristic is much better than branching randomly, but is still far from perfect.  We could try to
 introduce tiebreaking mechanisms and similar refinements to strengthen the heuristic. However, given
-the extreme cost of making an incorrect branching choice early on in search, we believe it is more
+the extreme cost of making an incorrect branching choice early in search, we believe it is more
 fruitful to investigate alternatives to simple backtracking (depth-first) search. This paper
 evaluates two such approaches: discrepancy search (which performs poorly), and restarts (which are
 extremely beneficial). To explore different parts of the search space when restarting, we introduce
@@ -127,7 +127,7 @@ inconsistency is detected, we continue and try another value; otherwise, we recu
 (\siplineref{recurse}) until a solution is found. Finally, if we run out of values, we backtrack
 (\siplineref{backtrack}).
 
-Our $\FuncSty{propagate}$ routine is similarly close to that of \citet{DBLP:conf/aaai/HoffmannMR17},
+Our $\FuncSty{propagate}$ routine is also close to that of \citet{DBLP:conf/aaai/HoffmannMR17},
 differing only in that we carry out the filtering for injectivity
 (\siplinerangeref{alldiffstart}{alldiffend}) after every assignment rather than once at the end of
 the unit propagation loop. (We make this change because the all-different propagator used is not
@@ -296,7 +296,7 @@ milliseconds.  The vertical distance between two lines therefore shows how many 
 be solved by one solver than another, if every instance is run separately with the chosen $x$
 timeout; the horizontal distance shows how many times longer the per-instance timeout would need to
 be to allow the rightmost algorithm to succeed on $y$ out of the 14,621 instances (bearing in mind
-that the two sets of $y$ instances solved by the two algorithms could be completely different).
+that the two sets of $y$ instances could be different).
 
 As expected, the performance of \cref{algorithm:sip} with the degree heuristic is very close to that
 of Glasgow2, although we perform better at lower runtimes because we use simpler preprocessing at
@@ -423,7 +423,7 @@ We use the Luby scheme \citep{DBLP:journals/ipl/LubySZ93} to determine when to r
 number of backtracks (that is, when we reach the end of the main $\KwSty{foreach}$ loop on
 \siplineref{countrestarts}) to decide when to restart, rather than counting recursive calls.
 Following established wisdom, we multiply each item in the Luby sequence by a magic constant---we
-used SMAC \citep{DBLP:conf/lion/HutterHL11} to select a value of 660. (We also tried a geometric
+used SMAC \citep{DBLP:conf/lion/HutterHL11} to select the value 660. (We also tried a geometric
 restart scheme. The results were less favourable---it appears that value-ordering heuristics benefit
 from a very aggressive restart strategy.)
 
@@ -497,8 +497,9 @@ made up most of the consistency we lost by introducing randomness.
 
 \section{Maximum Common Subgraph Algorithms}
 
-Two recent maximum common induced subgraph algorithms also make use of backtracking search with
-degree as a value-ordering heuristic. The k${\downarrow}$ algorithm
+Having looked at subgraph isomorphism in detail, we now briefly discuss the more general maximum
+common induced subgraph problem.  Two recent algorithms for this problem also make use of
+backtracking search with degree as a value-ordering heuristic. The k${\downarrow}$ algorithm
 \citep{DBLP:conf/aaai/HoffmannMR17} attempts to solve the problem by first trying to solve the
 induced subgraph isomorphism problem, and then if that fails, retries allowing a single unmatched
 vertex (and thus using weaker invariants), and so on. Due to its similarity to \cref{algorithm:sip},
@@ -506,9 +507,10 @@ we can introduce the same bias and restart strategy, requiring only a small amou
 to handle wildcards in nogoods.  Meanwhile, the McSplit${\downarrow}$ algorithm
 \citep{DBLP:conf/ijcai/McCreeshPT17} uses a constraint programming style search, but with special
 propagators and backtrackable data structures that exploit special properties of the problem. The
-unconventional domain store used by McSplit${\downarrow}$ precludes the use of arbitrary unit propagation, and so
-when introducing restarts, we cannot propagate using nogoods.  Instead, we can only detect when we
-are inside an already-visited branch.  We must therefore use the one watched literal scheme instead.
+unconventional domain store used by McSplit${\downarrow}$ precludes the use of arbitrary unit
+propagation, and so when introducing restarts, we cannot propagate using nogoods.  Instead, we can
+only detect when we are inside an already-visited branch.  We must therefore use the one watched
+literal scheme instead, and we also introduce a basic subsumption scheme to prune redundant clauses.
 
 Performance results from these two modified algorithms, using the same families of instances as in
 the previous section, are shown in \cref{figure:kdown,figure:mcsplit,figure:mcs}. Although we have
@@ -558,9 +560,7 @@ heuristics? Are there theoretical rather than just empirical reasons for using t
 
 \section*{Acknowledgments}
 
-We would like to thank some anonymous people for their comments. These people have names that take
-up approximately this amount of space, which is helpful for us getting the page layout right when
-anonymising the paper for review.
+We would like to thank some anonymous people for their comments.
 
 % Ruth Hoffmann, Christophe Lecoutre, Christine Solnon, Craig Reilly.
 
