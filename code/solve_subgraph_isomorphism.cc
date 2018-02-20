@@ -139,6 +139,7 @@ auto main(int argc, char * argv[]) -> int
             ("geometric-multiplier", po::value<double>(),    "Specify a Geometric multiplier")
             ("geometric-start",      po::value<unsigned>(),  "Specify geometric start value")
             ("goods",                                        "No nogoods")
+            ("seed",                 po::value<unsigned>(),  "Specify a random seed")
             ;
 
         po::options_description all_options{ "All options" };
@@ -249,6 +250,8 @@ auto main(int argc, char * argv[]) -> int
 
         if (options_vars.count("threads"))
             params.n_threads = options_vars["threads"].as<int>();
+        if (options_vars.count("seed"))
+            params.seed = options_vars["seed"].as<unsigned>();
 
         char hostname_buf[255];
         if (0 == gethostname(hostname_buf, 255))

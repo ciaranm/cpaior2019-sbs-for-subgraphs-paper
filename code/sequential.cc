@@ -170,6 +170,9 @@ namespace
             targets_degrees(max_graphs),
             largest_target_degree(0)
         {
+            if (0 != params.seed)
+                global_rand.seed(params.seed);
+
             // strip out isolated vertices in the pattern, and build pattern_permutation
             for (unsigned v = 0 ; v < full_pattern_size ; ++v)
                 if ((! params.induced) && (! params.enumerate) && (0 == pattern.degree(v))) {

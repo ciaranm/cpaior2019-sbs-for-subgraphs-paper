@@ -56,6 +56,9 @@ struct Params
 
     /// Number of threads to use (default: hardware_concurrency)
     unsigned n_threads = 0;
+
+    /// Specify a random seed.
+    unsigned seed = 0;
 };
 
 #endif
