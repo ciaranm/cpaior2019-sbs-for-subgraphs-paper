@@ -2,7 +2,6 @@ TARGET := solve_subgraph_isomorphism
 
 SOURCES := \
     sequential.cc \
-    parallel.cc \
     fixed_bit_set.cc \
     graph.cc \
     lad.cc \

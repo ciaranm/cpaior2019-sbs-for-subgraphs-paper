@@ -3,7 +3,6 @@
 #include "lad.hh"
 #include "dimacs.hh"
 #include "sequential.hh"
-#include "parallel.hh"
 
 #include <boost/program_options.hpp>
 
@@ -109,9 +108,7 @@ auto main(int argc, char * argv[]) -> int
     auto subgraph_isomorphism_algorithms = {
         make_pair( string{ "simple" },                       sequential_subgraph_isomorphism ),
         make_pair( string{ "restarting" },                   sequential_subgraph_isomorphism ),
-        make_pair( string{ "parallel" },                     parallel_subgraph_isomorphism ),
-        make_pair( string{ "customisable-sequential" },      sequential_subgraph_isomorphism ),
-        make_pair( string{ "customisable-parallel" },        parallel_subgraph_isomorphism )
+        make_pair( string{ "customisable-sequential" },      sequential_subgraph_isomorphism )
     };
 
     try {
@@ -122,10 +119,6 @@ auto main(int argc, char * argv[]) -> int
             ("dimacs",                                       "Read DIMACS format instead of LAD")
             ("induced",                                      "Solve the induced version")
             ("enumerate",                                    "Count the number of solutions");
-
-        po::options_description parallel_options{ "Options for parallel algorithms" };
-        parallel_options.add_options()
-            ("threads",            po::value<int>(),         "Number of threads to use");
 
         po::options_description custom_options{ "Options for customisable algorithms (not all combinations make sense)" };
         custom_options.add_options()
@@ -150,7 +143,6 @@ auto main(int argc, char * argv[]) -> int
             ;
 
         all_options.add(display_options);
-        all_options.add(parallel_options);
         all_options.add(custom_options);
 
         po::positional_options_description positional_options;
@@ -196,22 +188,6 @@ auto main(int argc, char * argv[]) -> int
             return EXIT_FAILURE;
         }
 
-        // Some sanity checking
-        if (options_vars["algorithm"].as<string>() == "customisable-parallel") {
-            if (! options_vars.count("restarts")
-                    || ! options_vars.count("softmax-shuffle")
-                    || ! options_vars.count("input-order")
-                    || options_vars.count("dds")
-                    || options_vars.count("shuffle")
-                    || options_vars.count("goods")
-                    || options_vars.count("antiheuristic")) {
-                cerr << "Parallel algorithm currently requires --restarts --input-order" << endl;
-                cerr << "  --softmax-shuffle, and cannot use any of --dds --shuffle " << endl;
-                cerr << "  --goods --antiheuristic" << endl;
-                return EXIT_FAILURE;
-            }
-        }
-
         /* Figure out what our options should be. */
         Params params;
 
@@ -234,11 +210,6 @@ auto main(int argc, char * argv[]) -> int
             if (options_vars.count("geometric-start"))
                 params.geometric_start = options_vars["geometric-start"].as<unsigned>();
         }
-        else if (options_vars["algorithm"].as<std::string>() == "parallel") {
-            params.restarts = true;
-            params.softmax_shuffle = true;
-            params.input_order = true;
-        }
         else if (options_vars["algorithm"].as<std::string>() == "restarting") {
             params.restarts = true;
             params.softmax_shuffle = true;
@@ -248,8 +219,6 @@ auto main(int argc, char * argv[]) -> int
             params.input_order = false;
         }
 
-        if (options_vars.count("threads"))
-            params.n_threads = options_vars["threads"].as<int>();
         if (options_vars.count("seed"))
             params.seed = options_vars["seed"].as<unsigned>();
 
