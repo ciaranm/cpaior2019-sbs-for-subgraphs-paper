@@ -76,14 +76,15 @@ Solnon and Craig Reilly for their comments.}
 
 \begin{abstract}
     Modern subgraph isomorphism solvers use degree-based value-ordering heuristics to direct
-    backtracking search. We show that discrepancy-based searches are too expensive to be effective
-    in offsetting heuristic mistakes in this situation.  We then demonstrate that a random heuristic
-    with restarts beats conventional search with the best-known tailored heuristic. This motivates
-    the introduction of a slightly-random heuristic with similar behaviour to the tailored
-    heuristic: when combined with restarts, this new search strategy is over a hundred times more
-    effective on satisfiable instances, and does not affect performance on unsatisfiable instances.
-    Finally, we show that this strategy also improves two maximum common induced subgraph
-    algorithms.
+    backtracking search. This kind of search makes a heavy commitment to the first branching choice,
+    which is often incorrect. We evaluate discrepancy-based searches as an alternative, but find
+    them too expensive to be effective in this situation, even on satisfiable instances. We then
+    demonstrate that a random value-ordering heuristic with restarts beats conventional search with
+    the best-known tailored heuristic. This motivates the introduction of a slightly-random
+    heuristic with similar behaviour to the tailored heuristic: when combined with restarts and
+    nogood recording, this new search strategy is over a hundred times more effective on satisfiable
+    instances, and does not affect performance on unsatisfiable instances.  Finally, we show that
+    this strategy also improves two maximum common induced subgraph algorithms.
 \end{abstract}
 
 \section{Introduction}
