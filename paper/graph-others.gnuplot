@@ -1,6 +1,6 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 9cm,5.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 14cm,5.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-others.tex"
 
 load "common.gnuplot"
@@ -12,7 +12,7 @@ set logscale x
 set format x '$10^{%T}$'
 set yrange [0:14621]
 set ytics add ('$14621$' 14621) add ('' 14000)
-set key bottom right at 1e6, 250 width -9 Left invert
+set key outside right width -8 invert Left
 
 plot \
     "runtimes.data" u (cumx(vf2)):(cumy(vf2)) smooth cumulative w l ti 'VF2' ls 8 dt (18,2,2,2), \
