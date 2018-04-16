@@ -1,6 +1,6 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 14cm,4.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 14cm,5.2cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-mcs.tex"
 
 load "common.gnuplot"

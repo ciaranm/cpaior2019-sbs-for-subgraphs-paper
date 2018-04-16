@@ -8,6 +8,7 @@ GRAPHS = \
 	 gen-graph-restarts.pdf \
 	 gen-graph-scatter-dds.pdf \
 	 gen-graph-scatter-random.pdf \
+	 gen-graph-scatter-random-goods.pdf \
 	 gen-graph-others.pdf \
 	 gen-graph-others-zoom.pdf \
 	 gen-graph-scatter-heuristics.pdf \

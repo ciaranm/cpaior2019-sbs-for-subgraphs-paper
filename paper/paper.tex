@@ -396,7 +396,7 @@ reliable, and that most solutions can be found with only a small number of discr
 cases, the heavy commitment to early branching choices made by conventional backtracking search can
 be extremely costly.
 
-\Figureref{figure:scatter-dds} shows the effects of adding Walsh's {DBLP:conf/ijcai/Walsh97}
+\Figureref{figure:scatter-dds} shows the effects of adding Walsh's \cite{DBLP:conf/ijcai/Walsh97}
 depth-bounded discrepancy search (DDS) to \algorithmref{algorithm:sip}. Each point represents the solving
 time for one instance---to avoid noise for easier instances, we measure only time spent during
 search, and exclude time spent in preprocessing and initialisation.  Points below the $x-y$ diagonal
@@ -462,6 +462,41 @@ beneficial in a setting where we are not maintaining arc consistency.
 
 \subsection{The Effects of Restarts}
 
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-restarts.pdf}
+
+    \caption{The cumulative number of satisfiable instances solved over time, with and without
+    restarts and nogood recording.}
+    \label{figure:restarts}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-random-goods.pdf}
+    \caption{Comparing basic backtracking with the degree heuristic, versus the random heuristic
+    with restarts, but without nogood recording.}
+    \label{figure:scatter-random-goods}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-random.pdf}
+    \caption{Comparing basic backtracking with the degree heuristic, versus the random heuristic
+    with restarts and nogood recording.}
+    \label{figure:scatter-random}
+\end{figure}
+
+\begin{figure}[p]
+    \centering
+    \includegraphics*{gen-graph-scatter-by-family.pdf}
+
+    \caption{Comparing basic backtracking with the degree heuristic, versus the biased
+    heuristic with restarts and nogood recording.}
+    \label{figure:scatter-by-family}
+\end{figure}
+
+
 In \figureref{figure:restarts} we show the effects of adding restarts to the algorithm. With restarts,
 the random value-ordering heuristic comfortably beats the degree strategy without restarts. In other
 words, although having a good value-ordering heuristic is beneficial, introducing randomness into
@@ -474,48 +509,24 @@ randomisation and restarts.
 
 \begin{figure}[p]
     \centering
-    \includegraphics*{gen-graph-restarts.pdf}
-
-    \caption{The cumulative number of satisfiable instances solved over time, with and without
-    restarts.}
-    \label{figure:restarts}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-random.pdf}
-    \caption{Comparing basic backtracking with the degree heuristic, versus the random heuristic
-    with restarts.}
-    \label{figure:scatter-random}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-by-family.pdf}
-
-    \caption{Comparing basic backtracking with the degree heuristic, versus the biased
-    heuristic with restarts.}
-    \label{figure:scatter-by-family}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
     \includegraphics*{gen-graph-mcs.pdf}
     \caption{The cumulative number of maximum common induced subgraph instances solved by
-    k${\downarrow}$ and McSplit${\downarrow}$ over time, with and without restarts.}\label{figure:mcs}
+    k${\downarrow}$ and McSplit${\downarrow}$ over time, with and without restarts and nogood
+    recording.}\label{figure:mcs}
 \end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-kdown.pdf}
-    \caption{Comparing k${\downarrow}$ with and without restarts on an instance by instance basis.}\label{figure:kdown}
+    \caption{Comparing k${\downarrow}$ with and without restarts and nogood recording on an instance
+    by instance basis.}\label{figure:kdown}
 \end{figure}
 
 \begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-scatter-mcsplit.pdf}
-    \caption{Comparing McSplit${\downarrow}$ with and without restarts on an instance by instance
-    basis.}\label{figure:mcsplit}
+    \caption{Comparing McSplit${\downarrow}$ with and without restarts and nogood recording on an
+    instance by instance basis.}\label{figure:mcsplit}
 \end{figure}
 
 \Figureref{figure:restarts} also shows that the biased heuristic together with restarts is better
