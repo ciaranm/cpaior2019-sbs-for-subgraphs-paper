@@ -23,7 +23,7 @@
 
 \newcommand{\figureref}[1]{Figure~\ref{#1}}
 \newcommand{\Figureref}[1]{Figure~\ref{#1}}
-\newcommand{\threefigureref}[3]{Figures~\ref{#1}, \ref{#2} and \ref{#3}}
+\newcommand{\twofigureref}[2]{Figures~\ref{#1} and~\ref{#2}}
 \newcommand{\algorithmref}[1]{Algorithm~\ref{#1}}
 \newcommand{\Algorithmref}[1]{Algorithm~\ref{#1}}
 
@@ -58,7 +58,7 @@ Solnon and Craig Reilly for their comments.}
 \EventEditors{John Q. Open and Joan R. Access}
 \EventNoEds{2}
 \EventLongTitle{26th Annual European Symposium on Algorithms (ESA 2018)}
-\EventShortTitle{ESA 2018}
+\EventShortTitle{Preprint}
 \EventAcronym{ESA}
 \EventYear{2018}
 \EventDate{August 20--22, 2018}
@@ -137,8 +137,8 @@ for full technical details; that algorithm, in turn, is a simplification of the 
 \Algorithmref{algorithm:sip} works by recursively building up a valid mapping of pattern vertices to target
 vertices. For each pattern vertex $v$, we have a domain $D_v$ containing a set of feasible target
 vertices. Each domain is initialised at the top of search (\siplinerangeref{initstart}{initend}),
-using the invariants described by Hoffmann et al.\ \cite{DBLP:conf/aaai/HoffmannMR17} to restrict its initial
-values.
+using the invariants described by Zampelli et al.\ \cite{DBLP:journals/constraints/ZampelliDS10} and
+Hoffmann et al.\ \cite{DBLP:conf/aaai/HoffmannMR17} to restrict its initial values.
 
 The $\FuncSty{search}$ procedure recursively selects an unassigned domain $D$
 (\siplineref{variableordering}), and tries assigning
@@ -174,7 +174,8 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
         \node [fill=highlight, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
         \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
         \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart6sc) (restart6ec)] { };
+        \coordinate (restart6rc) at ($(pic cs:restart6r) + (0.8, 0.00)$);
+        \node [fill=highlight, rounded corners, fit=(restart6sc) (restart6ec) (restart6rc)] { };
         \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
         \coordinate (restart7ec) at ($(pic cs:restart7e) + (0, 0.00)$);
         \node [fill=highlight, rounded corners, fit=(restart7sc) (restart7ec)] { };
@@ -224,19 +225,21 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
             \nl $S \gets \FuncSty{search}(\{ E \in D'\,{:}\,\left|E\right|{>}\,1 \}, B \wedge (v\,{\mapsto}\,v'))$\siplabel{recurse} \;
             \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
             \nl \tikzmark{restart5s}\ElseIf{$S = \KwSty{restart}$}{
-                \nl post nogoods $\{B \wedge (v \mapsto c) \Rightarrow \bot : c \in C \}$\tikzmark{restart5r}\;
+                \nl \lForEach{$c \in C$}{$\textnormal{post nogood}~B \wedge (v \mapsto c) \Rightarrow \bot$\tikzmark{restart5r}}
                 \nl $\KwSty{return}~\KwSty{restart}$\tikzmark{restart5e} \;
             }
         }
     }
-    \nl \tikzmark{restart6s}\lIf{$(R \gets R + 1) = R'$}{$\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$\siplabel{countrestarts}}
+    \nl \tikzmark{restart6s}\If{$(R \gets R + 1) = R'$\tikzmark{restart6r}}{
+        \nl post nogood $B$ \;
+        \nl $\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$\siplabel{countrestarts}}
     \nl $\KwSty{return}~\KwSty{false}$\siplabel{backtrack}
 }
 \medskip
 \nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
 \nl \Begin{
-    \nl \While{$D_v \gets$~\textnormal{a unit domain from}~$D$}{
-        \nl $v' \gets $ the single value in $D_v$ \;
+    \nl \While{$(D_v, v') \gets ($\textnormal{a unit domain from}~$D, \textnormal{the single value
+    in that domain})$}{
         \nl \tikzmark{restart7s}trigger nogoods with watch $(v \mapsto v')$\tikzmark{restart7e}\siplabel{2wl} \;
         \nl \ForEach{$D_w \in D - D_v$}{
             \nl $D_w \gets D_w - v'$ \siplabel{removev} \;
@@ -252,7 +255,7 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
     }
 \nl $\KwSty{return}~\KwSty{true}$ \;
 }
-\caption{Non-induced subgraph isomorphism. The shaded code is added for the restarting variant.}
+\caption{Subgraph isomorphism. The shaded code is added for restarting.}
 \label{algorithm:sip}
 \end{algorithm}
 
@@ -275,7 +278,29 @@ Hoffmann et al.\ \cite{DBLP:conf/aaai/HoffmannMR17} as a starting point, and com
 deterministic pseudo-random number generator for reproducibility.
 
 We use the dataset introduced by Kotthoff et al.\ \cite{DBLP:conf/lion/KotthoffMS16} for evaluation. This dataset
-brings together a range of randomly-generated and application instance families from earlier papers.
+brings together a range of randomly-generated and application instance families from earlier papers:
+
+\begin{description}
+    \item[BVG(r), M4D(r), and Rand] are randomly generated graphs using different models (bounded
+        degree, regular mesh, and uniform), where each pattern is a permuted random connected subgraph
+        of the target (and so each instance is satisfiable) \cite{DBLP:journals/pami/CordellaFSV04}.
+        These benchmark instances are widely used, but have unusual properties and so broad
+        conclusions should not be drawn based solely upon behaviour on these instances
+        \cite{DBLP:journals/jair/McCreeshPST18}.
+    \item[SF] contains randomly generated scale-free graphs using a similar method
+        \cite{DBLP:journals/constraints/ZampelliDS10}.
+   \item[LV] consists of various kinds of graph gathered by Larrosa and Valiente
+       \cite{DBLP:journals/mscs/LarrosaV02} from the Stanford Graph Database. We include both the
+        50 small graphs, and the 50 larger graphs.
+    \item[Phase] contains hard crafted instances that lie near the satisfiable / unsatisfiable phase
+        transition \cite{DBLP:journals/jair/McCreeshPST18}.
+    \item[PR] contains graphs generated from segmented images, corresponding to a computer vision
+        problem \cite{DBLP:journals/pr/SolnonDHJ15}.
+    \item[Images and Meshes] contain graphs representing 2D segmented images and 3D object models
+        respectively, again representing a computer vision problem
+        \cite{DBLP:journals/cviu/DamiandSHJS11}.
+\end{description}
+
 Other studies use a random selection of 200 of each of the instances from the ``meshes'' and
 ``images'' families because some earlier solvers find many of these instances extremely hard. We
 would like to have a larger number of satisfiable instances in our test set, and so we include all
@@ -428,9 +453,10 @@ to use smallest domain first with static tiebreaking for variable-ordering.\foot
 possible to further improve \algorithmref{algorithm:sip} by also introducing randomness or some form of
 learning into its variable-ordering heuristic. However, simultaneously introducing a second change
 would considerably complicate the empirical analysis.} Using restarts on value-ordering heuristics
-appears to be uncommon, although Razgon et al.\ \cite{DBLP:conf/flairs/RazgonOP07} look at learning value-ordering
-heuristics from restarts, and Chu et al.\ \cite{DBLP:conf/cp/ChuSS09} use a similar scheme in the context of
-parallel search.
+appears to be uncommon---although Razgon et al.\ \cite{DBLP:conf/flairs/RazgonOP07} look at learning
+value-ordering heuristics from restarts, Chu et al.\ \cite{DBLP:conf/cp/ChuSS09} use a similar
+scheme in the context of parallel search, and an early approach by Gomes et
+al.\ \cite{DBLP:conf/aaai/GomesSK98} does so in an optimisation context.
 
 The shaded code shows how to introduce restarts to \algorithmref{algorithm:sip}. The recursive
 $\FuncSty{search}$ procedure is modified to return either true (if the instance is satisfiable),
@@ -460,9 +486,9 @@ backtracking.  Other more sophisticated nogood generation and propagation scheme
 \cite{DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}, but it is not clear whether these will be
 beneficial in a setting where we are not maintaining arc consistency.
 
-\subsection{The Effects of Restarts}
+\subsection{The Effects of Restarts and Nogood Recording}
 
-\begin{figure}[tb]
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-restarts.pdf}
 
@@ -472,18 +498,11 @@ beneficial in a setting where we are not maintaining arc consistency.
 \end{figure}
 
 \begin{figure}[p]
-    \centering
     \includegraphics*{gen-graph-scatter-random-goods.pdf}
-    \caption{Comparing basic backtracking with the degree heuristic, versus the random heuristic
-    with restarts, but without nogood recording.}
-    \label{figure:scatter-random-goods}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
+    \hfill
     \includegraphics*{gen-graph-scatter-random.pdf}
     \caption{Comparing basic backtracking with the degree heuristic, versus the random heuristic
-    with restarts and nogood recording.}
+    with restarts. The plot on the right uses nogood recording, whilst the plot on the left does not.}
     \label{figure:scatter-random}
 \end{figure}
 
@@ -496,38 +515,19 @@ beneficial in a setting where we are not maintaining arc consistency.
     \label{figure:scatter-by-family}
 \end{figure}
 
-
-In \figureref{figure:restarts} we show the effects of adding restarts to the algorithm. With restarts,
-the random value-ordering heuristic comfortably beats the degree strategy without restarts. In other
+In \figureref{figure:restarts} we show the effects of adding restarts and nogood recording to the
+algorithm. With restarts and nogood recording,
+the random value-ordering heuristic comfortably beats the degree strategy with simple backtracking
+search. In other
 words, although having a good value-ordering heuristic is beneficial, introducing randomness into
 the search is better, if it is done alongside a mechanism to avoid heavy commitment to any
-particular random choice. \Figureref{figure:scatter-random} looks at this in more detail. The performance
-on unsatisfiable instances, drawn as dark dots, remains unchanged as expected (which shows that the
-overheads of nogoods and restarting are negligible). However, although better in aggregate on
-satisfiable instances, on a case by case basis many instances perform substantially worse with
-randomisation and restarts.
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-mcs.pdf}
-    \caption{The cumulative number of maximum common induced subgraph instances solved by
-    k${\downarrow}$ and McSplit${\downarrow}$ over time, with and without restarts and nogood
-    recording.}\label{figure:mcs}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-kdown.pdf}
-    \caption{Comparing k${\downarrow}$ with and without restarts and nogood recording on an instance
-    by instance basis.}\label{figure:kdown}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-mcsplit.pdf}
-    \caption{Comparing McSplit${\downarrow}$ with and without restarts and nogood recording on an
-    instance by instance basis.}\label{figure:mcsplit}
-\end{figure}
+particular random choice. \Figureref{figure:scatter-random} looks at
+this in more detail. On the left-hand plot, without nogood recording, unsatisfiable instances
+experience a slowdown of more than an order of magnitude, whilst on the right-hand plot the
+performance remains unchanged (which shows that the overheads of nogoods and restarting are
+negligible). We therefore use nogood recording in all subsequent experiments with restarts. However,
+although better in aggregate on satisfiable instances, on a case by case basis many instances
+perform substantially worse with randomisation (either with or without restarts).
 
 \Figureref{figure:restarts} also shows that the biased heuristic together with restarts is better
 still---that is, if we are introducing restarts, then it is better to add a small amount of
@@ -545,6 +545,22 @@ more than a factor of ten times worse. In other words, as well as improving perf
 made up most of the consistency we lost by introducing randomness.
 
 \section{Maximum Common Subgraph Algorithms}
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-mcs.pdf}
+    \caption{The cumulative number of maximum common induced subgraph instances solved by
+    k${\downarrow}$ and McSplit${\downarrow}$ over time, with and without restarts and nogood
+    recording.}\label{figure:mcs}
+\end{figure}
+
+\begin{figure}[tb]
+    \includegraphics*{gen-graph-scatter-kdown.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-mcsplit.pdf}
+    \caption{On the left, comparing k${\downarrow}$ with and without restarts and nogood recording on an instance
+    by instance basis. On the right, the same, for McSplit${\downarrow}$.}\label{figure:mcsplitandkdown}
+\end{figure}
 
 Having looked at subgraph isomorphism in detail, we now briefly discuss the more general maximum
 common induced subgraph problem.  Two recent algorithms for this problem also make use of
@@ -564,7 +580,7 @@ only detect when we are inside an already-visited branch.  We must therefore use
 literal scheme instead, and we also introduce a basic subsumption scheme to prune redundant clauses.
 
 Performance results from these two modified algorithms, using the same families of instances as in
-the previous section, are shown in \threefigureref{figure:kdown}{figure:mcsplit}{figure:mcs}. Although we have
+the previous section, are shown in \twofigureref{figure:mcs}{figure:mcsplitandkdown}. Although we have
 moved from a decision problem to an optimisation problem, the same changes remain clearly
 beneficial. For the $k{\downarrow}$ algorithm, the change has a minimal effect on many instances
 (typically, where the $k = 0$ subproblem is unsatisfiable and hard, and the $k = 1$ subproblem is
