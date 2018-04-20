@@ -89,24 +89,28 @@ Solnon and Craig Reilly for their comments.}
 
 \section{Introduction}
 
-The subgraph isomorphism problem is to find a copy of a small ``pattern'' graph inside a larger
-``target'' graph.  The current single strongest subgraph isomorphism solver uses ``highest degree
-first'' as a value-ordering heuristic to direct a constraint programming style search
+The subgraph isomorphism problem is to decide whether a copy of a small ``pattern'' graph inside a
+larger ``target'' graph. Although \NP-complete, by combining design techniques from artificial
+intelligence with careful algorithm engineering, modern subgraph isomorphism solvers can often
+produce exact solutions quickly even on graphs with thousands of vertices. The current single
+strongest subgraph isomorphism solver uses ``highest degree first'' as a value-ordering heuristic to
+direct a constraint programming style search
 \cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:conf/ijcai/McCreeshPT16}. This
 heuristic is much better than branching randomly, but is still far from perfect.  We could try to
 introduce tiebreaking mechanisms and similar refinements to strengthen the heuristic. However, given
 the extreme cost of making an incorrect branching choice early in search, we believe it is more
 fruitful to investigate alternatives to simple backtracking (depth-first) search. This paper
-evaluates two such approaches: discrepancy search (which performs poorly), and restarts (which are
-extremely beneficial). To explore different parts of the search space when restarting, we introduce
-a new value-ordering heuristic, which adds a small amount of randomness to the ``highest degree
-first'' heuristic.  The effects of these changes are shown in
-\figureref{figure:scatter-by-family}: we can make a state-of-the-art algorithm perform much better on a
-large number of satisfiable instances, whilst performing worse only rarely on satisfiable instances,
-and never on unsatisfiable instances.  Further, these properties are \emph{not} shared by
-discrepancy searches (\figureref{figure:scatter-dds}) or by random value-ordering with restarts
-(\figureref{figure:scatter-random}). Finally, we show that this strategy is also effective in an
-optimisation setting, producing benefits in two maximum common induced subgraph algorithms.
+evaluates two such approaches: discrepancy search (which performs poorly), and a new form of search
+(which is extremely beneficial) based around restarts and nogood recording. To explore different
+parts of the search space when restarting, we introduce a novel value-ordering heuristic, which adds
+a small amount of randomness to the ``highest degree first'' heuristic.  The effects of these
+changes are shown in \figureref{figure:scatter-by-family}: we can make a state-of-the-art algorithm
+perform much better on a large number of satisfiable instances, whilst performing worse only rarely
+on satisfiable instances, and never on unsatisfiable instances.  Further, these properties are
+\emph{not} shared by discrepancy searches (\figureref{figure:scatter-dds}) or by random
+value-ordering with restarts (\figureref{figure:scatter-random}). Finally, we show that this
+strategy is also effective in an optimisation setting, producing benefits in two maximum common
+induced subgraph algorithms.
 
 \section{Definitions and Algorithms}
 
@@ -259,20 +263,21 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
 \label{algorithm:sip}
 \end{algorithm}
 
-For the variable-ordering heuristic on \siplineref{variableordering} of \algorithmref{algorithm:sip}, we use
-smallest domain first, tiebreaking on highest degree. Variable ordering is not the focus of this
-paper---as far as possible, we use this same dynamic ordering throughout the paper, so as not to
-affect the performance of the algorithm on unsatisfiable instances.  For value ordering, which
-occurs on \siplineref{valueordering} of \algorithmref{algorithm:sip}, we will initially select vertices from
-highest degree to lowest degree; we return to value ordering in the second half of this paper. Note
-that the variable-ordering heuristic affects both unsatisfiable and satisfiable instances, whilst
-the value-ordering heuristic is relevant only for satisfiable instances.
+For the variable-ordering heuristic on \siplineref{variableordering} of
+\algorithmref{algorithm:sip}, we use smallest domain first, tiebreaking on highest degree
+\cite{DBLP:journals/ai/HaralickE80,DBLP:journals/jair/McCreeshPST18}. Variable ordering is not the
+focus of this paper---as far as possible, we use this same dynamic ordering throughout the paper, so
+as not to affect the performance of the algorithm on unsatisfiable instances.  For value ordering,
+which occurs on \siplineref{valueordering} of \algorithmref{algorithm:sip}, we will initially select
+vertices from highest degree to lowest degree; we return to value ordering in the second half of
+this paper. Note that the variable-ordering heuristic affects both unsatisfiable and satisfiable
+instances, whilst the value-ordering heuristic is relevant only for satisfiable instances.
 
 \section{Empirical Evaluation}
 
 Our experiments are performed on systems with dual Intel Xeon E5-2697A v4 CPUs and 512GBytes RAM,
 running Ubuntu 17.04. We
-implemented\footnote{\url{https://github.com/ciaranm/ijcai2018-restarting-sip-paper}, DOI to be issued pre-publication}
+implemented\footnote{\url{https://github.com/ciaranm/restarting-sip-paper}, DOI to be issued pre-publication}
 \algorithmref{algorithm:sip} in C++ using the bit-parallel implementation of
 Hoffmann et al.\ \cite{DBLP:conf/aaai/HoffmannMR17} as a starting point, and compiled it using GCC 6.3.0. We use a
 deterministic pseudo-random number generator for reproducibility.
@@ -336,7 +341,7 @@ by the algorithm's authors. For each algorithm, the $y$ value
 gives the cumulative number of instances which (individually) can be solved in no more than $x$
 milliseconds.  The vertical distance between two lines therefore shows how many more instances can
 be solved by one solver than another, if every instance is run separately with the chosen $x$
-timeout; the horizontal distance shows how many times longer the per-instance timeout would need to
+timeout. The horizontal distance shows how many times longer the per-instance timeout would need to
 be to allow the rightmost algorithm to succeed on $y$ out of the 14,621 instances (bearing in mind
 that the two sets of $y$ instances could be different).
 
@@ -389,7 +394,7 @@ heuristics can make a large difference to the performance of satisfiable instanc
     \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
 
     \caption{The cumulative number of satisfiable instances solved over time, using four
-    different value-ordering heuristics. The degree and biased lines are close together.}
+    different value-ordering heuristics.}
     \label{figure:value-ordering-heuristics}
 \end{figure}
 
@@ -440,7 +445,7 @@ realistic prospect, and they are not well-suited for unsatisfiable decision prob
 extremely large gains on some satisfiable instances confirm our suspicions that we should find an
 alternative to heavy-commitment backtracking search.
 
-\subsection{Adding Restarts to the Algorithm}
+\subsection{Adding Restarts and Nogood Recording to the Algorithm}
 
 Another alternative to plain backtracking search is provided by \emph{restarts}. The general idea is
 to perform a certain amount of search, and then if no solution has been found (and unsatisfiability
@@ -468,16 +473,18 @@ We use the Luby scheme \cite{DBLP:journals/ipl/LubySZ93} to determine when to re
 number of backtracks (that is, when we reach the end of the main $\KwSty{foreach}$ loop on
 \siplineref{countrestarts}) to decide when to restart, rather than counting recursive calls.
 Following established wisdom, we multiply each item in the Luby sequence by a magic constant---we
-used SMAC \cite{DBLP:conf/lion/HutterHL11} to select the value 660. (We also tried a geometric
-restart scheme, which gave less favourable results.)
+used the SMAC automatic parameter tuner \cite{DBLP:conf/lion/HutterHL11} to select the value 660.
+(We also tried a geometric restart scheme, which gave less favourable results.)
 
 The remainder of the changes are to introduce nogoods. To avoid exploring portions of the search
 space that we have already visitied, every time we restart, we add new constraints to the problem
-which eliminate already-explored subtrees. We generate simple decision nogoods, as follows. The $B$
-argument to $\FuncSty{search}$ tracks the branching choices made so far, in the form of a CNF clause
-with each literal being a guessed $(v \mapsto v')$ assignment. Upon backtracking due to a decision to
-restart, we post a nogood of the form $(v \mapsto v') \wedge (w \mapsto w') \wedge (x \mapsto x')
-\Rightarrow \bot$ for every branch to the left of the current (incomplete) branch in the search tree.
+which eliminate already-explored subtrees---such a constraint is called a nogood. We generate simple
+decision nogoods, as follows. The $B$ argument to $\FuncSty{search}$ tracks the branching choices
+made so far, in the form of a CNF clause with each literal being a guessed $(v \mapsto v')$
+assignment. Upon backtracking due to a decision to restart, we post a nogood of the form $(v \mapsto
+v') \wedge (w \mapsto w') \wedge (x \mapsto x') \Rightarrow \bot$ for every branch to the left of
+the current (incomplete) branch in the search tree, and when we first make a decision to restart
+before backtracking, we post a similar nogood eliminating the entire subtree explored.
 
 Finally, we use the two watched literals technique \cite{DBLP:conf/dac/MoskewiczMZZM01} to
 propagate stored nogoods (\siplineref{2wl}). This has two benefits: the propagation complexity does
@@ -590,16 +597,22 @@ on only seven.
 
 With McSplit${\downarrow}$, the inability to use two watched literals means that in many cases we
 introduce a small slowdown. However, the overall pattern is the same: when introducing restarts and
-a biased value ordering heuristic, it is much more common to see a large speedup than it is a large
+a biased value ordering heuristic, it is much more common to see a large speedup than a large
 slowdown.
 
 \section{Conclusion and Future Work}
 
 We have shown that it is both possible and beneficial to introduce a small amount of randomness into
 backtracking search algorithms for hard subgraph problems, without compromising existing search
-order heuristics, and without paying a penalty for unsatisfiable instances.
+order heuristics, and without paying a penalty for unsatisfiable instances. In principle it is
+well-known that introducing some form of randomness \cite{DBLP:conf/aaai/GomesSK98} or reduced
+commitment \cite{DBLP:conf/ijcai/HarveyG95} into backtracking search can be beneficial, but until
+now it has not been clear how to do so efficiently in practice, particularly when we already have
+strong search ordering heuristics and when are expecting to encounter large numbers of unsatisfiable
+instances. Our results show that the key to success is a combination of aggressive restarts, nogood
+recording, and biasing an existing value-ordering heuristic with just a small amount of randomness.
 
-The success of this approach raises a number of interesting questions and avenues for possible
+The effectiveness of this approach raises a number of interesting questions and avenues for possible
 future research. For example, will this same technique work for other problems where we have a good
 value-ordering heuristic? Are there further benefits to be had from also modifying variable-ordering
 heuristics? Are there theoretical rather than just empirical reasons for using the
