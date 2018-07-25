@@ -2,7 +2,7 @@
 
 load "parula.pal"
 
-set style line 102 lc rgb '#a0a0a0' lt 1 lw 1
+set style line 102 lc rgb '#333333' lt 1 lw 1
 set border ls 102
 set colorbox border 102
 set key textcolor rgb "black"

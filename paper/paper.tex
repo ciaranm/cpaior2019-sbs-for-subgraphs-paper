@@ -24,7 +24,7 @@
 \usepackage{tikz}
 \usepackage{cleveref}
 
-\usepackage{showframe}
+% \usepackage{showframe}
 
 \newcommand{\neighbourhood}{\operatorname{N}}
 \newcommand{\vertexset}{\operatorname{V}}
@@ -35,10 +35,23 @@
 
 \newcommand{\citet}[1]{\citeauthor{#1} \shortcite{#1}}
 
+% cref style
+\crefname{figure}{Figure}{Figures}
+\Crefname{figure}{Figure}{Figures}
+\crefname{section}{Section}{Sections}
+\Crefname{section}{Section}{Sections}
+\crefname{proposition}{Proposition}{Propositions}
+\Crefname{proposition}{Proposition}{Propositions}
+\crefname{corollary}{Corollary}{Corollaries}
+\Crefname{corollary}{Corollary}{Corollaries}
+
+\crefname{algocf}{Algorithm}{Algorithms}
+\Crefname{algocf}{Algorithm}{Algorithms}
+
 \usetikzlibrary{decorations, decorations.pathreplacing, decorations.pathmorphing,
     calc, backgrounds, positioning, tikzmark, patterns, fit}
 
-\definecolor{highlight}{rgb}{0.819608, 0.733333, 0.34902}
+\definecolor{highlight}{rgb}{0.529412, 0.74902, 0.466667}
 
 \title{Value Ordering, Discrepancies, and Restarts for Subgraph Algorithms}
 \author{Anonymous \and Anonymous \and Anonymous \\ email address \\ address}
@@ -62,10 +75,10 @@
 
 \section{Introduction}
 
-The subgraph isomorphism problem is to decide whether a copy of a small ``pattern'' graph inside a
-larger ``target'' graph. Although \NP-complete, by combining design techniques from artificial
-intelligence with careful algorithm engineering, modern subgraph isomorphism solvers can often
-produce exact solutions quickly even on graphs with thousands of vertices. The current single
+The subgraph isomorphism problem is to decide whether a copy of a small ``pattern'' graph occurs
+inside a larger ``target'' graph. Although \NP-complete, by combining design techniques from
+artificial intelligence with careful algorithm engineering, modern subgraph isomorphism solvers can
+often produce exact solutions quickly even on graphs with thousands of vertices. The current single
 strongest subgraph isomorphism solver uses ``highest degree first'' as a value-ordering heuristic to
 direct a constraint programming style search
 \cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:conf/ijcai/McCreeshPT16}. This
@@ -75,15 +88,15 @@ the extreme cost of making an incorrect branching choice early in search, we bel
 fruitful to investigate alternatives to simple backtracking (depth-first) search. This paper
 evaluates two such approaches: discrepancy search (which performs poorly), and a new form of search
 (which is extremely beneficial) based around restarts and nogood recording. To explore different
-parts of the search space when restarting, we introduce a novel value-ordering heuristic, which adds
-a small amount of randomness to the ``highest degree first'' heuristic.  The effects of these
-changes are shown in the final plot of \cref{figure:scatter-random}: we can make a state-of-the-art algorithm
-perform much better on a large number of satisfiable instances, whilst performing worse only rarely
-on satisfiable instances, and never on unsatisfiable instances.  Further, these properties are
-\emph{not} shared by discrepancy searches (\cref{figure:scatter-dds}) or by random
-value-ordering with restarts (the first two plots of \cref{figure:scatter-random}). Finally, we
-show that this strategy is also effective in an optimisation setting, producing benefits in two
-maximum common induced subgraph algorithms.
+parts of the search space when restarting, we introduce a novel way of adapting a value-ordering
+heuristic to add a very small amount of randomness. The effects of these changes are shown in the
+final plot of \cref{figure:scatter-random}: we can make a state-of-the-art algorithm perform much
+better on a large number of satisfiable instances, whilst performing worse only rarely on
+satisfiable instances, and never on unsatisfiable instances.  Further, these properties are
+\emph{not} shared by discrepancy searches (\cref{figure:scatter-dds}) or by random value-ordering
+with restarts (the first two plots of \cref{figure:scatter-random}). Finally, we show that this
+strategy is also effective in an optimisation setting, producing benefits in two maximum common
+induced subgraph algorithms.
 
 \section{Definitions and Algorithms}
 
@@ -93,15 +106,16 @@ that vertices $v$ and $w$ are adjacent; we allow a vertex to be adjacent to itse
 the \emph{degree} of $v$, $\deg_G(v)$, is the cardinality of its neighbourhood. When the graph is clear from the context, we omit
 the $G$ subscripts. As per \citet{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with
 vertex set $\vertexset(G)$, and with edges between vertices $v$ and $w$ if there are at least $n$
-simple paths of length exactly $\ell$ between vertices $v$ and $w$ in $G$. Finally, we define a
-function $\FuncSty{compatible}(v, w)$ to mean that mapping pattern vertex $v$ to target vertex $w$
-is feasible based upon both loop constraints and the neighbourhood degree sequence relation of
-\citet{DBLP:journals/constraints/ZampelliDS10}.
+simple paths of length $\ell$ between vertices $v$ and $w$ in $G$.
 
 The non-induced subgraph isomorphism problem is to find an injective mapping from the vertices of a
 pattern graph $\mathcal{P}$ to a target graph $\mathcal{T}$, such that adjacent vertices in
-$\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{T}$. We write $v \mapsto v'$ to mean that
-pattern vertex $v$ is mapped to target $v'$ under such a mapping.
+$\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{T}$ (including that vertices with loops
+in $\mathcal{P}$ may only be mapped to vertices with loops in $\mathcal{T}$). We write $v \mapsto
+v'$ to mean that pattern vertex $v$ is mapped to target $v'$ under such a mapping. Finally, we
+define a function $\FuncSty{compatible}(v, w)$ to mean that mapping $v \mapsto w$ is feasible based
+upon both the loop rule, and the neighbourhood degree sequence relation of
+\citet{DBLP:journals/constraints/ZampelliDS10}.
 
 \subsection{A Subgraph Isomorphism Algorithm}
 
@@ -259,7 +273,7 @@ We use the dataset introduced by \citet{DBLP:conf/lion/KotthoffMS16} for evaluat
 brings together a range of randomly-generated and application instance families from earlier papers:
 
 \begin{description}
-    \item[BVG(r), M4D(r), and Rand] are randomly generated graphs using different models (bounded
+    \item[BVG(r), M4D(r), and Rand] are families of randomly generated graphs using different models (bounded
         degree, regular mesh, and uniform), where each pattern is a permuted random connected subgraph
         of the target (and so each instance is satisfiable) \cite{DBLP:journals/pami/CordellaFSV04}.
         These benchmark instances are widely used, but have unusual properties and so broad
@@ -344,15 +358,10 @@ solved over time using different value-ordering heuristics:
 a sanity check: as expected, degree beats random, and random beats anti.
 
 \item[Biased] We branch by selecting a vertex $v'$ from the chosen domain $D_v$ with
-probability \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \]\end{description}
-
-The biased heuristic continues to prefer vertices of high degree, but will give the same chance of
+probability \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \] This is a new
+heuristic, which continues to prefer vertices of high degree, but will give the same chance of
 being selected next to two vertices of equal degree.  It also introduces an element of randomness,
-which is needed to make restarts have an effect.  We note that it resembles the well-known
-\emph{softmax} weighting scheme applied to the degree heuristic, although usually \emph{softmax}
-uses a base of $e$ rather than $2$.  Experiments showed that in this context, the choice of base is
-not important to the search space size; however, a base of $2$ avoids the need to use floating point
-arithmetic, which was a substantial overhead.
+which is needed to make restarts have an effect. \end{description}
 
 The performance of the degree and biased heuristics are very similar: the
 biased heuristic has slightly worse performance below a 400s timeout, and effectively equal
@@ -588,8 +597,8 @@ recording, and biasing an existing value-ordering heuristic with just a small am
 The effectiveness of this approach raises a number of interesting questions and avenues for possible
 future research. For example, will this same technique work for other problems where we have a good
 value-ordering heuristic? Are there further benefits to be had from also modifying variable-ordering
-heuristics? Are there theoretical rather than just empirical reasons for using the
-\emph{softmax}-like bias scheme? And how can such a search process be parallelised?
+heuristics? Are there theoretical rather than just empirical reasons for using an exponential bias
+scheme? And how can such a search process be parallelised?
 
 \section*{Acknowledgements}
 
