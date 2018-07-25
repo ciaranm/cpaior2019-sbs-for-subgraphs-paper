@@ -1,6 +1,6 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 14cm,5.2cm font '\scriptsize' preamble '\usepackage{microtype}'
+set terminal tikz standalone color size 8.4cm,5.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-mcs.tex"
 
 load "common.gnuplot"
@@ -11,7 +11,7 @@ set xrange [1e2:1e6]
 set logscale x
 set format x '$10^{%T}$'
 set yrange [0:]
-set key outside right width -4 invert Left
+set key bottom right invert Left width -10
 
 plot \
     "kdownruntimes.data" u (cumx(kdown)):(cumy(kdown)) smooth cumulative w l ti '~~~~Degree' ls 8 dt (18,2), \

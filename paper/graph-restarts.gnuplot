@@ -1,6 +1,6 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 14cm,5.8cm font '\scriptsize' preamble '\usepackage{microtype}'
+set terminal tikz standalone color size 8.4cm,5.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-restarts.tex"
 
 load "common.gnuplot"
@@ -11,7 +11,7 @@ set xrange [1e2:1e6]
 set logscale x
 set format x '$10^{%T}$'
 set yrange [1500:2100]
-set key outside right Left
+set key bottom right Left
 
 plot \
     "runtimes.data" u (cumx(final)):(cumsaty(final)) smooth cumulative w l ti 'Biased + Restarts' ls 1, \

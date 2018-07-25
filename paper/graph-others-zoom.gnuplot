@@ -1,6 +1,6 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 14cm,6.2cm font '\scriptsize' preamble '\usepackage{microtype}'
+set terminal tikz standalone color size 8.4cm,6.2cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-others-zoom.tex"
 
 load "common.gnuplot"
@@ -12,10 +12,9 @@ set logscale x
 set format x '$10^{%T}$'
 set format y '$~%.0f$'
 set yrange [1200:2100]
-set key outside right width -6 invert Left
+set key off
 
 plot \
-    "runtimes.data" u (NaN):(NaN) w l ti '~~~~~~~~~~~~~~~~~~~~~' lc rgb "white", \
     "runtimes.data" u (cumx(final)):(cumsaty(final)) smooth cumulative w l notitle ls 1, \
     "runtimes.data" u (cumx(norestarts)):(cumsaty(norestarts)) smooth cumulative w l notitle ls 2 dt (2,2), \
     "runtimes.data" u (cumx(glasgow2)):(cumsaty(glasgow2)) smooth cumulative w l notitle ls 4 dt (6,2), \
