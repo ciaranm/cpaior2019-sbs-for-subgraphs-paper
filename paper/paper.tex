@@ -216,7 +216,7 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
             \nl $S \gets \FuncSty{search}(\{ E \in D'\,{:}\,\left|E\right|{>}\,1 \}, B \wedge (v\,{\mapsto}\,v'))$\siplabel{recurse}\;
             \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
             \nl \tikzmark{restart5s}\ElseIf{$S = \KwSty{restart}$}{
-                \nl \lForEach{$c \in C$}{$\textnormal{post nogood}~B \wedge (v \mapsto c) \Rightarrow \bot$\tikzmark{restart5r}}
+                \nl \ForEach{$c \in C$}{\nl$\textnormal{post nogood}~B \wedge (v \mapsto c) \Rightarrow \bot$\tikzmark{restart5r}}
                 \nl $\KwSty{return}~\KwSty{restart}$\tikzmark{restart5e} \;
             }
         }
@@ -229,8 +229,8 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
 \medskip
 \nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
 \nl \Begin{
-    \nl \While{$(D_v, v') \gets ($\textnormal{a unit domain from}~$D, \textnormal{the single value
-    in that domain})$}{
+    \nl \While{$D_v \gets $\textnormal{a unit domain from}~$D$}{
+        \nl $v' \gets \textnormal{the single value in}~D_v$ \;
         \nl \tikzmark{restart7s}trigger nogoods with watch $(v \mapsto v')$\tikzmark{restart7e}\siplabel{2wl} \;
         \nl \ForEach{$D_w \in D - D_v$}{
             \nl $D_w \gets D_w - v'$ \siplabel{removev} \;
@@ -293,6 +293,7 @@ brings together a range of randomly-generated and application instance families 
         \cite{DBLP:journals/cviu/DamiandSHJS11}.
 \end{description}
 
+\noindent
 Other studies use a random selection of 200 of each of the instances from the ``meshes'' and
 ``images'' families because some earlier solvers find many of these instances extremely hard. We
 would like to have a larger number of satisfiable instances in our test set, and so we include all
@@ -361,14 +362,15 @@ a sanity check: as expected, degree beats random, and random beats anti.
 probability \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \] This is a new
 heuristic, which continues to prefer vertices of high degree, but will give the same chance of
 being selected next to two vertices of equal degree.  It also introduces an element of randomness,
-which is needed to make restarts have an effect. \end{description}
+which will be needed to make restarts have an effect. \end{description}
 
+\noindent
 The performance of the degree and biased heuristics are very similar: the
 biased heuristic has slightly worse performance below a 400s timeout, and effectively equal
 performance above it. This shows that we can introduce an element of randomness into the degree
 value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.
-\Cref{figure:scatter-heuristics} gives a more detailed look at these results. This scatter plot
-shows that despite the aggregate performance being very similar, on a case by case basis, the two
+\Cref{figure:scatter-heuristics} gives a detailed look at these results. This scatter plot
+shows that despite the aggregate performance being similar, on a case by case basis, the two
 heuristics can make a large difference to the performance of satisfiable instances.
 
 \begin{figure}[p]
@@ -476,6 +478,15 @@ beneficial in a setting where we are not maintaining arc consistency.
 
 \subsection{The Effects of Restarts and Nogood Recording}
 
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-restarts.pdf}
+
+    \caption{The cumulative number of satisfiable instances solved over time, with and without
+    restarts and nogood recording.}
+    \label{figure:restarts}
+\end{figure}
+
 \begin{figure*}[tb]
     \includegraphics*{gen-graph-scatter-random-goods.pdf}
     \hfill
@@ -487,15 +498,6 @@ beneficial in a setting where we are not maintaining arc consistency.
     third do.}
     \label{figure:scatter-random}
 \end{figure*}
-
-\begin{figure}[tb]
-    \centering
-    \includegraphics*{gen-graph-restarts.pdf}
-
-    \caption{The cumulative number of satisfiable instances solved over time, with and without
-    restarts and nogood recording.}
-    \label{figure:restarts}
-\end{figure}
 
 In \cref{figure:restarts} we show the effects of adding restarts and nogood recording to the
 algorithm. With restarts and nogood recording,
