@@ -530,6 +530,9 @@ namespace
                 ++discrepancy_count;
             }
 
+            if (0 == discrepancy_k)
+                used_all_discrepancies = true;
+
             return Search::Unsatisfiable;
         }
 
