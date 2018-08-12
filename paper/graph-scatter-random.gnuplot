@@ -3,6 +3,7 @@
 set terminal tikz standalone color size 8cm,5cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-scatter-random.tex"
 
+load "parula.pal"
 load "common.gnuplot"
 
 set title "Random, with nogoods"

@@ -11,6 +11,8 @@ GRAPHS = \
 	 gen-graph-scatter-random-goods.pdf \
 	 gen-graph-others.pdf \
 	 gen-graph-others-zoom.pdf \
+	 gen-graph-others-induced.pdf \
+	 gen-graph-others-induced-zoom.pdf \
 	 gen-graph-scatter-heuristics.pdf \
 	 gen-graph-scatter-by-family.pdf \
 	 gen-graph-as.pdf \
@@ -30,7 +32,7 @@ tables : $(TABLES)
 
 graphs : $(GRAPHS)
 
-gen-graph-%.pdf : graph-%.gnuplot common.gnuplot scatter.gnuplot optscatter.gnuplot parula.pal runtimes.data searchtimes.data mcsruntimes.data kdownruntimes.data
+gen-graph-%.pdf : graph-%.gnuplot common.gnuplot scatter.gnuplot optscatter.gnuplot parula.pal runtimes.data searchtimes.data mcsruntimes.data kdownruntimes.data inducedruntimes.data
 	gnuplot $<
 	sed -i -e '19,20s/^\(\\path.*\)/\% \1/' gen-graph-$*.tex # epic haxx
 	latexmk -pdf gen-graph-$*

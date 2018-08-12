@@ -3,6 +3,7 @@
 set terminal tikz standalone color size 9cm,5.5cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-scatter-mcsplit.tex"
 
+load "inferno.pal"
 load "common.gnuplot"
 
 set xlabel "McSplit${\\downarrow}$ Runtime (ms)"

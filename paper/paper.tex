@@ -303,18 +303,29 @@ least \input{gen-n-sat.tex}\unskip\ of these instances are known to be satisfiab
 
 \subsection{Baseline Performance}
 
-\begin{figure}[tb]
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-others.pdf}
 
-    \bigskip
+    \smallskip
 
     \centering
     \includegraphics*{gen-graph-others-zoom.pdf}
 
-    \caption{Above, the cumulative number of instances solved over time, comparing our algorithm
+    \bigskip
+
+    \centering
+    \includegraphics*{gen-graph-others-induced.pdf}
+
+    \smallskip
+
+    \centering
+    \includegraphics*{gen-graph-others-induced-zoom.pdf}
+
+    \caption{On the top two rows, the cumulative number of instances solved over time, comparing our algorithm
     (both in its basic form, and with the improvements introduced in the remainder of the paper) to
-    other solvers. Below, the same, looking only at satisfiable instances.}
+    other solvers. The second considers only satisfiable instances. On the bottom two rows, the same,
+    for the induced subgraph isomorphism problem.}
     \label{figure:others}
 \end{figure}
 

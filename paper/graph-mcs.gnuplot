@@ -3,10 +3,11 @@
 set terminal tikz standalone color size 8.4cm,5.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-mcs.tex"
 
+load "inferno.pal"
 load "common.gnuplot"
 
 set xlabel "Runtime (ms)"
-set ylabel "Number of Instances Solved"
+set ylabel "Instances Solved"
 set xrange [1e2:1e6]
 set logscale x
 set format x '$10^{%T}$'

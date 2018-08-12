@@ -3,6 +3,7 @@
 set terminal tikz standalone color size 9cm,6.5cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-scatter-degree.tex"
 
+load "parula.pal"
 load "common.gnuplot"
 
 set xlabel "Random Search Time (ms)"

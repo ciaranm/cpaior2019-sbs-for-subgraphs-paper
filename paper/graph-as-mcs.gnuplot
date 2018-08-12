@@ -3,6 +3,7 @@
 set terminal tikz standalone color size 9cm,4.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-as-mcs.tex"
 
+load "inferno.pal"
 load "common.gnuplot"
 
 set format x '%.0f'
