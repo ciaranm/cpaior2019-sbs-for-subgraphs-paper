@@ -66,7 +66,7 @@
     which is often incorrect. We evaluate discrepancy-based searches as an alternative, but find
     them too expensive to be effective in this situation, even on satisfiable instances. We then
     demonstrate that a random value-ordering heuristic with restarts beats conventional search with
-    the best-known tailored heuristic. This motivates the introduction of a slightly-random
+    the best-known tailored heuristic. This motivates the introduction of a novel slightly-random
     heuristic with similar behaviour to the tailored heuristic: when combined with restarts and
     nogood recording, this new search strategy is over a hundred times more effective on satisfiable
     instances, and does not affect performance on unsatisfiable instances.  Finally, we show that
@@ -81,41 +81,40 @@ artificial intelligence with careful algorithm engineering, modern subgraph isom
 often produce exact solutions quickly even on graphs with thousands of vertices. The current single
 strongest subgraph isomorphism solver uses ``highest degree first'' as a value-ordering heuristic to
 direct a constraint programming style search
-\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:conf/ijcai/McCreeshPT16}. This
-heuristic is much better than branching randomly, but is still far from perfect.  We could try to
-introduce tiebreaking mechanisms and similar refinements to strengthen the heuristic. However, given
-the extreme cost of making an incorrect branching choice early in search, we believe it is more
-fruitful to investigate alternatives to simple backtracking (depth-first) search. This paper
-evaluates two such approaches: discrepancy search (which performs poorly), and a new form of search
-(which is extremely beneficial) based around restarts and nogood recording. To explore different
-parts of the search space when restarting, we introduce a novel way of adapting a value-ordering
-heuristic to add a very small amount of randomness. The effects of these changes are shown in the
-final plot of \cref{figure:scatter-random}: we can make a state-of-the-art algorithm perform much
-better on a large number of satisfiable instances, whilst performing worse only rarely on
-satisfiable instances, and never on unsatisfiable instances.  Further, these properties are
-\emph{not} shared by discrepancy searches (\cref{figure:scatter-dds}) or by random value-ordering
-with restarts (the first two plots of \cref{figure:scatter-random}). Finally, we show that this
-strategy is also effective in an optimisation setting, producing benefits in two maximum common
-induced subgraph algorithms.
+\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:journals/jair/McCreeshPST18}. This
+heuristic is much better than branching randomly, but is still far from perfect. We therefore
+investigate different techniques for offsetting mistakes in value-ordering decisions. We first try
+discrepancy searches, which turn out to be much too expensive to be a practical solution. We then
+look at using random value-ordering, restarts, and nogood recording, which together give better
+aggregate performance at the expense of much worse behaviour on many instances. Next, we introduce a
+new way of adapting the existing value-ordering heuristic to introduce just a small amount of
+randomness.  This lets us make a state-of-the-art subgraph algorithm perform much better
+on a large number of satisfiable instances, whilst performing worse only rarely on satisfiable
+instances, and never on unsatisfiable instances. Finally, we show that this strategy is also
+effective in an optimisation setting, producing benefits in two maximum common induced subgraph
+algorithms. This combination of techniques gives us, for the first time, a practical alternative to
+backtracking search for constraint programming style algorithms where we have a strong
+value-ordering heuristic and where we care both about satisfiable and unsatisfiable instances.
 
 \section{Definitions and Algorithms}
 
 Let $G$ be a graph. We denote its set of vertices by $\vertexset(G)$, and write $v \sim_G w$ to mean
-that vertices $v$ and $w$ are adjacent; we allow a vertex to be adjacent to itself. The
+that vertices $v$ and $w$ are adjacent; we allow a vertex to be adjacent to itself (a \emph{loop}). The
 \emph{neighbourhood} of a vertex, $\neighbourhood_G(v)$, is the set of vertices adjacent to $v$, and
 the \emph{degree} of $v$, $\deg_G(v)$, is the cardinality of its neighbourhood. When the graph is clear from the context, we omit
 the $G$ subscripts. As per \citet{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with
 vertex set $\vertexset(G)$, and with edges between vertices $v$ and $w$ if there are at least $n$
 simple paths of length $\ell$ between vertices $v$ and $w$ in $G$.
 
-The non-induced subgraph isomorphism problem is to find an injective mapping from the vertices of a
-pattern graph $\mathcal{P}$ to a target graph $\mathcal{T}$, such that adjacent vertices in
-$\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{T}$ (including that vertices with loops
-in $\mathcal{P}$ may only be mapped to vertices with loops in $\mathcal{T}$). We write $v \mapsto
-v'$ to mean that pattern vertex $v$ is mapped to target $v'$ under such a mapping. Finally, we
-define a function $\FuncSty{compatible}(v, w)$ to mean that mapping $v \mapsto w$ is feasible based
-upon both the loop rule, and the neighbourhood degree sequence relation of
-\citet{DBLP:journals/constraints/ZampelliDS10}.
+The \emph{non-induced subgraph isomorphism problem} is to find an injective mapping from the
+vertices of a pattern graph $\mathcal{P}$ to a target graph $\mathcal{T}$, such that adjacent
+vertices in $\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{T}$ (including that vertices
+with loops in $\mathcal{P}$ may only be mapped to vertices with loops in $\mathcal{T}$). The
+\emph{induced} problem additionally requires that non-adjacent vertices are mapped to non-adjacent
+vertices. We write $v \mapsto v'$ to mean that pattern vertex $v$ is mapped to target $v'$ under
+either kind of mapping. Finally, we define a function $\FuncSty{compatible}(v, w)$ to mean that
+mapping $v \mapsto w$ is feasible based upon both the loop rule, and the neighbourhood degree
+sequence relation of \citet{DBLP:journals/constraints/ZampelliDS10}.
 
 \subsection{A Subgraph Isomorphism Algorithm}
 
@@ -123,7 +122,9 @@ We now briefly outline the non-shaded parts of \cref{algorithm:sip}, which is ho
 subgraph isomorphism problem. This algorithm is very closely based upon the $k{\downarrow}$
 algorithm of \citet{DBLP:conf/aaai/HoffmannMR17} with $k = 0$, and we refer the reader to that paper
 for full technical details; that algorithm, in turn, is a simplification of the Glasgow2 algorithm
-\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}.
+\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}. We show the non-induced problem; the
+induced problem may be solved by including the loop-complements of $\mathcal{P}$ and $\mathcal{T}$
+in $L$ on \siplineref{supplemental}.
 
 \Cref{algorithm:sip} works by recursively building up a valid mapping of pattern vertices to target
 vertices. For each pattern vertex $v$, we have a domain $D_v$ containing a set of feasible target
@@ -202,7 +203,7 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
     }
 }
 \medskip
-    \nl $\FuncSty{search}$ (Domains $D$, Decisions $B$) $\rightarrow$ Bool
+    \nl $\FuncSty{search}$ (Domains $D$, Trail $B$) $\rightarrow$ Bool
     \tikzmark{restart8s}\KwSty{or} \KwSty{restart}\tikzmark{restart8e} \;
 \nl \Begin{
     \nl \lIf{$D = \emptyset$}{$\KwSty{return}~\KwSty{true}$}
@@ -232,8 +233,8 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
     \nl \While{$D_v \gets $\textnormal{a unit domain from}~$D$}{
         \nl $v' \gets \textnormal{the single value in}~D_v$ \;
         \nl \tikzmark{restart7s}trigger nogoods with watch $(v \mapsto v')$\tikzmark{restart7e}\siplabel{2wl} \;
-        \nl \ForEach{$D_w \in D - D_v$}{
-            \nl $D_w \gets D_w - v'$ \siplabel{removev} \;
+        \nl \ForEach{$D_w \in D \setminus \{ D_v$ \}}{
+            \nl $D_w \gets D_w \setminus \{ v' \}$ \siplabel{removev} \;
             \nl \ForEach{$(P,\,T) \in L~\KwSty{where}~v \sim_P w$}{\nl$D_w \gets D_w \cap \neighbourhood_T(v')$}
             \nl \lIf{$D_w = \emptyset$}{$\KwSty{return}~\KwSty{false}$}
         }
@@ -256,7 +257,7 @@ For the variable-ordering heuristic on \siplineref{variableordering} of
 focus of this paper---as far as possible, we use this same dynamic ordering throughout the paper, so
 as not to affect the performance of the algorithm on unsatisfiable instances.  For value ordering,
 which occurs on \siplineref{valueordering} of \cref{algorithm:sip}, we will initially select
-vertices from highest degree to lowest degree; we return to value ordering in the second half of
+vertices from highest degree to lowest degree; value ordering is the major theme of the remainder of
 this paper. Note that the variable-ordering heuristic affects both unsatisfiable and satisfiable
 instances, whilst the value-ordering heuristic is relevant only for satisfiable instances.
 
@@ -266,7 +267,7 @@ Our experiments are performed on systems with dual Intel Xeon E5-2697A v4 CPUs a
 running Ubuntu 17.04. We
 implemented\footnote{DOI removed for anonymous review}
 \cref{algorithm:sip} in C++ using the bit-parallel implementation of
-\citet{DBLP:conf/aaai/HoffmannMR17} as a starting point, and compiled it using GCC 6.3.0. We use a
+\citet{DBLP:conf/aaai/HoffmannMR17} as a starting point, and compiled it using GCC 7.2.0. We use a
 deterministic pseudo-random number generator for reproducibility.
 
 We use the dataset introduced by \citet{DBLP:conf/lion/KotthoffMS16} for evaluation. This dataset
@@ -298,8 +299,8 @@ Other studies use a random selection of 200 of each of the instances from the ``
 ``images'' families because some earlier solvers find many of these instances extremely hard. We
 would like to have a larger number of satisfiable instances in our test set, and so we include all
 pattern / target pairs. This gives a total of 14,621 instances (rather than the original 5,725). At
-least \input{gen-n-sat.tex}\unskip\ of these instances are known to be satisfiable, and at least
-\input{gen-n-unsat.tex}\unskip\ are unsatisfiable.
+least \input{gen-n-sat.tex}\unskip\ of these instances are known to be satisfiable for the
+non-induced problem, and at least \input{gen-n-unsat.tex}\unskip\ are unsatisfiable.
 
 \subsection{Baseline Performance}
 
@@ -330,13 +331,15 @@ least \input{gen-n-sat.tex}\unskip\ of these instances are known to be satisfiab
 \end{figure}
 
 We begin by verifying that our implementation of the basic \cref{algorithm:sip} is competitive. In
-\cref{figure:others} we show the cumulative number of instances solved over time, using our
-implementation (both with the degree heuristic, and with the modifications described in the
-remainder of this paper), the Glasgow2 and Glasgow3 algorithms from which \cref{algorithm:sip} is derived
+the first and third plots \cref{figure:others} we show the cumulative number of instances solved
+over time for the non-induced and induced problems respectively. We compare our implementation (both
+with the degree heuristic, and with the modifications described in the remainder of this paper), the
+Glasgow2 and Glasgow3 algorithms from which \cref{algorithm:sip} is derived
 \cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}, the PathLAD variation of the LAD
-algorithm \cite{DBLP:journals/ai/Solnon10,DBLP:conf/lion/KotthoffMS16}, and VF2
-\cite{DBLP:journals/pami/CordellaFSV04}, in each case using the original implementation provided
-by the algorithm's authors. For each algorithm, the $y$ value
+algorithm \cite{DBLP:journals/ai/Solnon10,DBLP:conf/lion/KotthoffMS16}, VF2
+\cite{DBLP:journals/pami/CordellaFSV04}, RI \cite{DBLP:journals/bmcbi/BonniciGPSF13}, and VF3
+\cite{DBLP:conf/gbrpr/CarlettiFSV17} (which only supports the induced problem), in each case using
+the original implementation provided by the algorithm's authors. For each algorithm, the $y$ value
 gives the cumulative number of instances which (individually) can be solved in no more than $x$
 milliseconds.  The vertical distance between two lines therefore shows how many more instances can
 be solved by one solver than another, if every instance is run separately with the chosen $x$
@@ -344,21 +347,22 @@ timeout. The horizontal distance shows how many times longer the per-instance ti
 be to allow the rightmost algorithm to succeed on $y$ out of the 14,621 instances (bearing in mind
 that the two sets of $y$ instances could be different).
 
-As expected, the performance of \cref{algorithm:sip} with the degree heuristic is very close to that
-of Glasgow2, although we perform better at lower runtimes because we use simpler preprocessing at
-the top of search. Our implementation also clearly beats PathLAD and VF2, except for very low
-choices of timeout.
+As expected, in both cases the performance of \cref{algorithm:sip} with the degree heuristic is very
+close to that of Glasgow2, although we perform better at lower runtimes because we use simpler
+preprocessing at the top of search. Our implementation also clearly beats PathLAD, VF2, VF3 and RI,
+except for very low choices of timeout.
 
 The dataset includes many instances which are extremely easy for a good solver, and so it can be
 hard to see the differences between the stronger solvers at higher runtimes. This paper focusses
-upon improving the performance on the remaining hard satisfiable instances, and so in the second
-plot in \cref{figure:others} (and in subsequent cumulative plots) we show only satisfiable
+upon improving the performance on the remaining hard satisfiable instances, and so in the second and
+fourth plots in \cref{figure:others} (and in subsequent cumulative plots) we show only satisfiable
 instances, and use a reduced range on both axes.
 
 \subsection{Value-Ordering Heuristics}
 
 \Cref{figure:value-ordering-heuristics} shows the cumulative number of satisfiable instances
-solved over time using different value-ordering heuristics:
+solved over time using different value-ordering heuristics. For the remainder of this section, we
+show only the non-induced problem; results with the induced variant are similar.
 
 \begin{description}
 \item[Degree] We select vertices from highest degree to lowest degree
@@ -370,19 +374,21 @@ solved over time using different value-ordering heuristics:
 a sanity check: as expected, degree beats random, and random beats anti.
 
 \item[Biased] We branch by selecting a vertex $v'$ from the chosen domain $D_v$ with
-probability \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \] This is a new
-heuristic, which continues to prefer vertices of high degree, but will give the same chance of
-being selected next to two vertices of equal degree.  It also introduces an element of randomness,
-which will be needed to make restarts have an effect. \end{description}
+probability \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \]\end{description}
 
 \noindent
-The performance of the degree and biased heuristics are very similar: the
-biased heuristic has slightly worse performance below a 400s timeout, and effectively equal
-performance above it. This shows that we can introduce an element of randomness into the degree
-value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.
-\Cref{figure:scatter-heuristics} gives a detailed look at these results. This scatter plot
-shows that despite the aggregate performance being similar, on a case by case basis, the two
-heuristics can make a large difference to the performance of satisfiable instances.
+The biased heuristic is new. It continues to prefer vertices of high degree, but will give the same
+chance of being selected next to two vertices of equal degree.  It also introduces an element of
+randomness, which will be needed to make restarts have an effect.  The performance of the degree and
+biased heuristics are very similar: the biased heuristic has slightly worse performance below a 400s
+timeout, and effectively equal performance above it. This shows that we can introduce an element of
+randomness into the degree value-ordering heuristic without adversely affecting its performance
+\emph{in aggregate} (and more generally, this scheme could be used for any value-ordering
+heuristic which puts choices in some kind of rank with ties.)
+
+\Cref{figure:scatter-heuristics} gives a detailed look at these results. This scatter plot shows
+that despite the aggregate performance being similar, on a case by case basis, the two heuristics
+can make a large difference to the performance of satisfiable instances.
 
 \begin{figure}[p]
     \centering
@@ -413,16 +419,17 @@ heuristics can make a large difference to the performance of satisfiable instanc
 \subsection{Discrepancy Searches}
 
 A \emph{discrepancy} is where search goes against a value-ordering heuristic.  Discrepancy searches
-\cite{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97} are alternatives to
-backtracking search that initially search disallowing all discrepancies, and then retry search
-allowing an increasing number of discrepancies at each iteration until either a solution is found or
-unsatisfiability is proven. These schemes assume that value-ordering heuristics are usually
-reliable, and that most solutions can be found with only a small number of discrepancies; in such
-cases, the heavy commitment to early branching choices made by conventional backtracking search can
-be extremely costly.
+\cite{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97,DBLP:conf/cpaior/KarouiHLN07}
+are alternatives to backtracking search that initially search disallowing all discrepancies, and
+then retry search allowing an increasing number of discrepancies at each iteration until either a
+solution is found or unsatisfiability is proven. These schemes assume that value-ordering heuristics
+are usually reliable, and that most solutions can be found with only a small number of
+discrepancies; in such cases, the heavy commitment to early branching choices made by conventional
+backtracking search can be extremely costly.
 
 \Cref{figure:scatter-dds} shows the effects of adding Walsh's \cite{DBLP:conf/ijcai/Walsh97}
-depth-bounded discrepancy search (DDS) to \cref{algorithm:sip}. Each point represents the solving
+depth-bounded discrepancy search (DDS) to \cref{algorithm:sip} (results with other discrepancy
+search variants are similar). Each point represents the solving
 time for one instance---to avoid noise for easier instances, we measure only time spent during
 search, and exclude time spent in preprocessing and initialisation.  Points below the $x-y$ diagonal
 are speedups, whilst points on the top and right axes represent instances which timed out after one
@@ -431,14 +438,13 @@ point styles show the different families, whilst all unsatisfiable instances are
 
 The points well below the diagonal line and along the right-hand axis show that DDS can sometimes be
 extremely beneficial on satisfiable instances.  However, on both unsatisfiable and most satisfiable
-instances, the overheads can be extremely large, and DDS is much worse in aggregate (even when only
-considering satisfiable instances).
-
-These large overheads are to be expected: discrepancy searches are aimed primarily at getting better
-feasible solutions in optimisation problems which are too large for a proof of optimality to be a
-realistic prospect, and they are not well-suited for unsatisfiable decision problems. However, the
-extremely large gains on some satisfiable instances confirm our suspicions that we should find an
-alternative to heavy-commitment backtracking search.
+instances, the overheads can be extremely large, and DDS is much worse in aggregate and is not a
+viable approach (even when only considering satisfiable instances).  These large overheads are to be
+expected: discrepancy searches are aimed primarily at getting better feasible solutions in
+optimisation problems which are too large for a proof of optimality to be a realistic prospect, and
+they are not well-suited for unsatisfiable decision problems. Despite this, the extremely large gains on
+some satisfiable instances confirm our suspicions that we should find an alternative to
+heavy-commitment backtracking search.
 
 \subsection{Adding Restarts and Nogood Recording}
 
@@ -448,7 +454,7 @@ has not been proven), to abandon search and restart from the beginning. Obviousl
 can only be beneficial if something changes after restarting---in a constraint programming setting,
 this is usually the variable-ordering heuristic
 \cite{DBLP:journals/jsat/LecoutreSTV07,DBLP:conf/cp/GayHLS15,DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}.
-In this paper, we instead rely upon randomness in the \emph{value}-ordering heuristic, and continue
+In this paper, we instead rely upon randomness in a special new \emph{value}-ordering heuristic, and continue
 to use smallest domain first with static tiebreaking for variable-ordering.\footnote{It may be
 possible to further improve \cref{algorithm:sip} by also introducing randomness or some form of
 learning into its variable-ordering heuristic. However, simultaneously introducing a second change
@@ -526,7 +532,7 @@ perform substantially worse with randomisation (either with or without restarts)
 
 \Cref{figure:restarts} also shows that the biased heuristic together with restarts is better
 still---that is, if we are introducing restarts, then it is better to add a small amount of
-randomness to a tailored deterministic heuristic than it is to throw away the heuristic altogether.
+randomness to a tailored heuristic than it is to throw away the heuristic altogether.
 Indeed, the original algorithm can solve 1,983 satisfiable instances by 993.0 seconds, whilst the
 biased and random restarting algorithms require only 9.2 seconds and 33.8 seconds respectively to
 solve the same number.
@@ -537,7 +543,10 @@ unsatisfiable instances are very close to the $x-y$ diagonal, showing that their
 nearly unchanged. On the other hand, there are large numbers of satisfiable instances well below the
 diagonal line, indicating large speedups.  Better yet, there are only a handful of satisfiable
 instances that are more than a factor of ten times worse. In other words, as well as improving
-performance, we have made up most of the consistency we lost by introducing randomness.
+performance, we have made up most of the consistency we lost by introducing randomness. This is a
+promising result: for the first time, we have introduced a viable alternative to backtracking search
+in a setting where we both have a strong \emph{value}-ordering heuristic, \emph{and} care about both
+satisfiable and unsatisfiable instances.
 
 \section{Maximum Common Subgraph Algorithms}
 
@@ -610,8 +619,7 @@ recording, and biasing an existing value-ordering heuristic with just a small am
 The effectiveness of this approach raises a number of interesting questions and avenues for possible
 future research. For example, will this same technique work for other problems where we have a good
 value-ordering heuristic? Are there further benefits to be had from also modifying variable-ordering
-heuristics? Are there theoretical rather than just empirical reasons for using an exponential bias
-scheme? And how can such a search process be parallelised?
+heuristics? And how can such a search process be parallelised?
 
 \section*{Acknowledgements}
 

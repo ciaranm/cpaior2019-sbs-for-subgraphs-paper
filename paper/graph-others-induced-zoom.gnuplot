@@ -7,7 +7,7 @@ load "inferno.pal"
 load "common.gnuplot"
 
 set xlabel "Runtime (ms)"
-set ylabel "Induced Instances Solved"
+set ylabel "Induced Sat Instances Solved"
 set xrange [1e2:1e6]
 set logscale x
 set format x '$10^{%T}$'
