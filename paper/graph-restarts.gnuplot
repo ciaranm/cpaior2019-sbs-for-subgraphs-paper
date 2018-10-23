@@ -1,6 +1,6 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 8.4cm,5.2cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 8.4cm,5.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-restarts.tex"
 
 load "parula.pal"

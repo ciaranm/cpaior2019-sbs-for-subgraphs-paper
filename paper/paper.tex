@@ -76,7 +76,7 @@
 \section{Introduction}
 
 The subgraph isomorphism problem is to decide whether a copy of a small ``pattern'' graph occurs
-inside a larger ``target'' graph. Although \NP-complete, by combining design techniques from
+inside a larger ``target'' graph. Although the problem is \NP-complete, by combining design techniques from
 artificial intelligence with careful algorithm engineering, modern subgraph isomorphism solvers can
 often produce exact solutions quickly even on graphs with thousands of vertices. The current single
 strongest subgraph isomorphism solver uses ``highest degree first'' as a value-ordering heuristic to
@@ -386,9 +386,16 @@ randomness into the degree value-ordering heuristic without adversely affecting 
 \emph{in aggregate} (and more generally, this scheme could be used for any value-ordering
 heuristic which puts choices in some kind of rank with ties.)
 
-\Cref{figure:scatter-heuristics} gives a detailed look at these results. This scatter plot shows
-that despite the aggregate performance being similar, on a case by case basis, the two heuristics
-can make a large difference to the performance of satisfiable instances.
+\Cref{figure:scatter-heuristics} gives a detailed look at these results.  Each point represents the
+solving time for one instance---to avoid noise for easier instances, we measure only time spent
+during search, and exclude time spent in preprocessing and initialisation.  Points below the $x-y$
+diagonal are speedups, whilst points on the top and right axes represent instances which timed out
+after one thousand seconds with one algorithm, but not the other. For satisfiable instances, the
+different point styles show the different families, whilst all unsatisfiable instances are shown as
+dark dots.  This plot shows that despite the aggregate performance being similar, on a case by case
+basis, the two heuristics can make a large difference to the performance of individual satisfiable
+instances. This suggests that although degree is a good heuristic, we should perhaps not commit
+heavily to a vertex of highest degree, but also consider vertices of the same or similar degree.
 
 \begin{figure}[p]
     \centering
@@ -429,28 +436,21 @@ backtracking search can be extremely costly.
 
 \Cref{figure:scatter-dds} shows the effects of adding Walsh's \cite{DBLP:conf/ijcai/Walsh97}
 depth-bounded discrepancy search (DDS) to \cref{algorithm:sip} (results with other discrepancy
-search variants are similar). Each point represents the solving
-time for one instance---to avoid noise for easier instances, we measure only time spent during
-search, and exclude time spent in preprocessing and initialisation.  Points below the $x-y$ diagonal
-are speedups, whilst points on the top and right axes represent instances which timed out after one
-thousand seconds with one algorithm, but not the other. For satisfiable instances, the different
-point styles show the different families, whilst all unsatisfiable instances are shown as dark dots.
-
-The points well below the diagonal line and along the right-hand axis show that DDS can sometimes be
-extremely beneficial on satisfiable instances.  However, on both unsatisfiable and most satisfiable
-instances, the overheads can be extremely large, and DDS is much worse in aggregate and is not a
-viable approach (even when only considering satisfiable instances).  These large overheads are to be
-expected: discrepancy searches are aimed primarily at getting better feasible solutions in
-optimisation problems which are too large for a proof of optimality to be a realistic prospect, and
-they are not well-suited for unsatisfiable decision problems. Despite this, the extremely large gains on
-some satisfiable instances confirm our suspicions that we should find an alternative to
-heavy-commitment backtracking search.
+search variants are similar).  The points well below the diagonal line and along the right-hand axis
+show that DDS can sometimes be extremely beneficial on satisfiable instances.  However, on both
+unsatisfiable and most satisfiable instances, the overheads can be extremely large, and DDS is much
+worse in aggregate and is not a viable approach (even when only considering satisfiable instances).
+These large overheads are to be expected: discrepancy searches are aimed primarily at getting better
+feasible solutions in optimisation problems which are too large for a proof of optimality to be a
+realistic prospect, and they are not well-suited for unsatisfiable decision problems. Despite this,
+the extremely large gains on some satisfiable instances confirm our suspicions that we should find
+an alternative to heavy-commitment backtracking search.
 
 \subsection{Adding Restarts and Nogood Recording}
 
 Another alternative to plain backtracking search is provided by \emph{restarts}. The general idea is
 to perform a certain amount of search, and then if no solution has been found (and unsatisfiability
-has not been proven), to abandon search and restart from the beginning. Obviously, such an approach
+has not been proven), to abandon search and restart from the beginning. Such an approach
 can only be beneficial if something changes after restarting---in a constraint programming setting,
 this is usually the variable-ordering heuristic
 \cite{DBLP:journals/jsat/LecoutreSTV07,DBLP:conf/cp/GayHLS15,DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}.
@@ -459,7 +459,7 @@ to use smallest domain first with static tiebreaking for variable-ordering.\foot
 possible to further improve \cref{algorithm:sip} by also introducing randomness or some form of
 learning into its variable-ordering heuristic. However, simultaneously introducing a second change
 would considerably complicate the empirical analysis.} Using restarts on value-ordering heuristics
-appears to be uncommon---although \citet{DBLP:conf/flairs/RazgonOP07} look at learning
+is uncommon---although \citet{DBLP:conf/flairs/RazgonOP07} look at learning
 value-ordering heuristics from restarts, \citet{DBLP:conf/cp/ChuSS09} use a similar
 scheme in the context of parallel search, and an early approach by \citet{DBLP:conf/aaai/GomesSK98} does so in an optimisation context.
 
@@ -472,9 +472,8 @@ a solution is found.
 We use the Luby scheme \cite{DBLP:journals/ipl/LubySZ93} to determine when to restart. We count the
 number of backtracks (that is, when we reach the end of the main $\KwSty{foreach}$ loop on
 \siplineref{countrestarts}) to decide when to restart, rather than counting recursive calls.
-Following established wisdom, we multiply each item in the Luby sequence by a magic constant---we
+Following convention, we multiply each item in the Luby sequence by a constant---we
 used the SMAC automatic parameter tuner \cite{DBLP:conf/lion/HutterHL11} to select the value 660.
-(We also tried a geometric restart scheme, which gave less favourable results.)
 
 The remainder of the changes are to introduce nogoods. To avoid exploring portions of the search
 space that we have already visitied, every time we restart, we add new constraints to the problem
@@ -493,13 +492,11 @@ backtracking.  Other more sophisticated nogood generation and propagation scheme
 \cite{DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}, but it is not clear whether these will be
 beneficial in a setting where we are not maintaining arc consistency.
 
-\subsection{The Effects of Restarts and Nogood Recording}
-
 \begin{figure}[tb]
     \centering
     \includegraphics*{gen-graph-restarts.pdf}
 
-    \caption{The cumulative number of satisfiable instances solved over time, with and without
+    \caption{The number of satisfiable instances solved over time, with and without
     restarts and nogood recording.}
     \label{figure:restarts}
 \end{figure}
@@ -515,6 +512,8 @@ beneficial in a setting where we are not maintaining arc consistency.
     third do.}
     \label{figure:scatter-random}
 \end{figure*}
+
+\subsection{The Effects of Restarts and Nogood Recording}
 
 In \cref{figure:restarts} we show the effects of adding restarts and nogood recording to the
 algorithm. With restarts and nogood recording,
@@ -550,14 +549,14 @@ satisfiable and unsatisfiable instances.
 
 \section{Maximum Common Subgraph Algorithms}
 
-Having looked at subgraph isomorphism in detail, we now briefly discuss the more general maximum
-common induced subgraph problem.  Two recent algorithms for this problem also make use of
-backtracking search with degree as a value-ordering heuristic. The k${\downarrow}$ algorithm
-\cite{DBLP:conf/aaai/HoffmannMR17} attempts to solve the problem by first trying to solve the
-induced subgraph isomorphism problem, and then if that fails, retries allowing a single unmatched
-vertex (and thus using weaker invariants), and so on. Due to its similarity to \cref{algorithm:sip},
-we can introduce the same bias and restart strategy, requiring only small changes
-to handle wildcards in nogoods.
+Having looked at subgraph isomorphism in detail, we now briefly discuss the maximum common induced
+subgraph problem, to see whether our new approach to search has more general applicability.  Two
+recent algorithms for this problem also make use of backtracking search with degree as a
+value-ordering heuristic. The k${\downarrow}$ algorithm \cite{DBLP:conf/aaai/HoffmannMR17} attempts
+to solve the problem by first trying to solve the induced subgraph isomorphism problem, and then if
+that fails, retries allowing a single unmatched vertex (and thus using weaker invariants), and so
+on. Due to its similarity to \cref{algorithm:sip}, we can introduce the same bias and restart
+strategy, requiring only small changes to handle wildcards in nogoods.
 
 Meanwhile, the McSplit${\downarrow}$ algorithm
 \cite{DBLP:conf/ijcai/McCreeshPT17} uses a constraint programming style search, but with special
@@ -614,7 +613,7 @@ commitment \cite{DBLP:conf/ijcai/HarveyG95} into backtracking search can be bene
 now it has not been clear how to do so efficiently in practice, particularly when we already have
 strong search ordering heuristics and when are expecting to encounter large numbers of unsatisfiable
 instances. Our results show that the key to success is a combination of aggressive restarts, nogood
-recording, and biasing an existing value-ordering heuristic with just a small amount of randomness.
+recording, and biasing an existing value-ordering heuristic with just a pinch of randomness.
 
 The effectiveness of this approach raises a number of interesting questions and avenues for possible
 future research. For example, will this same technique work for other problems where we have a good
