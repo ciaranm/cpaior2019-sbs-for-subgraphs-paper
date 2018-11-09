@@ -1,8 +1,8 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set xtics add ('~~~~t/o' 2e6)
+set xtics add ('' 2e6)
 set ytics left offset character -3
-set ytics add ('\,t/o' 2e6)
+set ytics add ('' 2e6)
 
 set xrange [1:2e6]
 set yrange [1:2e6]

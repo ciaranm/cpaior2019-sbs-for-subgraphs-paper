@@ -7,6 +7,7 @@ GRAPHS = \
 	 gen-graph-value-ordering-heuristics.pdf \
 	 gen-graph-restarts.pdf \
 	 gen-graph-scatter-dds.pdf \
+	 gen-graph-dds.pdf \
 	 gen-graph-scatter-random.pdf \
 	 gen-graph-scatter-random-goods.pdf \
 	 gen-graph-others.pdf \
@@ -16,7 +17,6 @@ GRAPHS = \
 	 gen-graph-scatter-heuristics.pdf \
 	 gen-graph-scatter-by-family.pdf \
 	 gen-graph-as.pdf \
-	 gen-graph-scatter-degree.pdf \
 	 gen-graph-scatter-mcsplit.pdf \
 	 gen-graph-scatter-kdown.pdf \
 	 gen-graph-mcs.pdf \

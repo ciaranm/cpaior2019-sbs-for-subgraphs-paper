@@ -1,13 +1,13 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 8.4cm,4.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 6.4cm,4.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-others-induced-zoom.tex"
 
 load "inferno.pal"
 load "common.gnuplot"
 
 set xlabel "Runtime (ms)"
-set ylabel "Induced Sat Instances Solved"
+set ylabel "Induced Sat Instances Solved" offset 1
 set xrange [1e2:1e6]
 set logscale x
 set format x '$10^{%T}$'

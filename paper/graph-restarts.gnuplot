@@ -1,18 +1,18 @@
 # vim: set et ft=gnuplot sw=4 :
 
-set terminal tikz standalone color size 8.4cm,5.8cm font '\scriptsize' preamble '\usepackage{times,microtype}'
+set terminal tikz standalone color size 5.5cm,5.2cm font '\scriptsize' preamble '\usepackage{times,microtype}'
 set output "gen-graph-restarts.tex"
 
 load "parula.pal"
 load "common.gnuplot"
 
 set xlabel "Runtime (ms)"
-set ylabel "Sat Instances Solved"
+set ylabel "Sat Instances Solved" offset 0.5
 set xrange [1e2:1e6]
 set logscale x
 set format x '$10^{%T}$'
-set yrange [1500:2100]
-set key bottom right Left
+set yrange [1400:2100]
+set key bottom right Left samplen 2 width -6
 
 plot \
     "runtimes.data" u (cumx(final)):(cumsaty(final)) smooth cumulative w l ti 'Biased + Restarts' ls 1, \

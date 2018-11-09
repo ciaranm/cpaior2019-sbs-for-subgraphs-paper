@@ -1,22 +1,6 @@
 % vim: set spell spelllang=en tw=100 et sw=4 sts=4 :
 
-\def\year{2019}\relax
-%File: formatting-instruction.tex
-\documentclass[letterpaper]{article} %DO NOT CHANGE THIS
-\usepackage{aaai19}  %Required
-\usepackage{times}  %Required
-\usepackage{helvet}  %Required
-\usepackage{courier}  %Required
-\usepackage{url}  %Required
-\usepackage{graphicx}  %Required
-\frenchspacing  %Required
-\setlength{\pdfpagewidth}{8.5in}  %Required
-\setlength{\pdfpageheight}{11in}  %Required
-%PDF Info Is Required:
-  \pdfinfo{
-/Title (Value Ordering, Discrepancies, and Restarts for Subgraph Algorithms)
-/Author (Anonymous and Anonymous and Anonymous)}
-\setcounter{secnumdepth}{0}  
+\documentclass[runningheads]{llncs}
 
 \usepackage{complexity}
 \usepackage{amsmath}
@@ -24,7 +8,7 @@
 \usepackage{tikz}
 \usepackage{cleveref}
 
-% \usepackage{showframe}
+\usepackage{showframe}
 
 \newcommand{\neighbourhood}{\operatorname{N}}
 \newcommand{\vertexset}{\operatorname{V}}
@@ -33,7 +17,7 @@
 \newcommand{\siplineref}[1]{line~\ref{line:sip:#1}}
 \newcommand{\siplinerangeref}[2]{lines~\ref{line:sip:#1} to~\ref{line:sip:#2}}
 
-\newcommand{\citet}[1]{\citeauthor{#1} \shortcite{#1}}
+\newcommand{\citet}[2]{#1\cite{#2}}
 
 % cref style
 \crefname{figure}{Figure}{Figures}
@@ -53,16 +37,26 @@
 
 \definecolor{highlight}{rgb}{0.529412, 0.74902, 0.466667}
 
-\title{Value Ordering, Discrepancies, and Restarts for Subgraph Algorithms}
-\author{Anonymous \and Anonymous \and Anonymous \\ email address \\ address}
-
 \begin{document}
+
+\title{Beating Simple Backtracking Search in Subgraph Algorithms\thanks{This work was
+supported by the Engineering and Physical Sciences Research Council [grant numbers EP/026842/1 and
+EP/M508056/1].}}
+
+\author{Ciaran McCreesh\orcidID{0000-0002-6106-4871}\and
+Patrick Prosser\orcidID{0000-0003-4460-6912} \and
+James Trimble\orcidID{0000-0001-7282-8745}}
+
+\authorrunning{C. McCreesh et al.}
+
+\institute{University of Glasgow, Glasgow, Scotland\\
+\email{ciaran.mccreesh@glasgow.ac.uk}}
 
 \maketitle
 
 \begin{abstract}
-    Modern subgraph isomorphism solvers use degree-based value-ordering heuristics to direct
-    backtracking search. This kind of search makes a heavy commitment to the first branching choice,
+    Modern subgraph isomorphism solvers use degree as a value-ordering heuristics to direct
+    backtracking search. This makes a heavy commitment to the first branching choice,
     which is often incorrect. We evaluate discrepancy-based searches as an alternative, but find
     them too expensive to be effective in this situation, even on satisfiable instances. We then
     demonstrate that a random value-ordering heuristic with restarts beats conventional search with
@@ -102,7 +96,7 @@ Let $G$ be a graph. We denote its set of vertices by $\vertexset(G)$, and write 
 that vertices $v$ and $w$ are adjacent; we allow a vertex to be adjacent to itself (a \emph{loop}). The
 \emph{neighbourhood} of a vertex, $\neighbourhood_G(v)$, is the set of vertices adjacent to $v$, and
 the \emph{degree} of $v$, $\deg_G(v)$, is the cardinality of its neighbourhood. When the graph is clear from the context, we omit
-the $G$ subscripts. As per \citet{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with
+the $G$ subscripts. As per \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with
 vertex set $\vertexset(G)$, and with edges between vertices $v$ and $w$ if there are at least $n$
 simple paths of length $\ell$ between vertices $v$ and $w$ in $G$.
 
@@ -114,13 +108,13 @@ with loops in $\mathcal{P}$ may only be mapped to vertices with loops in $\mathc
 vertices. We write $v \mapsto v'$ to mean that pattern vertex $v$ is mapped to target $v'$ under
 either kind of mapping. Finally, we define a function $\FuncSty{compatible}(v, w)$ to mean that
 mapping $v \mapsto w$ is feasible based upon both the loop rule, and the neighbourhood degree
-sequence relation of \citet{DBLP:journals/constraints/ZampelliDS10}.
+sequence relation of \citet{Zampelli et al.\ }{DBLP:journals/constraints/ZampelliDS10}.
 
 \subsection{A Subgraph Isomorphism Algorithm}
 
 We now briefly outline the non-shaded parts of \cref{algorithm:sip}, which is how we will solve the
 subgraph isomorphism problem. This algorithm is very closely based upon the $k{\downarrow}$
-algorithm of \citet{DBLP:conf/aaai/HoffmannMR17} with $k = 0$, and we refer the reader to that paper
+algorithm of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} with $k = 0$, and we refer the reader to that paper
 for full technical details; that algorithm, in turn, is a simplification of the Glasgow2 algorithm
 \cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}. We show the non-induced problem; the
 induced problem may be solved by including the loop-complements of $\mathcal{P}$ and $\mathcal{T}$
@@ -129,8 +123,8 @@ in $L$ on \siplineref{supplemental}.
 \Cref{algorithm:sip} works by recursively building up a valid mapping of pattern vertices to target
 vertices. For each pattern vertex $v$, we have a domain $D_v$ containing a set of feasible target
 vertices. Each domain is initialised at the top of search (\siplinerangeref{initstart}{initend}),
-using the invariants described by \citet{DBLP:journals/constraints/ZampelliDS10} and
-\citet{DBLP:conf/aaai/HoffmannMR17} to restrict its initial values.
+using the invariants described by \citet{Zampelli et al.\ }{DBLP:journals/constraints/ZampelliDS10} and
+\citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} to restrict its initial values.
 
 The $\FuncSty{search}$ procedure recursively selects an unassigned domain $D$
 (\siplineref{variableordering}), and tries assigning
@@ -140,7 +134,7 @@ inconsistency is detected, we continue and try another value; otherwise, we recu
 (\siplineref{recurse}) until a solution is found. Finally, if we run out of values, we backtrack
 (\siplineref{backtrack}).
 
-Our $\FuncSty{propagate}$ routine is also close to that of \citet{DBLP:conf/aaai/HoffmannMR17},
+Our $\FuncSty{propagate}$ routine is also close to that of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17},
 differing only in that we carry out the filtering for injectivity
 (\siplinerangeref{alldiffstart}{alldiffend}) after every assignment rather than once at the end of
 the unit propagation loop. (We make this change because the all-different propagator used is not
@@ -154,26 +148,6 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
         \coordinate (restart2sc) at ($(pic cs:restart2s) + (0, 0.15)$);
         \coordinate (restart2ec) at ($(pic cs:restart2e) + (0, 0.00)$);
         \node [fill=highlight, rounded corners, fit=(restart2sc) (restart2ec)] { };
-        \coordinate (restart3sc) at ($(pic cs:restart3s) + (0, 0.15)$);
-        \coordinate (restart3ec) at ($(pic cs:restart3e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart3sc) (restart3ec)] { };
-        \coordinate (restart4sc) at ($(pic cs:restart4s) + (0, 0.15)$);
-        \coordinate (restart4ec) at ($(pic cs:restart4e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart4sc) (restart4ec)] { };
-        \coordinate (restart5sc) at ($(pic cs:restart5s) + (0, 0.15)$);
-        \coordinate (restart5ec) at ($(pic cs:restart5e) - (0, 0.10)$);
-        \coordinate (restart5rc) at ($(pic cs:restart5r) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
-        \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
-        \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
-        \coordinate (restart6rc) at ($(pic cs:restart6r) + (0.8, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart6sc) (restart6ec) (restart6rc)] { };
-        \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
-        \coordinate (restart7ec) at ($(pic cs:restart7e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart7sc) (restart7ec)] { };
-        \coordinate (restart8sc) at ($(pic cs:restart8s) + (0.05, 0.15)$);
-        \coordinate (restart8ec) at ($(pic cs:restart8e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart8sc) (restart8ec)] { };
         \coordinate (restart9sc) at ($(pic cs:restart9s) + (0, 0.15)$);
         \coordinate (restart9ec) at ($(pic cs:restart9e) + (-0.15, 0.00)$);
         \node [fill=highlight, rounded corners, fit=(restart9sc) (restart9ec)] { };
@@ -202,7 +176,31 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
         \nl \tikzmark{restart2s}trigger nogoods containing only one clause\tikzmark{restart2e} \;
     }
 }
-\medskip
+\caption{The main subgraph isomorphism algorithm. The shaded code is added for restarting. See
+    \cref{algorithm:sip:search,algorithm:sip:propagate} for the search and propagation routines.}
+\label{algorithm:sip}
+\end{algorithm}
+
+\begin{algorithm}[p]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
+    \begin{tikzpicture}[remember picture,overlay]
+        \coordinate (restart3sc) at ($(pic cs:restart3s) + (0, 0.15)$);
+        \coordinate (restart3ec) at ($(pic cs:restart3e) + (0, 0.00)$);
+        \node [fill=highlight, rounded corners, fit=(restart3sc) (restart3ec)] { };
+        \coordinate (restart4sc) at ($(pic cs:restart4s) + (0, 0.15)$);
+        \coordinate (restart4ec) at ($(pic cs:restart4e) + (0, 0.00)$);
+        \node [fill=highlight, rounded corners, fit=(restart4sc) (restart4ec)] { };
+        \coordinate (restart5sc) at ($(pic cs:restart5s) + (0, 0.15)$);
+        \coordinate (restart5ec) at ($(pic cs:restart5e) - (0, 0.10)$);
+        \coordinate (restart5rc) at ($(pic cs:restart5r) + (0, 0.00)$);
+        \node [fill=highlight, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
+        \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
+        \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
+        \coordinate (restart6rc) at ($(pic cs:restart6r) + (0.8, 0.00)$);
+        \node [fill=highlight, rounded corners, fit=(restart6sc) (restart6ec) (restart6rc)] { };
+        \coordinate (restart8sc) at ($(pic cs:restart8s) + (0.05, 0.15)$);
+        \coordinate (restart8ec) at ($(pic cs:restart8e) + (0, 0.00)$);
+        \node [fill=highlight, rounded corners, fit=(restart8sc) (restart8ec)] { };
+    \end{tikzpicture}
     \nl $\FuncSty{search}$ (Domains $D$, Trail $B$) $\rightarrow$ Bool
     \tikzmark{restart8s}\KwSty{or} \KwSty{restart}\tikzmark{restart8e} \;
 \nl \Begin{
@@ -227,7 +225,16 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
         \nl $\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$\siplabel{countrestarts}}
     \nl $\KwSty{return}~\KwSty{false}$\siplabel{backtrack}
 }
-\medskip
+\caption{Search routine for \cref{algorithm:sip}.}
+\label{algorithm:sip:search}
+\end{algorithm}
+
+\begin{algorithm}[tb]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
+    \begin{tikzpicture}[remember picture,overlay]
+        \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
+        \coordinate (restart7ec) at ($(pic cs:restart7e) + (0, 0.00)$);
+        \node [fill=highlight, rounded corners, fit=(restart7sc) (restart7ec)] { };
+    \end{tikzpicture}
 \nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
 \nl \Begin{
     \nl \While{$D_v \gets $\textnormal{a unit domain from}~$D$}{
@@ -247,8 +254,8 @@ idempotent, and we wish to avoid an odd interaction when we introduce nogood fil
     }
 \nl $\KwSty{return}~\KwSty{true}$ \;
 }
-\caption{Subgraph isomorphism. The shaded code is added for restarting.}
-\label{algorithm:sip}
+\caption{Propagation routine for \cref{algorithm:sip}.}
+\label{algorithm:sip:propagate}
 \end{algorithm}
 
 For the variable-ordering heuristic on \siplineref{variableordering} of
@@ -267,10 +274,10 @@ Our experiments are performed on systems with dual Intel Xeon E5-2697A v4 CPUs a
 running Ubuntu 17.04. We
 implemented\footnote{DOI removed for anonymous review}
 \cref{algorithm:sip} in C++ using the bit-parallel implementation of
-\citet{DBLP:conf/aaai/HoffmannMR17} as a starting point, and compiled it using GCC 7.2.0. We use a
+\citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} as a starting point, and compiled it using GCC 7.2.0. We use a
 deterministic pseudo-random number generator for reproducibility.
 
-We use the dataset introduced by \citet{DBLP:conf/lion/KotthoffMS16} for evaluation. This dataset
+We use the dataset introduced by \citet{Kotthoff et al.\ }{DBLP:conf/lion/KotthoffMS16} for evaluation. This dataset
 brings together a range of randomly-generated and application instance families from earlier papers:
 
 \begin{description}
@@ -304,29 +311,21 @@ non-induced problem, and at least \input{gen-n-unsat.tex}\unskip\ are unsatisfia
 
 \subsection{Baseline Performance}
 
-\begin{figure}[p]
-    \centering
+\begin{figure}[tb]
     \includegraphics*{gen-graph-others.pdf}
-
-    \smallskip
-
-    \centering
-    \includegraphics*{gen-graph-others-zoom.pdf}
+    \hfill
+    \includegraphics*{gen-graph-others-induced.pdf}
 
     \bigskip
 
-    \centering
-    \includegraphics*{gen-graph-others-induced.pdf}
-
-    \smallskip
-
-    \centering
+    \includegraphics*{gen-graph-others-zoom.pdf}
+    \hfill
     \includegraphics*{gen-graph-others-induced-zoom.pdf}
 
-    \caption{On the top two rows, the cumulative number of instances solved over time, comparing our algorithm
+    \caption{On the top row, the cumulative number of instances solved over time, comparing our algorithm
     (both in its basic form, and with the improvements introduced in the remainder of the paper) to
-    other solvers. The second considers only satisfiable instances. On the bottom two rows, the same,
-    for the induced subgraph isomorphism problem.}
+    other solvers, for the non-induced and induced problems. On the bottom row, the same,
+    considering only satisfiable instances.}
     \label{figure:others}
 \end{figure}
 
@@ -360,9 +359,9 @@ instances, and use a reduced range on both axes.
 
 \subsection{Value-Ordering Heuristics}
 
-\Cref{figure:value-ordering-heuristics} shows the cumulative number of satisfiable instances
-solved over time using different value-ordering heuristics. For the remainder of this section, we
-show only the non-induced problem; results with the induced variant are similar.
+The left plot of \cref{figure:value-ordering-heuristics} shows the cumulative number of satisfiable
+instances solved over time using different value-ordering heuristics. For the remainder of this
+section, we show only the non-induced problem; results with the induced variant are similar.
 
 \begin{description}
 \item[Degree] We select vertices from highest degree to lowest degree
@@ -386,42 +385,29 @@ randomness into the degree value-ordering heuristic without adversely affecting 
 \emph{in aggregate} (and more generally, this scheme could be used for any value-ordering
 heuristic which puts choices in some kind of rank with ties.)
 
-\Cref{figure:scatter-heuristics} gives a detailed look at these results.  Each point represents the
-solving time for one instance---to avoid noise for easier instances, we measure only time spent
-during search, and exclude time spent in preprocessing and initialisation.  Points below the $x-y$
-diagonal are speedups, whilst points on the top and right axes represent instances which timed out
-after one thousand seconds with one algorithm, but not the other. For satisfiable instances, the
-different point styles show the different families, whilst all unsatisfiable instances are shown as
-dark dots.  This plot shows that despite the aggregate performance being similar, on a case by case
-basis, the two heuristics can make a large difference to the performance of individual satisfiable
-instances. This suggests that although degree is a good heuristic, we should perhaps not commit
-heavily to a vertex of highest degree, but also consider vertices of the same or similar degree.
-
-\begin{figure}[p]
-    \centering
+\begin{figure}[tb]
     \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-heuristics.pdf}
 
-    \caption{The cumulative number of satisfiable instances solved over time, using four
-    different value-ordering heuristics.}
+    \caption{On the left, the cumulative number of satisfiable instances solved over time, using
+    four different value-ordering heuristics. On the right, an instance by instance comparison of
+    the degree and biased heuristics on all instances. Points on the outer axes are timeouts, and
+    point style shows instance family.}
     \label{figure:value-ordering-heuristics}
 \end{figure}
 
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-heuristics.pdf}
-
-    \caption{An instance by instance comparison of the degree and biased heuristics on all
-    instances. Points on the outer axes are timeouts, and point style shows instance family.}
-    \label{figure:scatter-heuristics}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-dds.pdf}
-
-    \caption{Comparing depth-bounded discrepancy search to backtracking search, both with the degree
-    heuristic.}\label{figure:scatter-dds}
-\end{figure}
+The right-hand plot of \cref{figure:value-ordering-heuristics} gives a detailed look at these
+results.  Each point represents the solving time for one instance---to avoid noise for easier
+instances, we measure only time spent during search, and exclude time spent in preprocessing and
+initialisation.  Points below the $x-y$ diagonal are speedups, whilst points on the top and right
+axes represent instances which timed out after one thousand seconds with one algorithm, but not the
+other. For satisfiable instances, the different point styles show the different families, whilst all
+unsatisfiable instances are shown as dark dots.  This plot shows that despite the aggregate
+performance being similar, on a case by case basis, the two heuristics can make a large difference
+to the performance of individual satisfiable instances. This suggests that although degree is a good
+heuristic, we should perhaps not commit heavily to a vertex of highest degree, but also consider
+vertices of the same or similar degree.
 
 \subsection{Discrepancy Searches}
 
@@ -434,17 +420,26 @@ are usually reliable, and that most solutions can be found with only a small num
 discrepancies; in such cases, the heavy commitment to early branching choices made by conventional
 backtracking search can be extremely costly.
 
+\begin{figure}[tb]
+    \includegraphics*{gen-graph-dds.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-dds.pdf}
+
+    \caption{Comparing depth-bounded discrepancy search to backtracking search, both with the degree
+    heuristic.}\label{figure:scatter-dds}
+\end{figure}
+
 \Cref{figure:scatter-dds} shows the effects of adding Walsh's \cite{DBLP:conf/ijcai/Walsh97}
 depth-bounded discrepancy search (DDS) to \cref{algorithm:sip} (results with other discrepancy
 search variants are similar).  The points well below the diagonal line and along the right-hand axis
-show that DDS can sometimes be extremely beneficial on satisfiable instances.  However, on both
-unsatisfiable and most satisfiable instances, the overheads can be extremely large, and DDS is much
-worse in aggregate and is not a viable approach (even when only considering satisfiable instances).
-These large overheads are to be expected: discrepancy searches are aimed primarily at getting better
-feasible solutions in optimisation problems which are too large for a proof of optimality to be a
-realistic prospect, and they are not well-suited for unsatisfiable decision problems. Despite this,
-the extremely large gains on some satisfiable instances confirm our suspicions that we should find
-an alternative to heavy-commitment backtracking search.
+on the scatter plot show that DDS can sometimes be extremely beneficial on satisfiable instances.
+However, on both unsatisfiable and most satisfiable instances, the overheads can be extremely large,
+and DDS is much worse in aggregate and is not a viable approach (even when only considering
+satisfiable instances).  These large overheads are to be expected: discrepancy searches are aimed
+primarily at getting better feasible solutions in optimisation problems which are too large for a
+proof of optimality to be a realistic prospect, and they are not well-suited for unsatisfiable
+decision problems. Despite this, the extremely large gains on some satisfiable instances confirm our
+suspicions that we should find an alternative to heavy-commitment backtracking search.
 
 \subsection{Adding Restarts and Nogood Recording}
 
@@ -459,9 +454,9 @@ to use smallest domain first with static tiebreaking for variable-ordering.\foot
 possible to further improve \cref{algorithm:sip} by also introducing randomness or some form of
 learning into its variable-ordering heuristic. However, simultaneously introducing a second change
 would considerably complicate the empirical analysis.} Using restarts on value-ordering heuristics
-is uncommon---although \citet{DBLP:conf/flairs/RazgonOP07} look at learning
-value-ordering heuristics from restarts, \citet{DBLP:conf/cp/ChuSS09} use a similar
-scheme in the context of parallel search, and an early approach by \citet{DBLP:conf/aaai/GomesSK98} does so in an optimisation context.
+is uncommon---although \citet{Razgon et al.\ }{DBLP:conf/flairs/RazgonOP07} look at learning
+value-ordering heuristics from restarts, \citet{Chu et al.\ }{DBLP:conf/cp/ChuSS09} use a similar
+scheme in the context of parallel search, and an early approach by \citet{Gomes et al.\ }{DBLP:conf/aaai/GomesSK98} does so in an optimisation context.
 
 The shaded code shows how to introduce restarts to \cref{algorithm:sip}. The recursive
 $\FuncSty{search}$ procedure is modified to return either true (if the instance is satisfiable),
@@ -493,61 +488,75 @@ backtracking.  Other more sophisticated nogood generation and propagation scheme
 beneficial in a setting where we are not maintaining arc consistency.
 
 \begin{figure}[tb]
-    \centering
     \includegraphics*{gen-graph-restarts.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-by-family.pdf}
 
-    \caption{The number of satisfiable instances solved over time, with and without
-    restarts and nogood recording.}
-    \label{figure:restarts}
+    \caption{On the left, the number of satisfiable instances solved over time, with and without
+    restarts and nogood recording. To the right, a comparison between the original algorithm and the
+    new algorithm with all features enabled.}
+    \label{figure:old-vs-new}
 \end{figure}
 
-\begin{figure*}[tb]
+\begin{figure}[tb]
     \includegraphics*{gen-graph-scatter-random-goods.pdf}
     \hfill
     \includegraphics*{gen-graph-scatter-random.pdf}
-    \hfill
-    \includegraphics*{gen-graph-scatter-by-family.pdf}
-    \caption{Comparing basic backtracking with the degree heuristic, versus the random and biased
-    heuristics with restarts. The first plot does not use nogood recording, whilst the second and
-    third do.}
-    \label{figure:scatter-random}
-\end{figure*}
+    \caption{On the left, not using nogood recording introduces slowdowns, particularly on
+    unsatisfiable instances. On the right, using a random value-ordering gives much worse
+    performance on many satisfiable instances.}
+    \label{figure:features}
+\end{figure}
 
 \subsection{The Effects of Restarts and Nogood Recording}
 
-In \cref{figure:restarts} we show the effects of adding restarts and nogood recording to the
-algorithm. With restarts and nogood recording,
-the random value-ordering heuristic comfortably beats the degree strategy with simple backtracking
-search. In other
-words, although having a good value-ordering heuristic is beneficial, introducing randomness into
-the search is better, if it is done alongside a mechanism to avoid heavy commitment to any
-particular random choice. \Cref{figure:scatter-random} looks at
-this in more detail. On the first plot, without nogood recording, unsatisfiable instances
-experience a slowdown of more than an order of magnitude, whilst on the second plot the
-performance remains unchanged (which shows that the overheads of nogoods and restarting are
-negligible). We therefore use nogood recording in all subsequent experiments with restarts. However,
-although better in aggregate on satisfiable instances, on a case by case basis many instances
-perform substantially worse with randomisation (either with or without restarts).
-
-\Cref{figure:restarts} also shows that the biased heuristic together with restarts is better
+In \cref{figure:old-vs-new} we show the effects of adding restarts and nogood recording to the
+algorithm. With restarts and nogood recording, the random value-ordering heuristic comfortably beats
+the degree strategy with simple backtracking search. In other words, although having a good
+value-ordering heuristic is beneficial, introducing randomness into the search is better, if it is
+done alongside a mechanism to avoid heavy commitment to any particular random choice.
+\Cref{figure:old-vs-new} also shows that the biased heuristic together with restarts is better
 still---that is, if we are introducing restarts, then it is better to add a small amount of
-randomness to a tailored heuristic than it is to throw away the heuristic altogether.
-Indeed, the original algorithm can solve 1,983 satisfiable instances by 993.0 seconds, whilst the
-biased and random restarting algorithms require only 9.2 seconds and 33.8 seconds respectively to
-solve the same number.
+randomness to a tailored heuristic than it is to throw away the heuristic altogether.  Indeed, the
+original algorithm can solve 1,983 satisfiable instances by 993.0 seconds, whilst the biased and
+random restarting algorithms require only 9.2 seconds and 33.8 seconds respectively to solve the
+same number.
 
-In the more detailed view in the final plot of \cref{figure:scatter-random}, comparing the
-basic algorithm with the degree heuristic to the degree-biased algorithm with restarts, all of the
+In the more detailed view in the right-hand plot of \cref{figure:old-vs-new}, comparing the basic
+algorithm with the degree heuristic to the degree-biased algorithm with restarts, all of the
 unsatisfiable instances are very close to the $x-y$ diagonal, showing that their performance is
 nearly unchanged. On the other hand, there are large numbers of satisfiable instances well below the
 diagonal line, indicating large speedups.  Better yet, there are only a handful of satisfiable
-instances that are more than a factor of ten times worse. In other words, as well as improving
-performance, we have made up most of the consistency we lost by introducing randomness. This is a
-promising result: for the first time, we have introduced a viable alternative to backtracking search
-in a setting where we both have a strong \emph{value}-ordering heuristic, \emph{and} care about both
-satisfiable and unsatisfiable instances.
+instances that are more than a factor of ten times worse.  In other words, as well as improving
+performance, we have made up most of the consistency we lost by introducing randomness.
+
+As we might expect, these properties do not hold if any of the combination of changes are disabled.
+In the left-hand plot of \cref{figure:features}, we see large slowdowns on unsatisfiable instances
+when using a random value ordering and restarts but without nogood recording, and on the right-hand
+plot we see many more satisfiable instances above the $x-y$ diagonal when using the random
+value-ordering heuristic as opposed to the degree-biased heuristic.
+
+This is a promising result: for the first time, we have introduced a viable alternative to
+backtracking search in a setting where we both have a strong \emph{value}-ordering heuristic,
+\emph{and} care about both satisfiable and unsatisfiable instances.
 
 \section{Maximum Common Subgraph Algorithms}
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-mcs.pdf}
+
+    \medskip
+
+    \includegraphics*{gen-graph-scatter-kdown.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-mcsplit.pdf}
+
+    \caption{Above, the cumulative number of maximum common induced subgraph instances solved by
+    k${\downarrow}$ and McSplit${\downarrow}$ over time, with and without restarts and nogood
+    recording. Below, comparing k${\downarrow}$ (left) and McSplit${\downarrow}$ (right) on an instance by instance
+    basis.}\label{figure:mcs}
+\end{figure}
 
 Having looked at subgraph isomorphism in detail, we now briefly discuss the maximum common induced
 subgraph problem, to see whether our new approach to search has more general applicability.  Two
@@ -567,36 +576,13 @@ only detect when we are inside an already-visited branch.  We must therefore use
 literal scheme instead, and we also introduce a basic subsumption scheme to prune redundant clauses.
 
 Performance results from these two modified algorithms, using the same families of instances as in
-the previous section, are shown in \cref{figure:mcs,figure:kdown,figure:mcsplit}. Although we have
+the previous section, are shown in \cref{figure:mcs}. Although we have
 moved from a decision problem to an optimisation problem, the same changes remain clearly
 beneficial. For the $k{\downarrow}$ algorithm, the change has a minimal effect on many instances
 (typically, where the $k = 0$ subproblem is unsatisfiable and hard, and the $k = 1$ subproblem is
 satisfiable and easy), but gives large benefits on many more instances than it penalises: it is over
 an order of magnitude better on nearly a hundred instances, whilst being an order of magnitude worse
 on only seven.
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-mcs.pdf}
-    \caption{The cumulative number of maximum common induced subgraph instances solved by
-    k${\downarrow}$ and McSplit${\downarrow}$ over time, with and without restarts and nogood
-    recording.}\label{figure:mcs}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-kdown.pdf}
-    \caption{Comparing k${\downarrow}$ with and without restarts and nogood recording on an instance
-    by instance basis.}\label{figure:kdown}
-\end{figure}
-
-\begin{figure}[p]
-    \centering
-    \includegraphics*{gen-graph-scatter-mcsplit.pdf}
-    \caption{Comparing McSplit${\downarrow}$ with and without restarts and nogood recording on an instance
-    by instance basis.}\label{figure:mcsplit}
-\end{figure}
-
 
 With McSplit${\downarrow}$, the inability to use two watched literals means that in many cases we
 introduce a small slowdown. However, the overall pattern is the same: when introducing restarts and
@@ -622,14 +608,10 @@ heuristics? And how can such a search process be parallelised?
 
 \section*{Acknowledgements}
 
-% The authors would like to thank Ruth Hoffmann, Christophe Lecoutre, Christine Solnon and Craig
-% Reilly for their comments.  This work was supported by the Engineering and Physical Sciences
-% Research Council [grant numbers EP/026842/1 and EP/M508056/1].
+The authors would like to thank Ruth Hoffmann, Christophe Lecoutre, Christine Solnon and Craig
+Reilly for their comments.
 
-The authors would like to thank Anonymous, Anonymous, Anonymous and Anonymous for their comments.
-This work was supported by an anonymous funding agency.
-
-\bibliographystyle{aaai}
+\bibliographystyle{splncs04}
 \bibliography{dblp}
 
 \end{document}
