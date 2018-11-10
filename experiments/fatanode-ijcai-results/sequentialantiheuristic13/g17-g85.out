@@ -1,8 +1,0 @@
-hostname = fatanode-04
-commandline = ../code/solve_subgraph_isomorphism customisable-sequential --antiheuristic --timeout 1000 ../instances/LV/g17 ../instances/largerGraphs/g85
-started_at = 2017-12-14 19:56:29
-pattern_file = ../instances/LV/g17
-target_file = ../instances/largerGraphs/g85
-status = false
-nodes = 0
-runtime = 10
