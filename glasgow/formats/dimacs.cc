@@ -1,27 +1,23 @@
 /* vim: set sw=4 sts=4 et foldmethod=syntax : */
 
-#include "dimacs.hh"
-#include "graph.hh"
-#include "graph_file_error.hh"
+#include "formats/dimacs.hh"
+#include "formats/input_graph.hh"
+#include "formats/graph_file_error.hh"
 
-#include <boost/regex.hpp>
 #include <fstream>
+#include <regex>
 
 using std::getline;
 using std::ifstream;
+using std::regex;
+using std::smatch;
 using std::stoi;
 using std::string;
+using std::to_string;
 
-using boost::regex;
-using boost::smatch;
-
-auto read_dimacs(const string & filename) -> Graph
+auto read_dimacs(ifstream && infile, const string & filename) -> InputGraph
 {
-    Graph result{ 0 };
-
-    ifstream infile{ filename };
-    if (! infile)
-        throw GraphFileError{ filename, "unable to open file" };
+    InputGraph result{ 0, false, false };
 
     string line;
     while (getline(infile, line)) {
@@ -60,6 +56,9 @@ auto read_dimacs(const string & filename) -> Graph
 
     if (! infile.eof())
         throw GraphFileError{ filename, "error reading file" };
+
+    for (int v = 0 ; v < result.size() ; ++v)
+        result.set_vertex_label(v, to_string(v + 1));
 
     return result;
 }
