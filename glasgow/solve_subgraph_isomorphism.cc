@@ -118,6 +118,7 @@ auto main(int argc, char * argv[]) -> int
         po::options_description configuration_options{ "Advanced configuration options" };
         configuration_options.add_options()
             ("presolve",                                     "Try presolving (hacky, experimental, possibly useful for easy instances")
+            ("restarts-constant",  po::value<int>(),         "How often to perform restarts (0 disables restarts)")
             ("value-ordering",     po::value<std::string>(), "Specify value-ordering heuristic (biased / degree / antidegree / random)");
 
         display_options.add(configuration_options);
@@ -165,6 +166,9 @@ auto main(int argc, char * argv[]) -> int
         params.induced = options_vars.count("induced");
         params.enumerate = options_vars.count("enumerate");
         params.presolve = options_vars.count("presolve");
+
+        if (options_vars.count("restarts-constant"))
+            params.restarts_constant = options_vars["restarts-constant"].as<int>();
 
         if (options_vars.count("value-ordering")) {
             std::string value_ordering_heuristic = options_vars["value-ordering"].as<std::string>();

@@ -960,10 +960,10 @@ namespace
             while (! done) {
                 long long backtracks_until_restart;
 
-                if (params.enumerate)
+                if (params.enumerate || 0 == params.restarts_constant)
                     backtracks_until_restart = -1;
                 else {
-                    backtracks_until_restart = *current_luby * params.luby_multiplier;
+                    backtracks_until_restart = *current_luby * params.restarts_constant;
                     if (next(current_luby) == luby.end()) {
                         luby.insert(luby.end(), luby.begin(), luby.end());
                         luby.push_back(*luby.rbegin() * 2);

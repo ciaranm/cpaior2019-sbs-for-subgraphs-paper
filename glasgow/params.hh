@@ -30,10 +30,10 @@ struct Params
     ValueOrdering value_ordering_heuristic = ValueOrdering::Biased;
 
     /// Default chosen by SMAC
-    static constexpr unsigned long long dodgy_default_magic_luby_multiplier = 660;
+    static constexpr unsigned long long dodgy_default_magic_constant_restart_multiplier = 660;
 
-    /// Multiplier for Luby sequence
-    unsigned long long luby_multiplier = dodgy_default_magic_luby_multiplier;
+    /// Constant multiplier for restarts sequence (0 disables restarts)
+    unsigned long long restarts_constant = dodgy_default_magic_constant_restart_multiplier;
 };
 
 #endif
