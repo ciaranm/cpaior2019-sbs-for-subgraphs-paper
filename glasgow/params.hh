@@ -27,6 +27,9 @@ struct Params
     /// Presolve?
     bool presolve = false;
 
+    /// Use DDS?
+    bool dds = false;
+
     /// Which value-ordering heuristic?
     ValueOrdering value_ordering_heuristic = ValueOrdering::Biased;
 

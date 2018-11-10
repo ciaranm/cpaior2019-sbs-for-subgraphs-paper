@@ -58,6 +58,14 @@ namespace
         Restart
     };
 
+    enum class DiscrepancySearchResult
+    {
+        Aborted,
+        Unsatisfiable,
+        Satisfiable,
+        SatisfiableButKeepGoing
+    };
+
     struct Assignment
     {
         unsigned pattern_vertex;
@@ -640,7 +648,7 @@ namespace
             }
 
             int discrepancy_count = 0;
-            bool actually_hit_a_success = false, actually_hit_a_failure = true;
+            bool actually_hit_a_success = false, actually_hit_a_failure = false;
 
             // for each value remaining...
             for (auto f_v = branch_v.begin(), f_end = branch_v.begin() + branch_v_end ; f_v != f_end ; ++f_v) {
@@ -710,6 +718,113 @@ namespace
                 return SearchResult::SatisfiableButKeepGoing;
             else
                 return SearchResult::Unsatisfiable;
+        }
+
+        auto dds_search(
+                Assignments & assignments,
+                const Domains & domains,
+                unsigned long long & nodes,
+                unsigned long long & propagations,
+                unsigned long long & solution_count,
+                int depth,
+                int discrepancy_k,
+                bool & used_all_discrepancies) -> DiscrepancySearchResult
+        {
+            if (params.abort->load())
+                return DiscrepancySearchResult::Aborted;
+
+            ++nodes;
+
+            // find ourselves a domain, or succeed if we're all assigned
+            const Domain * branch_domain = find_branch_domain(domains);
+            if (! branch_domain) {
+                if (params.enumerate) {
+                    ++solution_count;
+                    return DiscrepancySearchResult::SatisfiableButKeepGoing;
+                }
+                else
+                    return DiscrepancySearchResult::Satisfiable;
+            }
+
+            // pull out the remaining values in this domain for branching
+            auto remaining = branch_domain->values;
+
+            ArrayType_ branch_v;
+            if constexpr (is_same<ArrayType_, vector<int> >::value)
+                branch_v.resize(target_size);
+
+            unsigned branch_v_end = 0;
+            for (auto f_v = remaining.find_first() ; f_v != decltype(remaining)::npos ; f_v = remaining.find_first()) {
+                remaining.reset(f_v);
+                branch_v[branch_v_end++] = f_v;
+            }
+
+            degree_sort(branch_v, branch_v_end, false);
+
+            int discrepancy_count = 0;
+            bool actually_hit_a_success = false;
+
+            // for each value remaining...
+            for (auto f_v = branch_v.begin(), f_end = branch_v.begin() + branch_v_end ; f_v != f_end ; ++f_v) {
+                if (discrepancy_k != 1) {
+                    // modified in-place by appending, we can restore by shrinking
+                    auto assignments_size = assignments.values.size();
+
+                    // make the assignment
+                    assignments.values.push_back({ { branch_domain->v, unsigned(*f_v) }, true, discrepancy_count, int(branch_v_end) });
+
+                    // set up new domains
+                    Domains new_domains = copy_nonfixed_domains_and_make_assignment(domains, branch_domain->v, *f_v);
+
+                    // propagate
+                    ++propagations;
+                    if (! propagate(new_domains, assignments)) {
+                        // failure? restore assignments and go on to the next thing
+                        assignments.values.resize(assignments_size);
+                        continue;
+                    }
+
+                    // recursive search
+                    auto search_result = dds_search(assignments, new_domains, nodes, propagations,
+                            solution_count, depth + 1, max(0, discrepancy_k - 1), used_all_discrepancies);
+
+                    switch (search_result) {
+                        case DiscrepancySearchResult::Satisfiable:
+                            return DiscrepancySearchResult::Satisfiable;
+
+                        case DiscrepancySearchResult::Aborted:
+                            return DiscrepancySearchResult::Aborted;
+
+                        case DiscrepancySearchResult::SatisfiableButKeepGoing:
+                            // restore assignments
+                            assignments.values.resize(assignments_size);
+                            actually_hit_a_success = true;
+                            break;
+
+                        case DiscrepancySearchResult::Unsatisfiable:
+                            // restore assignments
+                            assignments.values.resize(assignments_size);
+                            break;
+                    }
+
+                    if (0 == discrepancy_k) {
+                        used_all_discrepancies = true;
+                        break;
+                    }
+                }
+
+                --discrepancy_k;
+                ++discrepancy_count;
+            }
+
+            if (0 == discrepancy_k)
+                used_all_discrepancies = true;
+
+            // no values remaining, backtrack
+            if (actually_hit_a_success)
+                return DiscrepancySearchResult::SatisfiableButKeepGoing;
+            else
+                return DiscrepancySearchResult::Unsatisfiable;
         }
 
         auto initialise_domains(Domains & domains, bool presolve) -> bool
@@ -955,104 +1070,145 @@ namespace
             auto search_start_time = steady_clock::now();
 
             // do the appropriate search variant
-            bool done = false;
-            list<long long> luby = {{ 1 }};
-            auto current_luby = luby.begin();
-            unsigned number_of_restarts = 0;
+            if (params.dds) {
+                bool done = false;
 
-            while (! done) {
-                long long backtracks_until_restart;
+                for (int discrepancy_k = 0 ; ! done ; ++discrepancy_k) {
+                    bool used_all_discrepancies = false;
 
-                if (params.enumerate || 0 == params.restarts_constant)
-                    backtracks_until_restart = -1;
-                else {
-                    backtracks_until_restart = *current_luby * params.restarts_constant;
-                    if (next(current_luby) == luby.end()) {
-                        luby.insert(luby.end(), luby.begin(), luby.end());
-                        luby.push_back(*luby.rbegin() * 2);
-                    }
-                    ++current_luby;
-                }
+                    ++result.propagations;
+                    if (propagate(domains, assignments)) {
+                        auto assignments_copy = assignments;
 
-                ++number_of_restarts;
-
-                // start watching new nogoods. we're not backjumping so this is a bit icky.
-                for (auto & n : need_to_watch) {
-                    if (n->literals.empty()) {
-                        done = true;
-                        break;
-                    }
-                    else if (1 == n->literals.size()) {
-                        for (auto & d : domains)
-                            if (d.v == n->literals[0].pattern_vertex) {
-                                d.values.reset(n->literals[0].target_vertex);
-                                d.count = d.values.count();
+                        switch (dds_search(assignments_copy, domains, result.nodes, result.propagations,
+                                    result.solution_count, 0, discrepancy_k, used_all_discrepancies)) {
+                            case DiscrepancySearchResult::Satisfiable:
+                                save_result(assignments_copy, result);
+                                result.complete = true;
+                                done = true;
                                 break;
-                            }
+
+                            case DiscrepancySearchResult::SatisfiableButKeepGoing:
+                            case DiscrepancySearchResult::Unsatisfiable:
+                                if (! used_all_discrepancies) {
+                                    result.complete = true;
+                                    done = true;
+                                    result.extra_stats.emplace_back("last_discrepancy = " + to_string(discrepancy_k));
+                                }
+                                break;
+
+                            case DiscrepancySearchResult::Aborted:
+                                done = true;
+                                break;
+                        }
                     }
                     else {
-                        watches[n->literals[0]].push_back(n);
-                        watches[n->literals[1]].push_back(n);
+                        result.complete = true;
+                        done = true;
                     }
-                }
-                need_to_watch.clear();
-
-                if (done)
-                    break;
-
-                ++result.propagations;
-                if (propagate(domains, assignments)) {
-                    auto assignments_copy = assignments;
-
-                    switch (restarting_search(assignments_copy, domains, result.nodes, result.propagations,
-                                result.solution_count, 0, backtracks_until_restart)) {
-                        case SearchResult::Satisfiable:
-                            save_result(assignments_copy, result);
-                            result.complete = true;
-                            done = true;
-                            break;
-
-                        case SearchResult::SatisfiableButKeepGoing:
-                            result.complete = true;
-                            done = true;
-                            break;
-
-                        case SearchResult::Unsatisfiable:
-                            result.complete = true;
-                            done = true;
-                            break;
-
-                        case SearchResult::Aborted:
-                            done = true;
-                            break;
-
-                        case SearchResult::Restart:
-                            break;
-                    }
-                }
-                else {
-                    result.complete = true;
-                    done = true;
                 }
             }
+            else {
+                bool done = false;
+                list<long long> luby = {{ 1 }};
+                auto current_luby = luby.begin();
+                unsigned number_of_restarts = 0;
 
-            if (! params.enumerate)
-                result.extra_stats.emplace_back("restarts = " + to_string(number_of_restarts));
+                while (! done) {
+                    long long backtracks_until_restart;
+
+                    if (params.enumerate || 0 == params.restarts_constant)
+                        backtracks_until_restart = -1;
+                    else {
+                        backtracks_until_restart = *current_luby * params.restarts_constant;
+                        if (next(current_luby) == luby.end()) {
+                            luby.insert(luby.end(), luby.begin(), luby.end());
+                            luby.push_back(*luby.rbegin() * 2);
+                        }
+                        ++current_luby;
+                    }
+
+                    ++number_of_restarts;
+
+                    // start watching new nogoods. we're not backjumping so this is a bit icky.
+                    for (auto & n : need_to_watch) {
+                        if (n->literals.empty()) {
+                            done = true;
+                            break;
+                        }
+                        else if (1 == n->literals.size()) {
+                            for (auto & d : domains)
+                                if (d.v == n->literals[0].pattern_vertex) {
+                                    d.values.reset(n->literals[0].target_vertex);
+                                    d.count = d.values.count();
+                                    break;
+                                }
+                        }
+                        else {
+                            watches[n->literals[0]].push_back(n);
+                            watches[n->literals[1]].push_back(n);
+                        }
+                    }
+                    need_to_watch.clear();
+
+                    if (done)
+                        break;
+
+                    ++result.propagations;
+                    if (propagate(domains, assignments)) {
+                        auto assignments_copy = assignments;
+
+                        switch (restarting_search(assignments_copy, domains, result.nodes, result.propagations,
+                                    result.solution_count, 0, backtracks_until_restart)) {
+                            case SearchResult::Satisfiable:
+                                save_result(assignments_copy, result);
+                                result.complete = true;
+                                done = true;
+                                break;
+
+                            case SearchResult::SatisfiableButKeepGoing:
+                                result.complete = true;
+                                done = true;
+                                break;
+
+                            case SearchResult::Unsatisfiable:
+                                result.complete = true;
+                                done = true;
+                                break;
+
+                            case SearchResult::Aborted:
+                                done = true;
+                                break;
+
+                            case SearchResult::Restart:
+                                break;
+                        }
+                    }
+                    else {
+                        result.complete = true;
+                        done = true;
+                    }
+                }
+
+                if (! params.enumerate)
+                    result.extra_stats.emplace_back("restarts = " + to_string(number_of_restarts));
+
+                result.extra_stats.emplace_back("nogoods_size = " + to_string(nogoods.size()));
+
+                map<int, int> nogoods_lengths;
+                for (auto & n : nogoods)
+                    nogoods_lengths[n.literals.size()]++;
+
+                string nogoods_lengths_str;
+                for (auto & n : nogoods_lengths) {
+                    nogoods_lengths_str += " ";
+                    nogoods_lengths_str += to_string(n.first) + ":" + to_string(n.second);
+                }
+                result.extra_stats.emplace_back("nogoods_lengths =" + nogoods_lengths_str);
+            }
 
             result.extra_stats.emplace_back("search_time = " + to_string(
                         duration_cast<milliseconds>(steady_clock::now() - search_start_time).count()));
-            result.extra_stats.emplace_back("nogoods_size = " + to_string(nogoods.size()));
-
-            map<int, int> nogoods_lengths;
-            for (auto & n : nogoods)
-                nogoods_lengths[n.literals.size()]++;
-
-            string nogoods_lengths_str;
-            for (auto & n : nogoods_lengths) {
-                nogoods_lengths_str += " ";
-                nogoods_lengths_str += to_string(n.first) + ":" + to_string(n.second);
-            }
-            result.extra_stats.emplace_back("nogoods_lengths =" + nogoods_lengths_str);
 
             return result;
         }
