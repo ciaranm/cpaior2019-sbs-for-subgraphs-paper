@@ -118,6 +118,7 @@ auto main(int argc, char * argv[]) -> int
         po::options_description configuration_options{ "Advanced configuration options" };
         configuration_options.add_options()
             ("presolve",                                     "Try presolving (hacky, experimental, possibly useful for easy instances")
+            ("nogood-size-limit",  po::value<int>(),         "Maximum size of nogood to generate (0 disables nogoods")
             ("restarts-constant",  po::value<int>(),         "How often to perform restarts (0 disables restarts)")
             ("value-ordering",     po::value<std::string>(), "Specify value-ordering heuristic (biased / degree / antidegree / random)");
 
@@ -167,6 +168,8 @@ auto main(int argc, char * argv[]) -> int
         params.enumerate = options_vars.count("enumerate");
         params.presolve = options_vars.count("presolve");
 
+        if (options_vars.count("nogood-size-limit"))
+            params.nogood_size_limit = options_vars["nogood-size-limit"].as<int>();
         if (options_vars.count("restarts-constant"))
             params.restarts_constant = options_vars["restarts-constant"].as<int>();
 

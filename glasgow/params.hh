@@ -6,6 +6,7 @@
 #include <chrono>
 #include <atomic>
 #include <cmath>
+#include <limits>
 
 #include "value_ordering.hh"
 
@@ -34,6 +35,9 @@ struct Params
 
     /// Constant multiplier for restarts sequence (0 disables restarts)
     unsigned long long restarts_constant = dodgy_default_magic_constant_restart_multiplier;
+
+    /// Largest size of nogood to store (0 disables nogoods)
+    unsigned nogood_size_limit = std::numeric_limits<unsigned>::max();
 };
 
 #endif

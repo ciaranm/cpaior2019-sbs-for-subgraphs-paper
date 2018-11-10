@@ -516,7 +516,7 @@ namespace
         auto post_nogood(
                 const Assignments & assignments)
         {
-            if (params.enumerate)
+            if (params.enumerate || params.nogood_size_limit == 0)
                 return;
 
             Nogood nogood;
@@ -524,6 +524,9 @@ namespace
             for (auto & a : assignments.values)
                 if (a.is_decision)
                     nogood.literals.emplace_back(a.assignment);
+
+            if (nogood.literals.size() > params.nogood_size_limit)
+                return;
 
             nogoods.emplace_back(move(nogood));
             need_to_watch.emplace_back(prev(nogoods.end()));
