@@ -34,6 +34,7 @@ using std::numeric_limits;
 using std::optional;
 using std::pair;
 using std::sort;
+using std::stable_sort;
 using std::string;
 using std::swap;
 using std::to_string;
@@ -568,6 +569,17 @@ namespace
             }
         }
 
+        auto degree_sort(
+                ArrayType_ & branch_v,
+                unsigned branch_v_end,
+                bool reverse
+                ) -> void
+        {
+            stable_sort(branch_v.begin(), branch_v.begin() + branch_v_end, [&] (int a, int b) -> bool {
+                    return (targets_degrees[0][a] >= targets_degrees[0][b]) ^ reverse;
+                    });
+        }
+
         auto restarting_search(
                 Assignments & assignments,
                 const Domains & domains,
@@ -606,7 +618,23 @@ namespace
                 branch_v[branch_v_end++] = f_v;
             }
 
-            softmax_shuffle(branch_v, branch_v_end);
+            switch (params.value_ordering_heuristic) {
+                case ValueOrdering::Degree:
+                    degree_sort(branch_v, branch_v_end, false);
+                    break;
+
+                case ValueOrdering::AntiDegree:
+                    degree_sort(branch_v, branch_v_end, true);
+                    break;
+
+                case ValueOrdering::Biased:
+                    softmax_shuffle(branch_v, branch_v_end);
+                    break;
+
+                case ValueOrdering::Random:
+                    shuffle(branch_v.begin(), branch_v.begin() + branch_v_end, global_rand);
+                    break;
+            }
 
             int discrepancy_count = 0;
             bool actually_hit_a_success = false, actually_hit_a_failure = true;

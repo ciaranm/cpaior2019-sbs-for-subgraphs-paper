@@ -7,6 +7,8 @@
 #include <atomic>
 #include <cmath>
 
+#include "value_ordering.hh"
+
 struct Params
 {
     /// If this is set to true, we should abort due to a time limit.
@@ -23,6 +25,9 @@ struct Params
 
     /// Presolve?
     bool presolve = false;
+
+    /// Which value-ordering heuristic?
+    ValueOrdering value_ordering_heuristic = ValueOrdering::Biased;
 
     /// Default chosen by SMAC
     static constexpr unsigned long long dodgy_default_magic_luby_multiplier = 660;

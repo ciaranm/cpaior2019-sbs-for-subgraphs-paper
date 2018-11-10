@@ -113,8 +113,14 @@ auto main(int argc, char * argv[]) -> int
             ("pattern-format",     po::value<std::string>(), "Specify input file format just for the pattern graph")
             ("target-format",      po::value<std::string>(), "Specify input file format just for the target graph")
             ("induced",                                      "Solve the induced version")
-            ("enumerate",                                    "Count the number of solutions")
-            ("presolve",                                     "Try presolving (hacky, experimental, possibly useful for easy instances");
+            ("enumerate",                                    "Count the number of solutions");
+
+        po::options_description configuration_options{ "Advanced configuration options" };
+        configuration_options.add_options()
+            ("presolve",                                     "Try presolving (hacky, experimental, possibly useful for easy instances")
+            ("value-ordering",     po::value<std::string>(), "Specify value-ordering heuristic (biased / degree / antidegree / random)");
+
+        display_options.add(configuration_options);
 
         po::options_description all_options{ "All options" };
         all_options.add_options()
@@ -159,6 +165,22 @@ auto main(int argc, char * argv[]) -> int
         params.induced = options_vars.count("induced");
         params.enumerate = options_vars.count("enumerate");
         params.presolve = options_vars.count("presolve");
+
+        if (options_vars.count("value-ordering")) {
+            std::string value_ordering_heuristic = options_vars["value-ordering"].as<std::string>();
+            if (value_ordering_heuristic == "biased")
+                params.value_ordering_heuristic = ValueOrdering::Biased;
+            else if (value_ordering_heuristic == "degree")
+                params.value_ordering_heuristic = ValueOrdering::Degree;
+            else if (value_ordering_heuristic == "antidegree")
+                params.value_ordering_heuristic = ValueOrdering::AntiDegree;
+            else if (value_ordering_heuristic == "random")
+                params.value_ordering_heuristic = ValueOrdering::Random;
+            else {
+                cerr << "Unknown value-ordering heuristic '" << value_ordering_heuristic << "'" << endl;
+                return EXIT_FAILURE;
+            }
+        }
 
         char hostname_buf[255];
         if (0 == gethostname(hostname_buf, 255))
