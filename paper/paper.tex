@@ -4,11 +4,11 @@
 
 \usepackage{complexity}
 \usepackage{amsmath}
-\usepackage[ruled,vlined]{algorithm2e}
+% \usepackage[ruled,vlined]{algorithm2e}
 \usepackage{tikz}
 \usepackage{cleveref}
 
-\usepackage{showframe}
+% \usepackage{showframe}
 
 \newcommand{\neighbourhood}{\operatorname{N}}
 \newcommand{\vertexset}{\operatorname{V}}
@@ -29,8 +29,8 @@
 \crefname{corollary}{Corollary}{Corollaries}
 \Crefname{corollary}{Corollary}{Corollaries}
 
-\crefname{algocf}{Algorithm}{Algorithms}
-\Crefname{algocf}{Algorithm}{Algorithms}
+% \crefname{algocf}{Algorithm}{Algorithms}
+% \Crefname{algocf}{Algorithm}{Algorithms}
 
 \usetikzlibrary{decorations, decorations.pathreplacing, decorations.pathmorphing,
     calc, backgrounds, positioning, tikzmark, patterns, fit}
@@ -40,8 +40,9 @@
 \begin{document}
 
 \title{Beating Simple Backtracking Search in Subgraph Algorithms\thanks{This work was
-supported by the Engineering and Physical Sciences Research Council [grant numbers EP/026842/1 and
-EP/M508056/1].}}
+supported by the Engineering and Physical Sciences Research Council (grant numbers EP/026842/1 and
+EP/M508056/1). This work used the Cirrus UK National Tier-2 HPC Service at EPCC
+(http://www.cirrus.ac.uk) funded by the University of Edinburgh and EPSRC (EP/P020267/1).}}
 
 \author{Ciaran McCreesh\orcidID{0000-0002-6106-4871}\and
 Patrick Prosser\orcidID{0000-0003-4460-6912} \and
@@ -55,16 +56,19 @@ James Trimble\orcidID{0000-0001-7282-8745}}
 \maketitle
 
 \begin{abstract}
-    Modern subgraph isomorphism solvers use degree as a value-ordering heuristics to direct
-    backtracking search. This makes a heavy commitment to the first branching choice,
-    which is often incorrect. We evaluate discrepancy-based searches as an alternative, but find
-    them too expensive to be effective in this situation, even on satisfiable instances. We then
-    demonstrate that a random value-ordering heuristic with restarts beats conventional search with
-    the best-known tailored heuristic. This motivates the introduction of a novel slightly-random
-    heuristic with similar behaviour to the tailored heuristic: when combined with restarts and
-    nogood recording, this new search strategy is over a hundred times more effective on satisfiable
-    instances, and does not affect performance on unsatisfiable instances.  Finally, we show that
-    this strategy also improves two maximum common induced subgraph algorithms.
+    The current state of the art in subgraph isomorphism solving involves using degree as a
+    value-ordering heuristics to direct backtracking search. Such a search makes a heavy commitment
+    to the first branching choice, which is often incorrect. We evaluate discrepancy-based searches
+    as an alternative, but find them too expensive to be effective in this situation, even on
+    satisfiable instances. We then demonstrate that a random value-ordering heuristic with restarts
+    beats conventional search with the best-known tailored heuristic. This motivates the
+    introduction of a novel slightly-random heuristic with similar behaviour to the tailored
+    heuristic: when combined with restarts and nogood recording, this new search strategy is over ??
+    times more effective on satisfiable instances, and does not affect performance on
+    unsatisfiable instances. Such a search can also be parallelised in a way which is much
+    simpler than conventional work-stealing: we obtain further speedups of ??  on ??  cores, and
+    ?? over ?? distributed-memory hosts. Finally, we show that this search strategy also improves
+    two maximum common induced subgraph algorithms.
 \end{abstract}
 
 \section{Introduction}
@@ -84,201 +88,219 @@ aggregate performance at the expense of much worse behaviour on many instances. 
 new way of adapting the existing value-ordering heuristic to introduce just a small amount of
 randomness.  This lets us make a state-of-the-art subgraph algorithm perform much better
 on a large number of satisfiable instances, whilst performing worse only rarely on satisfiable
-instances, and never on unsatisfiable instances. Finally, we show that this strategy is also
-effective in an optimisation setting, producing benefits in two maximum common induced subgraph
-algorithms. This combination of techniques gives us, for the first time, a practical alternative to
-backtracking search for constraint programming style algorithms where we have a strong
-value-ordering heuristic and where we care both about satisfiable and unsatisfiable instances.
+instances, and never on unsatisfiable instances.
 
-\section{Definitions and Algorithms}
+?? Parallel
 
-Let $G$ be a graph. We denote its set of vertices by $\vertexset(G)$, and write $v \sim_G w$ to mean
-that vertices $v$ and $w$ are adjacent; we allow a vertex to be adjacent to itself (a \emph{loop}). The
-\emph{neighbourhood} of a vertex, $\neighbourhood_G(v)$, is the set of vertices adjacent to $v$, and
-the \emph{degree} of $v$, $\deg_G(v)$, is the cardinality of its neighbourhood. When the graph is clear from the context, we omit
-the $G$ subscripts. As per \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with
-vertex set $\vertexset(G)$, and with edges between vertices $v$ and $w$ if there are at least $n$
-simple paths of length $\ell$ between vertices $v$ and $w$ in $G$.
+Finally, we show that this strategy is also effective in an optimisation setting, producing benefits
+in two maximum common induced subgraph algorithms. This combination of techniques gives us, for the
+first time, a practical alternative to backtracking search for constraint programming style
+algorithms where we have a strong value-ordering heuristic and where we care both about satisfiable
+and unsatisfiable instances. ?? Parallel
+
+\subsection{Definitions}
+
+% Let $G$ be a graph. We denote its set of vertices by $\vertexset(G)$, and write $v \sim_G w$ to mean
+% that vertices $v$ and $w$ are adjacent; we allow a vertex to be adjacent to itself (a \emph{loop}). The
+% \emph{neighbourhood} of a vertex, $\neighbourhood_G(v)$, is the set of vertices adjacent to $v$, and
+% the \emph{degree} of $v$, $\deg_G(v)$, is the cardinality of its neighbourhood. When the graph is clear from the context, we omit
+% the $G$ subscripts. As per \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17}, $G^{n,\ell}$ denotes the graph with
+% vertex set $\vertexset(G)$, and with edges between vertices $v$ and $w$ if there are at least $n$
+% simple paths of length $\ell$ between vertices $v$ and $w$ in $G$.
 
 The \emph{non-induced subgraph isomorphism problem} is to find an injective mapping from the
-vertices of a pattern graph $\mathcal{P}$ to a target graph $\mathcal{T}$, such that adjacent
-vertices in $\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{T}$ (including that vertices
-with loops in $\mathcal{P}$ may only be mapped to vertices with loops in $\mathcal{T}$). The
-\emph{induced} problem additionally requires that non-adjacent vertices are mapped to non-adjacent
-vertices. We write $v \mapsto v'$ to mean that pattern vertex $v$ is mapped to target $v'$ under
-either kind of mapping. Finally, we define a function $\FuncSty{compatible}(v, w)$ to mean that
-mapping $v \mapsto w$ is feasible based upon both the loop rule, and the neighbourhood degree
-sequence relation of \citet{Zampelli et al.\ }{DBLP:journals/constraints/ZampelliDS10}.
+vertices of a \emph{pattern} graph $\mathcal{P}$ to a \emph{target} graph $\mathcal{T}$, such that
+adjacent vertices in $\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{T}$ (including that
+vertices with loops in $\mathcal{P}$ may only be mapped to vertices with loops in $\mathcal{T}$).
+The \emph{induced} problem additionally requires that non-adjacent vertices are mapped to
+non-adjacent vertices.
 
-\subsection{A Subgraph Isomorphism Algorithm}
+?? Applications
 
-We now briefly outline the non-shaded parts of \cref{algorithm:sip}, which is how we will solve the
-subgraph isomorphism problem. This algorithm is very closely based upon the $k{\downarrow}$
-algorithm of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} with $k = 0$, and we refer the reader to that paper
-for full technical details; that algorithm, in turn, is a simplification of the Glasgow2 algorithm
-\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}. We show the non-induced problem; the
-induced problem may be solved by including the loop-complements of $\mathcal{P}$ and $\mathcal{T}$
-in $L$ on \siplineref{supplemental}.
+% We write $v \mapsto v'$ to mean that pattern vertex $v$ is mapped to target $v'$ under
+% either kind of mapping. Finally, we define a function $\FuncSty{compatible}(v, w)$ to mean that
+% mapping $v \mapsto w$ is feasible based upon both the loop rule, and the neighbourhood degree
+% sequence relation of \citet{Zampelli et al.\ }{DBLP:journals/constraints/ZampelliDS10}.
 
-\Cref{algorithm:sip} works by recursively building up a valid mapping of pattern vertices to target
-vertices. For each pattern vertex $v$, we have a domain $D_v$ containing a set of feasible target
-vertices. Each domain is initialised at the top of search (\siplinerangeref{initstart}{initend}),
-using the invariants described by \citet{Zampelli et al.\ }{DBLP:journals/constraints/ZampelliDS10} and
-\citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} to restrict its initial values.
+\subsection{The Glasgow Subgraph Solver}
 
-The $\FuncSty{search}$ procedure recursively selects an unassigned domain $D$
-(\siplineref{variableordering}), and tries assigning
-it each of its remaining values in turn (\siplineref{valueordering}). The effects of this assignment
-are propagated (\siplineref{dopropagate}). If an
-inconsistency is detected, we continue and try another value; otherwise, we recurse
-(\siplineref{recurse}) until a solution is found. Finally, if we run out of values, we backtrack
-(\siplineref{backtrack}).
+This paper looks at improving the Glasgow Subgraph
+Solver\footnote{\url{https://github.com/ciaranm/glasgow-subgraph-solver/}}, which can solve both the
+non-induced and the induced subgraph isomorphism problems.  The solver is very closely based upon
+the $k{\downarrow}$ algorithm of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} with $k =
+0$, and we refer the reader to that paper for full technical details; that algorithm, in turn, is a
+simplification and re-engineering of an older Glasgow algorithm
+\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}.  Essentially, the solver is essentially
+a dedicated forward-checking constraint programming implementation specifically for subgraph
+problems. It works with a model having a variable per pattern graph vertex, with domains ranging
+over the target graph vertices, and performs a backtracking search to map each pattern vertex to a
+target vertex whilst propagating adjacency and injectivity constraints (together with further
+implied constraints based upon degrees and paths).  However, it uses specialised bit-parallel data
+structures and algorithms, and propagates constraints in a fixed order rather than using a queue.
 
-Our $\FuncSty{propagate}$ routine is also close to that of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17},
-differing only in that we carry out the filtering for injectivity
-(\siplinerangeref{alldiffstart}{alldiffend}) after every assignment rather than once at the end of
-the unit propagation loop. (We make this change because the all-different propagator used is not
-idempotent, and we wish to avoid an odd interaction when we introduce nogood filtering.)
+% We now briefly outline the non-shaded parts of \cref{algorithm:sip}, which is how we will solve the
+% subgraph isomorphism problem. This algorithm is very closely based upon the $k{\downarrow}$
+% algorithm of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} with $k = 0$, and we refer the reader to that paper
+% for full technical details; that algorithm, in turn, is a simplification of the Glasgow2 algorithm
+% \cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}. We show the non-induced problem; the
+% induced problem may be solved by including the loop-complements of $\mathcal{P}$ and $\mathcal{T}$
+% in $L$ on \siplineref{supplemental}.
+% 
+% \Cref{algorithm:sip} works by recursively building up a valid mapping of pattern vertices to target
+% vertices. For each pattern vertex $v$, we have a domain $D_v$ containing a set of feasible target
+% vertices. Each domain is initialised at the top of search (\siplinerangeref{initstart}{initend}),
+% using the invariants described by \citet{Zampelli et al.\ }{DBLP:journals/constraints/ZampelliDS10} and
+% \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} to restrict its initial values.
+% 
+% The $\FuncSty{search}$ procedure recursively selects an unassigned domain $D$
+% (\siplineref{variableordering}), and tries assigning
+% it each of its remaining values in turn (\siplineref{valueordering}). The effects of this assignment
+% are propagated (\siplineref{dopropagate}). If an
+% inconsistency is detected, we continue and try another value; otherwise, we recurse
+% (\siplineref{recurse}) until a solution is found. Finally, if we run out of values, we backtrack
+% (\siplineref{backtrack}).
+% 
+% Our $\FuncSty{propagate}$ routine is also close to that of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17},
+% differing only in that we carry out the filtering for injectivity
+% (\siplinerangeref{alldiffstart}{alldiffend}) after every assignment rather than once at the end of
+% the unit propagation loop. (We make this change because the all-different propagator used is not
+% idempotent, and we wish to avoid an odd interaction when we introduce nogood filtering.)
 
-\begin{algorithm}[p]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
-    \begin{tikzpicture}[remember picture,overlay]
-        \coordinate (restart1sc) at ($(pic cs:restart1s) + (0, 0.15)$);
-        \coordinate (restart1ec) at ($(pic cs:restart1e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart1sc) (restart1ec)] { };
-        \coordinate (restart2sc) at ($(pic cs:restart2s) + (0, 0.15)$);
-        \coordinate (restart2ec) at ($(pic cs:restart2e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart2sc) (restart2ec)] { };
-        \coordinate (restart9sc) at ($(pic cs:restart9s) + (0, 0.15)$);
-        \coordinate (restart9ec) at ($(pic cs:restart9e) + (-0.15, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart9sc) (restart9ec)] { };
-    \end{tikzpicture}
+% \begin{algorithm}[p]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
+%     \begin{tikzpicture}[remember picture,overlay]
+%         \coordinate (restart1sc) at ($(pic cs:restart1s) + (0, 0.15)$);
+%         \coordinate (restart1ec) at ($(pic cs:restart1e) + (0, 0.00)$);
+%         \node [fill=highlight, rounded corners, fit=(restart1sc) (restart1ec)] { };
+%         \coordinate (restart2sc) at ($(pic cs:restart2s) + (0, 0.15)$);
+%         \coordinate (restart2ec) at ($(pic cs:restart2e) + (0, 0.00)$);
+%         \node [fill=highlight, rounded corners, fit=(restart2sc) (restart2ec)] { };
+%         \coordinate (restart9sc) at ($(pic cs:restart9s) + (0, 0.15)$);
+%         \coordinate (restart9ec) at ($(pic cs:restart9e) + (-0.15, 0.00)$);
+%         \node [fill=highlight, rounded corners, fit=(restart9sc) (restart9ec)] { };
+%     \end{tikzpicture}
+% 
+%     \nl $\FuncSty{subgraphIsomorphism}$ (Graph $\mathcal{P}$, Graph $\mathcal{T}$) $\rightarrow$ Bool \;
+% \nl \Begin{
+%     \nl \lIf{$\left|\vertexset(\mathcal{P})\right| >
+%     \left|\vertexset(\mathcal{T})\right|$}{$\KwSty{return}~\KwSty{false}$\siplabel{enough}}
+%     \nl Discard isolated vertices in $\mathcal{P}$\siplabel{isolated} \;
+%     \nl \KwSty{global} $L \gets \big[ (\mathcal{P},\ \mathcal{T}), \siplabel{supplemental}
+%         (\mathcal{P}^{1,2}, \mathcal{T}^{1,2}),
+%         (\mathcal{P}^{2,2},\ \mathcal{T}^{2,2}),$ \\
+%         $\hspace*{3em}(\mathcal{P}^{3,2},\ \mathcal{T}^{3,2}),
+%         (\mathcal{P}^{4,2},\ \mathcal{T}^{4,2}) \big]$ \;
+%     \nl \ForEach{\siplabel{initstart}$v \in \vertexset(\mathcal{P})$}{
+%         \nl $D_v \gets \vertexset(\mathcal{T})$\;
+%         \nl \ForEach{$(P,\,T) \in L$}{\nl$D_v \gets \{ w \in D_v : \FuncSty{compatible}(v, w)\}$\siplabel{initend}
+%         }
+%     }
+%     \nl \While{$\KwSty{true}$\siplabel{restartsloop}}{
+%         \nl \lIf{$\KwSty{not}~\FuncSty{propagate}(D)$}{$\KwSty{return}~\KwSty{false}$}
+%         \nl \tikzmark{restart1s}$\KwSty{global}~(R, R') \gets (0, \textnormal{the next Luby sequence value})$\tikzmark{restart1e} \;
+%         \nl $S \gets \FuncSty{search}(\{ E \in D : \left|E\right| > 1 \}, \top)$ \;
+%         \nl \tikzmark{restart9s}\lIf{$S \ne \KwSty{restart}$}{\tikzmark{restart9e}$\KwSty{return}~S$}
+%         \nl \tikzmark{restart2s}trigger nogoods containing only one clause\tikzmark{restart2e} \;
+%     }
+% }
+% \caption{The main subgraph isomorphism algorithm. The shaded code is added for restarting. See
+%     \cref{algorithm:sip:search,algorithm:sip:propagate} for the search and propagation routines.}
+% \label{algorithm:sip}
+% \end{algorithm}
+% 
+% \begin{algorithm}[p]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
+%     \begin{tikzpicture}[remember picture,overlay]
+%         \coordinate (restart3sc) at ($(pic cs:restart3s) + (0, 0.15)$);
+%         \coordinate (restart3ec) at ($(pic cs:restart3e) + (0, 0.00)$);
+%         \node [fill=highlight, rounded corners, fit=(restart3sc) (restart3ec)] { };
+%         \coordinate (restart4sc) at ($(pic cs:restart4s) + (0, 0.15)$);
+%         \coordinate (restart4ec) at ($(pic cs:restart4e) + (0, 0.00)$);
+%         \node [fill=highlight, rounded corners, fit=(restart4sc) (restart4ec)] { };
+%         \coordinate (restart5sc) at ($(pic cs:restart5s) + (0, 0.15)$);
+%         \coordinate (restart5ec) at ($(pic cs:restart5e) - (0, 0.10)$);
+%         \coordinate (restart5rc) at ($(pic cs:restart5r) + (0, 0.00)$);
+%         \node [fill=highlight, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
+%         \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
+%         \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
+%         \coordinate (restart6rc) at ($(pic cs:restart6r) + (0.8, 0.00)$);
+%         \node [fill=highlight, rounded corners, fit=(restart6sc) (restart6ec) (restart6rc)] { };
+%         \coordinate (restart8sc) at ($(pic cs:restart8s) + (0.05, 0.15)$);
+%         \coordinate (restart8ec) at ($(pic cs:restart8e) + (0, 0.00)$);
+%         \node [fill=highlight, rounded corners, fit=(restart8sc) (restart8ec)] { };
+%     \end{tikzpicture}
+%     \nl $\FuncSty{search}$ (Domains $D$, Trail $B$) $\rightarrow$ Bool
+%     \tikzmark{restart8s}\KwSty{or} \KwSty{restart}\tikzmark{restart8e} \;
+% \nl \Begin{
+%     \nl \lIf{$D = \emptyset$}{$\KwSty{return}~\KwSty{true}$}
+%     \nl $D_v \gets \textnormal{a domain from}~D~\textnormal{chosen by variable heuristic}$\siplabel{variableordering} \;
+%     \nl \tikzmark{restart3s}$C \gets \emptyset$\tikzmark{restart3e} \;
+%     \nl \ForEach {$v' \in D_v~\textnormal{ordered by value heuristic}$\siplabel{valueordering}}{
+%         \nl \tikzmark{restart4s}$C \gets C \cup \{ v' \}$\tikzmark{restart4e} \;
+%         \nl $D' \gets \FuncSty{clone}(D)$ \;
+%         \nl $D'_v \gets \{ v' \} $ \;
+%         \nl \If{\FuncSty{propagate}(D')\siplabel{dopropagate}}{
+%             \nl $S \gets \FuncSty{search}(\{ E \in D'\,{:}\,\left|E\right|{>}\,1 \}, B \wedge (v\,{\mapsto}\,v'))$\siplabel{recurse}\;
+%             \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
+%             \nl \tikzmark{restart5s}\ElseIf{$S = \KwSty{restart}$}{
+%                 \nl \ForEach{$c \in C$}{\nl$\textnormal{post nogood}~B \wedge (v \mapsto c) \Rightarrow \bot$\tikzmark{restart5r}}
+%                 \nl $\KwSty{return}~\KwSty{restart}$\tikzmark{restart5e} \;
+%             }
+%         }
+%     }
+%     \nl \tikzmark{restart6s}\If{$(R \gets R + 1) = R'$\tikzmark{restart6r}}{
+%         \nl post nogood $B$ \;
+%         \nl $\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$\siplabel{countrestarts}}
+%     \nl $\KwSty{return}~\KwSty{false}$\siplabel{backtrack}
+% }
+% \caption{Search routine for \cref{algorithm:sip}.}
+% \label{algorithm:sip:search}
+% \end{algorithm}
+% 
+% \begin{algorithm}[tb]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
+%     \begin{tikzpicture}[remember picture,overlay]
+%         \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
+%         \coordinate (restart7ec) at ($(pic cs:restart7e) + (0, 0.00)$);
+%         \node [fill=highlight, rounded corners, fit=(restart7sc) (restart7ec)] { };
+%     \end{tikzpicture}
+% \nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
+% \nl \Begin{
+%     \nl \While{$D_v \gets $\textnormal{a unit domain from}~$D$}{
+%         \nl $v' \gets \textnormal{the single value in}~D_v$ \;
+%         \nl \tikzmark{restart7s}trigger nogoods with watch $(v \mapsto v')$\tikzmark{restart7e}\siplabel{2wl} \;
+%         \nl \ForEach{$D_w \in D \setminus \{ D_v$ \}}{
+%             \nl $D_w \gets D_w \setminus \{ v' \}$ \siplabel{removev} \;
+%             \nl \ForEach{$(P,\,T) \in L~\KwSty{where}~v \sim_P w$}{\nl$D_w \gets D_w \cap \neighbourhood_T(v')$}
+%             \nl \lIf{$D_w = \emptyset$}{$\KwSty{return}~\KwSty{false}$}
+%         }
+% \nl $(H,\,A,\,n) \gets (\emptyset,\,\emptyset,\,0)$\siplabel{alldiffstart} \;
+% \nl \ForEach{$D_v \in D$ \textnormal{in ascending cardinality order\siplabel{eachdomain}}}{
+%     \nl $(D_v, A,\,n) \gets (D_v \gets D_v \setminus H\siplabel{elimhall}, A \cup D_v,\,n + 1)$ \siplabel{acc} \;
+%     \nl \lIf{$D_v = \emptyset~\vee~|A| < n$}{$\KwSty{return}~\KwSty{false}$\siplabel{failhall}}
+%     \nl \lIf{$|A| = n$}{$(H,\,A,\,n) \gets (H \cup A,\,\emptyset,\,0)$\siplabel{hall}}\siplabel{alldiffend}
+% }
+%     }
+% \nl $\KwSty{return}~\KwSty{true}$ \;
+% }
+% \caption{Propagation routine for \cref{algorithm:sip}.}
+% \label{algorithm:sip:propagate}
+% \end{algorithm}
 
-    \nl $\FuncSty{subgraphIsomorphism}$ (Graph $\mathcal{P}$, Graph $\mathcal{T}$) $\rightarrow$ Bool \;
-\nl \Begin{
-    \nl \lIf{$\left|\vertexset(\mathcal{P})\right| >
-    \left|\vertexset(\mathcal{T})\right|$}{$\KwSty{return}~\KwSty{false}$\siplabel{enough}}
-    \nl Discard isolated vertices in $\mathcal{P}$\siplabel{isolated} \;
-    \nl \KwSty{global} $L \gets \big[ (\mathcal{P},\ \mathcal{T}), \siplabel{supplemental}
-        (\mathcal{P}^{1,2}, \mathcal{T}^{1,2}),
-        (\mathcal{P}^{2,2},\ \mathcal{T}^{2,2}),$ \\
-        $\hspace*{3em}(\mathcal{P}^{3,2},\ \mathcal{T}^{3,2}),
-        (\mathcal{P}^{4,2},\ \mathcal{T}^{4,2}) \big]$ \;
-    \nl \ForEach{\siplabel{initstart}$v \in \vertexset(\mathcal{P})$}{
-        \nl $D_v \gets \vertexset(\mathcal{T})$\;
-        \nl \ForEach{$(P,\,T) \in L$}{\nl$D_v \gets \{ w \in D_v : \FuncSty{compatible}(v, w)\}$\siplabel{initend}
-        }
-    }
-    \nl \While{$\KwSty{true}$\siplabel{restartsloop}}{
-        \nl \lIf{$\KwSty{not}~\FuncSty{propagate}(D)$}{$\KwSty{return}~\KwSty{false}$}
-        \nl \tikzmark{restart1s}$\KwSty{global}~(R, R') \gets (0, \textnormal{the next Luby sequence value})$\tikzmark{restart1e} \;
-        \nl $S \gets \FuncSty{search}(\{ E \in D : \left|E\right| > 1 \}, \top)$ \;
-        \nl \tikzmark{restart9s}\lIf{$S \ne \KwSty{restart}$}{\tikzmark{restart9e}$\KwSty{return}~S$}
-        \nl \tikzmark{restart2s}trigger nogoods containing only one clause\tikzmark{restart2e} \;
-    }
-}
-\caption{The main subgraph isomorphism algorithm. The shaded code is added for restarting. See
-    \cref{algorithm:sip:search,algorithm:sip:propagate} for the search and propagation routines.}
-\label{algorithm:sip}
-\end{algorithm}
+% For the variable-ordering heuristic on \siplineref{variableordering} of
+% \cref{algorithm:sip}, we use smallest domain first, tiebreaking on highest degree
+% \cite{DBLP:journals/ai/HaralickE80,DBLP:journals/jair/McCreeshPST18}. Variable ordering is not the
+% focus of this paper---as far as possible, we use this same dynamic ordering throughout the paper, so
+% as not to affect the performance of the algorithm on unsatisfiable instances.  For value ordering,
+% which occurs on \siplineref{valueordering} of \cref{algorithm:sip}, we will initially select
+% vertices from highest degree to lowest degree; value ordering is the major theme of the remainder of
+% this paper. Note that the variable-ordering heuristic affects both unsatisfiable and satisfiable
+% instances, whilst the value-ordering heuristic is relevant only for satisfiable instances.
 
-\begin{algorithm}[p]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
-    \begin{tikzpicture}[remember picture,overlay]
-        \coordinate (restart3sc) at ($(pic cs:restart3s) + (0, 0.15)$);
-        \coordinate (restart3ec) at ($(pic cs:restart3e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart3sc) (restart3ec)] { };
-        \coordinate (restart4sc) at ($(pic cs:restart4s) + (0, 0.15)$);
-        \coordinate (restart4ec) at ($(pic cs:restart4e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart4sc) (restart4ec)] { };
-        \coordinate (restart5sc) at ($(pic cs:restart5s) + (0, 0.15)$);
-        \coordinate (restart5ec) at ($(pic cs:restart5e) - (0, 0.10)$);
-        \coordinate (restart5rc) at ($(pic cs:restart5r) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart5sc) (restart5ec) (restart5rc)] { };
-        \coordinate (restart6sc) at ($(pic cs:restart6s) + (0, 0.15)$);
-        \coordinate (restart6ec) at ($(pic cs:restart6e) + (0, 0.00)$);
-        \coordinate (restart6rc) at ($(pic cs:restart6r) + (0.8, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart6sc) (restart6ec) (restart6rc)] { };
-        \coordinate (restart8sc) at ($(pic cs:restart8s) + (0.05, 0.15)$);
-        \coordinate (restart8ec) at ($(pic cs:restart8e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart8sc) (restart8ec)] { };
-    \end{tikzpicture}
-    \nl $\FuncSty{search}$ (Domains $D$, Trail $B$) $\rightarrow$ Bool
-    \tikzmark{restart8s}\KwSty{or} \KwSty{restart}\tikzmark{restart8e} \;
-\nl \Begin{
-    \nl \lIf{$D = \emptyset$}{$\KwSty{return}~\KwSty{true}$}
-    \nl $D_v \gets \textnormal{a domain from}~D~\textnormal{chosen by variable heuristic}$\siplabel{variableordering} \;
-    \nl \tikzmark{restart3s}$C \gets \emptyset$\tikzmark{restart3e} \;
-    \nl \ForEach {$v' \in D_v~\textnormal{ordered by value heuristic}$\siplabel{valueordering}}{
-        \nl \tikzmark{restart4s}$C \gets C \cup \{ v' \}$\tikzmark{restart4e} \;
-        \nl $D' \gets \FuncSty{clone}(D)$ \;
-        \nl $D'_v \gets \{ v' \} $ \;
-        \nl \If{\FuncSty{propagate}(D')\siplabel{dopropagate}}{
-            \nl $S \gets \FuncSty{search}(\{ E \in D'\,{:}\,\left|E\right|{>}\,1 \}, B \wedge (v\,{\mapsto}\,v'))$\siplabel{recurse}\;
-            \nl \lIf{$S = \KwSty{true}$}{$\KwSty{return}~\KwSty{true}$}
-            \nl \tikzmark{restart5s}\ElseIf{$S = \KwSty{restart}$}{
-                \nl \ForEach{$c \in C$}{\nl$\textnormal{post nogood}~B \wedge (v \mapsto c) \Rightarrow \bot$\tikzmark{restart5r}}
-                \nl $\KwSty{return}~\KwSty{restart}$\tikzmark{restart5e} \;
-            }
-        }
-    }
-    \nl \tikzmark{restart6s}\If{$(R \gets R + 1) = R'$\tikzmark{restart6r}}{
-        \nl post nogood $B$ \;
-        \nl $\KwSty{return}~\KwSty{restart}\tikzmark{restart6e}$\siplabel{countrestarts}}
-    \nl $\KwSty{return}~\KwSty{false}$\siplabel{backtrack}
-}
-\caption{Search routine for \cref{algorithm:sip}.}
-\label{algorithm:sip:search}
-\end{algorithm}
-
-\begin{algorithm}[tb]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
-    \begin{tikzpicture}[remember picture,overlay]
-        \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
-        \coordinate (restart7ec) at ($(pic cs:restart7e) + (0, 0.00)$);
-        \node [fill=highlight, rounded corners, fit=(restart7sc) (restart7ec)] { };
-    \end{tikzpicture}
-\nl $\FuncSty{propagate}$ (Domains $D$) $\rightarrow$ Bool \;
-\nl \Begin{
-    \nl \While{$D_v \gets $\textnormal{a unit domain from}~$D$}{
-        \nl $v' \gets \textnormal{the single value in}~D_v$ \;
-        \nl \tikzmark{restart7s}trigger nogoods with watch $(v \mapsto v')$\tikzmark{restart7e}\siplabel{2wl} \;
-        \nl \ForEach{$D_w \in D \setminus \{ D_v$ \}}{
-            \nl $D_w \gets D_w \setminus \{ v' \}$ \siplabel{removev} \;
-            \nl \ForEach{$(P,\,T) \in L~\KwSty{where}~v \sim_P w$}{\nl$D_w \gets D_w \cap \neighbourhood_T(v')$}
-            \nl \lIf{$D_w = \emptyset$}{$\KwSty{return}~\KwSty{false}$}
-        }
-\nl $(H,\,A,\,n) \gets (\emptyset,\,\emptyset,\,0)$\siplabel{alldiffstart} \;
-\nl \ForEach{$D_v \in D$ \textnormal{in ascending cardinality order\siplabel{eachdomain}}}{
-    \nl $(D_v, A,\,n) \gets (D_v \gets D_v \setminus H\siplabel{elimhall}, A \cup D_v,\,n + 1)$ \siplabel{acc} \;
-    \nl \lIf{$D_v = \emptyset~\vee~|A| < n$}{$\KwSty{return}~\KwSty{false}$\siplabel{failhall}}
-    \nl \lIf{$|A| = n$}{$(H,\,A,\,n) \gets (H \cup A,\,\emptyset,\,0)$\siplabel{hall}}\siplabel{alldiffend}
-}
-    }
-\nl $\KwSty{return}~\KwSty{true}$ \;
-}
-\caption{Propagation routine for \cref{algorithm:sip}.}
-\label{algorithm:sip:propagate}
-\end{algorithm}
-
-For the variable-ordering heuristic on \siplineref{variableordering} of
-\cref{algorithm:sip}, we use smallest domain first, tiebreaking on highest degree
-\cite{DBLP:journals/ai/HaralickE80,DBLP:journals/jair/McCreeshPST18}. Variable ordering is not the
-focus of this paper---as far as possible, we use this same dynamic ordering throughout the paper, so
-as not to affect the performance of the algorithm on unsatisfiable instances.  For value ordering,
-which occurs on \siplineref{valueordering} of \cref{algorithm:sip}, we will initially select
-vertices from highest degree to lowest degree; value ordering is the major theme of the remainder of
-this paper. Note that the variable-ordering heuristic affects both unsatisfiable and satisfiable
-instances, whilst the value-ordering heuristic is relevant only for satisfiable instances.
-
-\section{Empirical Evaluation}
+\subsection{Experimental Setup}
 
 Our experiments are performed on systems with dual Intel Xeon E5-2697A v4 CPUs and 512GBytes RAM,
-running Ubuntu 17.04. We
-implemented\footnote{DOI removed for anonymous review}
-\cref{algorithm:sip} in C++ using the bit-parallel implementation of
-\citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} as a starting point, and compiled it using GCC 7.2.0. We use a
-deterministic pseudo-random number generator for reproducibility.
-
-We use the dataset introduced by \citet{Kotthoff et al.\ }{DBLP:conf/lion/KotthoffMS16} for evaluation. This dataset
-brings together a range of randomly-generated and application instance families from earlier papers:
+running Ubuntu 17.04, using GCC 7.2.0 as the compiler. We use a deterministic pseudo-random number
+generator for reproducibility.  We use the dataset introduced by \citet{Kotthoff et al.\
+}{DBLP:conf/lion/KotthoffMS16} for evaluation. This dataset brings together a range of
+randomly-generated and application instance families from earlier papers:
 
 \begin{description}
     \item[BVG(r), M4D(r), and Rand] are families of randomly generated graphs using different models (bounded
@@ -309,7 +331,7 @@ pattern / target pairs. This gives a total of 14,621 instances (rather than the 
 least \input{gen-n-sat.tex}\unskip\ of these instances are known to be satisfiable for the
 non-induced problem, and at least \input{gen-n-unsat.tex}\unskip\ are unsatisfiable.
 
-\subsection{Baseline Performance}
+\section{Improving Sequential Search}
 
 \begin{figure}[tb]
     \includegraphics*{gen-graph-others.pdf}
@@ -329,13 +351,11 @@ non-induced problem, and at least \input{gen-n-unsat.tex}\unskip\ are unsatisfia
     \label{figure:others}
 \end{figure}
 
-We begin by verifying that our implementation of the basic \cref{algorithm:sip} is competitive. In
-the first and third plots \cref{figure:others} we show the cumulative number of instances solved
-over time for the non-induced and induced problems respectively. We compare our implementation (both
-with the degree heuristic, and with the modifications described in the remainder of this paper), the
-Glasgow2 and Glasgow3 algorithms from which \cref{algorithm:sip} is derived
-\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}, the PathLAD variation of the LAD
-algorithm \cite{DBLP:journals/ai/Solnon10,DBLP:conf/lion/KotthoffMS16}, VF2
+We begin by verifying that the Glasgow Subgraph Solver is the state of the art. In the first and
+third plots \cref{figure:others} we show the cumulative number of instances solved over time for the
+non-induced and induced problems respectively. We compare the Glasgow Subgraph Solver (both
+unmodified, and with the modifications described in the remainder of this paper), the PathLAD
+variation of the LAD algorithm \cite{DBLP:journals/ai/Solnon10,DBLP:conf/lion/KotthoffMS16}, VF2
 \cite{DBLP:journals/pami/CordellaFSV04}, RI \cite{DBLP:journals/bmcbi/BonniciGPSF13}, and VF3
 \cite{DBLP:conf/gbrpr/CarlettiFSV17} (which only supports the induced problem), in each case using
 the original implementation provided by the algorithm's authors. For each algorithm, the $y$ value
@@ -344,24 +364,62 @@ milliseconds.  The vertical distance between two lines therefore shows how many 
 be solved by one solver than another, if every instance is run separately with the chosen $x$
 timeout. The horizontal distance shows how many times longer the per-instance timeout would need to
 be to allow the rightmost algorithm to succeed on $y$ out of the 14,621 instances (bearing in mind
-that the two sets of $y$ instances could be different).
-
-As expected, in both cases the performance of \cref{algorithm:sip} with the degree heuristic is very
-close to that of Glasgow2, although we perform better at lower runtimes because we use simpler
-preprocessing at the top of search. Our implementation also clearly beats PathLAD, VF2, VF3 and RI,
-except for very low choices of timeout.
+that the two sets of $y$ instances could be different).  The plots show that our starting point
+comfortably beats PathLAD, VF2, VF3 and RI, except for very low choices of timeout.
 
 The dataset includes many instances which are extremely easy for a good solver, and so it can be
 hard to see the differences between the stronger solvers at higher runtimes. This paper focusses
 upon improving the performance on the remaining hard satisfiable instances, and so in the second and
 fourth plots in \cref{figure:others} (and in subsequent cumulative plots) we show only satisfiable
-instances, and use a reduced range on both axes.
+instances, and use a reduced range on both axes.  For the remainder of this paper, we show only
+the non-induced problem, which tends to be harder; results with the induced variant are similar.
+
+\subsection{Discrepancy Searches}
+
+A \emph{discrepancy} is where search goes against a value-ordering heuristic.  Discrepancy searches
+\cite{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97,DBLP:conf/cpaior/KarouiHLN07}
+are alternatives to backtracking search that initially search disallowing all discrepancies, and
+then retry search allowing an increasing number of discrepancies at each iteration until either a
+solution is found or unsatisfiability is proven. These schemes assume that value-ordering heuristics
+are usually reliable, and that most solutions can be found with only a small number of
+discrepancies; in such cases, the heavy commitment to early branching choices made by conventional
+backtracking search can be extremely costly.
+
+\begin{figure}[tb]
+    \includegraphics*{gen-graph-dds.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-dds.pdf}
+
+    \caption{Comparing depth-bounded discrepancy search to backtracking search, both with the degree
+    heuristic.}\label{figure:scatter-dds}
+\end{figure}
+
+?? Also do LDS?
+
+\Cref{figure:scatter-dds} shows the effects of adding Walsh's \cite{DBLP:conf/ijcai/Walsh97}
+depth-bounded discrepancy search (DDS) to the solver (results with other discrepancy search variants
+are similar).  Each point represents the solving time for one instance---to avoid noise for easier
+instances, we measure only time spent during search, and exclude time spent in preprocessing and
+initialisation.  Points below the $x-y$ diagonal are speedups, whilst points on the top and right
+axes represent instances which timed out after one thousand seconds with one algorithm, but not the
+other. For satisfiable instances, the different point styles show the different families, whilst all
+unsatisfiable instances are shown as dark dots.  The points well below the diagonal line and along
+the right-hand axis on the scatter plot show that DDS can sometimes be extremely beneficial on
+satisfiable instances.  However, on both unsatisfiable and most satisfiable instances, the overheads
+can be extremely large, and DDS is much worse in aggregate and is not a viable approach (even when
+only considering satisfiable instances).  These large overheads are to be expected: discrepancy
+searches are aimed primarily at getting better feasible solutions in optimisation problems which are
+too large for a proof of optimality to be a realistic prospect, and they are not well-suited for
+unsatisfiable decision problems. Despite this, the extremely large gains on some satisfiable
+instances confirm our suspicions that we should find an alternative to heavy-commitment backtracking
+search.
 
 \subsection{Value-Ordering Heuristics}
 
+?? Lead in
+
 The left plot of \cref{figure:value-ordering-heuristics} shows the cumulative number of satisfiable
-instances solved over time using different value-ordering heuristics. For the remainder of this
-section, we show only the non-induced problem; results with the induced variant are similar.
+instances solved over time using different value-ordering heuristics.
 
 \begin{description}
 \item[Degree] We select vertices from highest degree to lowest degree
@@ -397,49 +455,14 @@ heuristic which puts choices in some kind of rank with ties.)
     \label{figure:value-ordering-heuristics}
 \end{figure}
 
-The right-hand plot of \cref{figure:value-ordering-heuristics} gives a detailed look at these
-results.  Each point represents the solving time for one instance---to avoid noise for easier
-instances, we measure only time spent during search, and exclude time spent in preprocessing and
-initialisation.  Points below the $x-y$ diagonal are speedups, whilst points on the top and right
-axes represent instances which timed out after one thousand seconds with one algorithm, but not the
-other. For satisfiable instances, the different point styles show the different families, whilst all
-unsatisfiable instances are shown as dark dots.  This plot shows that despite the aggregate
+The right-hand plot of \cref{figure:value-ordering-heuristics} gives a detailed comparison of the
+degree and biased heuristics. It shows that despite the aggregate
 performance being similar, on a case by case basis, the two heuristics can make a large difference
 to the performance of individual satisfiable instances. This suggests that although degree is a good
 heuristic, we should perhaps not commit heavily to a vertex of highest degree, but also consider
 vertices of the same or similar degree.
 
-\subsection{Discrepancy Searches}
-
-A \emph{discrepancy} is where search goes against a value-ordering heuristic.  Discrepancy searches
-\cite{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97,DBLP:conf/cpaior/KarouiHLN07}
-are alternatives to backtracking search that initially search disallowing all discrepancies, and
-then retry search allowing an increasing number of discrepancies at each iteration until either a
-solution is found or unsatisfiability is proven. These schemes assume that value-ordering heuristics
-are usually reliable, and that most solutions can be found with only a small number of
-discrepancies; in such cases, the heavy commitment to early branching choices made by conventional
-backtracking search can be extremely costly.
-
-\begin{figure}[tb]
-    \includegraphics*{gen-graph-dds.pdf}
-    \hfill
-    \includegraphics*{gen-graph-scatter-dds.pdf}
-
-    \caption{Comparing depth-bounded discrepancy search to backtracking search, both with the degree
-    heuristic.}\label{figure:scatter-dds}
-\end{figure}
-
-\Cref{figure:scatter-dds} shows the effects of adding Walsh's \cite{DBLP:conf/ijcai/Walsh97}
-depth-bounded discrepancy search (DDS) to \cref{algorithm:sip} (results with other discrepancy
-search variants are similar).  The points well below the diagonal line and along the right-hand axis
-on the scatter plot show that DDS can sometimes be extremely beneficial on satisfiable instances.
-However, on both unsatisfiable and most satisfiable instances, the overheads can be extremely large,
-and DDS is much worse in aggregate and is not a viable approach (even when only considering
-satisfiable instances).  These large overheads are to be expected: discrepancy searches are aimed
-primarily at getting better feasible solutions in optimisation problems which are too large for a
-proof of optimality to be a realistic prospect, and they are not well-suited for unsatisfiable
-decision problems. Despite this, the extremely large gains on some satisfiable instances confirm our
-suspicions that we should find an alternative to heavy-commitment backtracking search.
+?? Intuition
 
 \subsection{Adding Restarts and Nogood Recording}
 
@@ -451,41 +474,52 @@ this is usually the variable-ordering heuristic
 \cite{DBLP:journals/jsat/LecoutreSTV07,DBLP:conf/cp/GayHLS15,DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}.
 In this paper, we instead rely upon randomness in a special new \emph{value}-ordering heuristic, and continue
 to use smallest domain first with static tiebreaking for variable-ordering.\footnote{It may be
-possible to further improve \cref{algorithm:sip} by also introducing randomness or some form of
+possible to further improve the solver by also introducing randomness or some form of
 learning into its variable-ordering heuristic. However, simultaneously introducing a second change
-would considerably complicate the empirical analysis.} Using restarts on value-ordering heuristics
-is uncommon---although \citet{Razgon et al.\ }{DBLP:conf/flairs/RazgonOP07} look at learning
-value-ordering heuristics from restarts, \citet{Chu et al.\ }{DBLP:conf/cp/ChuSS09} use a similar
-scheme in the context of parallel search, and an early approach by \citet{Gomes et al.\ }{DBLP:conf/aaai/GomesSK98} does so in an optimisation context.
+would considerably complicate the empirical analysis. Additionally, the solver's current
+hand-crafted variable-ordering heuristics already beat adaptive heuristics like impact or
+activity-based search.} Using restarts on value-ordering heuristics is uncommon (although
+\citet{Razgon et al.\ }{DBLP:conf/flairs/RazgonOP07} look at learning value-ordering heuristics from
+restarts, \citet{Chu et al.\ }{DBLP:conf/cp/ChuSS09} use a similar scheme in the context of parallel
+search, and an early approach by \citet{Gomes et al.\ }{DBLP:conf/aaai/GomesSK98} does so in an
+optimisation context).
 
-The shaded code shows how to introduce restarts to \cref{algorithm:sip}. The recursive
-$\FuncSty{search}$ procedure is modified to return either true (if the instance is satisfiable),
-false (unsatisfiable), or a third value if some threshold was reached without the solution being
-known.  The main function then calls $\FuncSty{search}$ in a loop (\siplineref{restartsloop}), until
-a solution is found.
+% The shaded code shows how to introduce restarts to \cref{algorithm:sip}. The recursive
+% $\FuncSty{search}$ procedure is modified to return either true (if the instance is satisfiable),
+% false (unsatisfiable), or a third value if some threshold was reached without the solution being
+% known.  The main function then calls $\FuncSty{search}$ in a loop (\siplineref{restartsloop}), until
+% a solution is found.
 
-We use the Luby scheme \cite{DBLP:journals/ipl/LubySZ93} to determine when to restart. We count the
-number of backtracks (that is, when we reach the end of the main $\KwSty{foreach}$ loop on
-\siplineref{countrestarts}) to decide when to restart, rather than counting recursive calls.
-Following convention, we multiply each item in the Luby sequence by a constant---we
-used the SMAC automatic parameter tuner \cite{DBLP:conf/lion/HutterHL11} to select the value 660.
-
-The remainder of the changes are to introduce nogoods. To avoid exploring portions of the search
-space that we have already visitied, every time we restart, we add new constraints to the problem
-which eliminate already-explored subtrees---such a constraint is called a nogood. We generate simple
-decision nogoods, as follows. The $B$ argument to $\FuncSty{search}$ tracks the branching choices
-made so far, in the form of a CNF clause with each literal being a guessed $(v \mapsto v')$
-assignment. Upon backtracking due to a decision to restart, we post a nogood of the form $(v \mapsto
-v') \wedge (w \mapsto w') \wedge (x \mapsto x') \Rightarrow \bot$ for every branch to the left of
-the current (incomplete) branch in the search tree, and when we first make a decision to restart
-before backtracking, we post a similar nogood eliminating the entire subtree explored.
+Preliminary experiments directed us to use the Luby scheme \cite{DBLP:journals/ipl/LubySZ93} to
+determine when to restart.
+%We count the number of backtracks
+%(that is, when we reach the end of the main $\KwSty{foreach}$ loop on
+%\siplineref{countrestarts})
+%to decide when to restart, rather than counting recursive calls.
+Following convention, we multiply each item in the Luby sequence by a constant---we used the SMAC
+automatic parameter tuner \cite{DBLP:conf/lion/HutterHL11} to select the value 660.
+% The remainder of the changes are to introduce nogoods.  The $B$ argument to $\FuncSty{search}$ tracks the branching choices
+% made so far, in the form of a CNF clause with each literal being a guessed $(v \mapsto v')$
+% assignment.
+To avoid exploring portions of the search
+space that we have already visited, every time we restart, we add new constraints to the problem
+which eliminate already-explored subtrees---such a constraint is called a nogood. We generate
+simple decision nogoods. That is, upon backtracking due to a decision to restart, we post a nogood
+of the form $(v \mapsto v') \wedge (w \mapsto w') \wedge (x \mapsto x') \Rightarrow \bot$ for every
+branch to the left of the current (incomplete) branch in the search tree, and when we first make a
+decision to restart before backtracking, we post a similar nogood eliminating the entire subtree
+explored.
 
 Finally, we use the two watched literals technique \cite{DBLP:conf/dac/MoskewiczMZZM01} to
-propagate stored nogoods (\siplineref{2wl}). This has two benefits: the propagation complexity does
-not particularly depend upon the number of stored nogoods, and it does not require any work upon
-backtracking.  Other more sophisticated nogood generation and propagation schemes exist
-\cite{DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17}, but it is not clear whether these will be
-beneficial in a setting where we are not maintaining arc consistency.
+propagate stored nogoods.
+%(\siplineref{2wl}).
+This has two benefits: the propagation complexity does not particularly depend upon the number of
+stored nogoods, and it does not require any work upon backtracking.  Other more sophisticated nogood
+generation and propagation schemes exist \cite{DBLP:conf/aaai/LeeSZ16,DBLP:conf/cp/GlorianBLLM17},
+but these would not be helpful here since our solver does not maintain arc consistency or use a
+propagation queue.
+
+\subsection{The Effects of Restarts and Nogood Recording}
 
 \begin{figure}[tb]
     \includegraphics*{gen-graph-restarts.pdf}
@@ -497,18 +531,6 @@ beneficial in a setting where we are not maintaining arc consistency.
     new algorithm with all features enabled.}
     \label{figure:old-vs-new}
 \end{figure}
-
-\begin{figure}[tb]
-    \includegraphics*{gen-graph-scatter-random-goods.pdf}
-    \hfill
-    \includegraphics*{gen-graph-scatter-random.pdf}
-    \caption{On the left, not using nogood recording introduces slowdowns, particularly on
-    unsatisfiable instances. On the right, using a random value-ordering gives much worse
-    performance on many satisfiable instances.}
-    \label{figure:features}
-\end{figure}
-
-\subsection{The Effects of Restarts and Nogood Recording}
 
 In \cref{figure:old-vs-new} we show the effects of adding restarts and nogood recording to the
 algorithm. With restarts and nogood recording, the random value-ordering heuristic comfortably beats
@@ -529,6 +551,19 @@ nearly unchanged. On the other hand, there are large numbers of satisfiable inst
 diagonal line, indicating large speedups.  Better yet, there are only a handful of satisfiable
 instances that are more than a factor of ten times worse.  In other words, as well as improving
 performance, we have made up most of the consistency we lost by introducing randomness.
+This is a promising result: for the first time, we have introduced a viable alternative to
+backtracking search in a setting where we both have a strong \emph{value}-ordering heuristic,
+\emph{and} care about both satisfiable and unsatisfiable instances.
+
+\begin{figure}[tb]
+    \includegraphics*{gen-graph-scatter-random-goods.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-random.pdf}
+    \caption{On the left, not using nogood recording introduces slowdowns, particularly on
+    unsatisfiable instances. On the right, using a random value-ordering gives much worse
+    performance on many satisfiable instances.}
+    \label{figure:features}
+\end{figure}
 
 As we might expect, these properties do not hold if any of the combination of changes are disabled.
 In the left-hand plot of \cref{figure:features}, we see large slowdowns on unsatisfiable instances
@@ -536,9 +571,16 @@ when using a random value ordering and restarts but without nogood recording, an
 plot we see many more satisfiable instances above the $x-y$ diagonal when using the random
 value-ordering heuristic as opposed to the degree-biased heuristic.
 
-This is a promising result: for the first time, we have introduced a viable alternative to
-backtracking search in a setting where we both have a strong \emph{value}-ordering heuristic,
-\emph{and} care about both satisfiable and unsatisfiable instances.
+\section{Parallel Search}
+
+?? No sharing, sharing with Luby restarts, sharing with constant restarts, sharing with triggered
+restarts
+
+?? Reproducibility, constant and triggered
+
+?? How many more nodes on unsat instances
+
+?? Scalability to MPI
 
 \section{Maximum Common Subgraph Algorithms}
 
@@ -564,8 +606,8 @@ recent algorithms for this problem also make use of backtracking search with deg
 value-ordering heuristic. The k${\downarrow}$ algorithm \cite{DBLP:conf/aaai/HoffmannMR17} attempts
 to solve the problem by first trying to solve the induced subgraph isomorphism problem, and then if
 that fails, retries allowing a single unmatched vertex (and thus using weaker invariants), and so
-on. Due to its similarity to \cref{algorithm:sip}, we can introduce the same bias and restart
-strategy, requiring only small changes to handle wildcards in nogoods.
+on. Due to its similarity to the Glasgow Subgraph Solver, we can introduce the same bias and restart
+strategy.
 
 Meanwhile, the McSplit${\downarrow}$ algorithm
 \cite{DBLP:conf/ijcai/McCreeshPT17} uses a constraint programming style search, but with special
@@ -601,14 +643,13 @@ strong search ordering heuristics and when are expecting to encounter large numb
 instances. Our results show that the key to success is a combination of aggressive restarts, nogood
 recording, and biasing an existing value-ordering heuristic with just a pinch of randomness.
 
-The effectiveness of this approach raises a number of interesting questions and avenues for possible
-future research. For example, will this same technique work for other problems where we have a good
-value-ordering heuristic? Are there further benefits to be had from also modifying variable-ordering
-heuristics? And how can such a search process be parallelised?
+?? Parallel
+
+?? Apply to CP in general
 
 \section*{Acknowledgements}
 
-The authors would like to thank Ruth Hoffmann, Christophe Lecoutre, Christine Solnon and Craig
+The authors would like to thank Ruth Hoffmann, Christophe Lecoutre, Christine Solnon, and Craig
 Reilly for their comments.
 
 \bibliographystyle{splncs04}

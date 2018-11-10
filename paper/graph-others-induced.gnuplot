@@ -17,9 +17,10 @@ set ytics add ('$14621$' 14621) add ('' 14000)
 set key above right Left width -4 maxrows 4 height 1
 
 plot \
-    "inducedruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'Algorithm 1:', \
-    "inducedruntimes.data" u (cumx(finalinduced)):(cumy(finalinduced)) smooth cumulative w l ti '~~~~Before' ls 1, \
-    "inducedruntimes.data" u (cumx(norestartsinduced)):(cumy(norestartsinduced)) smooth cumulative w l ti '~~~~After' ls 2 dt (2,2), \
+    "inducedruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'Glasgow:', \
+    "inducedruntimes.data" u (cumx(finalinduced)):(cumy(finalinduced)) smooth cumulative w l ti '~~~~After' ls 1, \
+    "inducedruntimes.data" u (cumx(norestartsinduced)):(cumy(norestartsinduced)) smooth cumulative w l ti '~~~~Before' ls 2 dt (2,2), \
+    "inducedruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti '~', \
     "inducedruntimes.data" u (cumx(pathladinduced)):(cumy(pathladinduced)) smooth cumulative w l ti 'PathLAD' ls 3 dt (6,2), \
     "inducedruntimes.data" u (cumx(vf2induced)):(cumy(vf2induced)) smooth cumulative w l ti 'VF2' ls 4 dt (18,2), \
     "inducedruntimes.data" u (cumx(vf3induced)):(cumy(vf3induced)) smooth cumulative w l ti 'VF3' ls 6 dt (6,2,2,2), \

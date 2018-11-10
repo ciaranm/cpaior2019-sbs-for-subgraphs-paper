@@ -13,9 +13,9 @@ set logscale x
 set format x '$10^{%T}$'
 set yrange [0:14621]
 set ytics add ('$14621$' 14621) add ('' 14000)
-set key bottom right Left
+set key bottom right Left width -4
 
 plot \
-    "runtimes.data" u (cumx(norestarts)):(cumy(norestarts)) smooth cumulative w l ti 'Degree' ls 1, \
+    "runtimes.data" u (cumx(norestarts)):(cumy(norestarts)) smooth cumulative w l ti 'Backtracking' ls 1, \
     "runtimes.data" u (cumx(dds)):(cumy(dds)) smooth cumulative w l ti 'DDS' ls 2 dt (2,2)
 
