@@ -11,19 +11,21 @@ GLASGOW_ALGORITHMS := \
     sequentialantiheuristic13 \
     sequentialinputordersoftmaxrestarts13 \
     sequentialrestartsshuffle13 \
+    sequentialrestartsshufflegoods13 \
     sequentialdds13
 
 GLASGOWLION_ALGORITHMS := glasgow2 glasgow3
 LAD_ALGORITHMS := lad pathlad
 VF2_ALGORITHMS := vf2
+RI_ALGORITHMS := ri
 MCSPLIT_ALGORITHMS := # non_ind_mcsp_2paths anti_non_ind_mcsp_2paths
-ALL_ALGORITHMS := $(GLASGOW_ALGORITHMS) $(LAD_ALGORITHMS) $(VF2_ALGORITHMS) $(MCSPLIT_ALGORITHMS) $(GLASGOWLION_ALGORITHMS)
+ALL_ALGORITHMS := $(GLASGOW_ALGORITHMS) $(LAD_ALGORITHMS) $(VF2_ALGORITHMS) $(RI_ALGORITHMS) $(MCSPLIT_ALGORITHMS) $(GLASGOWLION_ALGORITHMS)
 STACK_SPACE := 10485760
 RESULTS := results
 
 SUMMARIES = $(foreach i, $(INSTANCES), $(RESULTS)/stats/$i.summary)
 SATS = $(foreach i, $(INSTANCES), $(RESULTS)/stats/$i.sat)
-RUNTIMES = $(foreach i, $(INSTANCES), $(foreach a, $(ALL_ALGORITHMS) vbs, $(RESULTS)/stats/$i.runtime.$a ))
+RUNTIMES = $(foreach i, $(INSTANCES), $(foreach a, $(ALL_ALGORITHMS), $(RESULTS)/stats/$i.runtime.$a ))
 SEARCHTIMES = $(foreach i, $(INSTANCES), $(foreach a, $(GLASGOW_ALGORITHMS) , $(RESULTS)/stats/$i.searchtime.$a ))
 SEARCHSIZES = $(foreach i, $(INSTANCES), $(foreach a, $(GLASGOW_ALGORITHMS) , $(RESULTS)/stats/$i.searchsize.$a ))
 
@@ -52,6 +54,11 @@ $(RESULTS)/stats/%.summary : | dir-stats
 	  if grep -q aborted $(RESULTS)/$$a/$*.out ; then echo -n 'X' ; \
 	  elif grep -q false $(RESULTS)/$$a/$*.out ; then echo -n '0' ; \
 	  elif grep -q true $(RESULTS)/$$a/$*.out ; then echo -n '1' ; \
+	  else echo -n 'F' ; fi ; done ; \
+	  for a in $(RI_ALGORITHMS) ; do \
+	  if grep -q timeout $(RESULTS)/$$a/$*.out ; then echo -n 'X' ; \
+	  elif grep -q 'result: false' $(RESULTS)/$$a/$*.out ; then echo -n '0' ; \
+	  elif grep -q 'result: true' $(RESULTS)/$$a/$*.out ; then echo -n '1' ; \
 	  else echo -n 'F' ; fi ; done ; \
 	} | tee $@
 
@@ -121,6 +128,16 @@ endef
 
 $(foreach a,$(VF2_ALGORITHMS),$(eval $(call VF2_ALGORITHM_template,$(a))))
 
+define RI_ALGORITHM_template
+$(RESULTS)/stats/%.runtime.$(1) : | dir-stats
+	if grep -q 'timeout' $(RESULTS)/$(1)/$$*.out ; then echo 'NaN' > $$@ ; \
+	else sed -n -e '/^matching time: /s/^.*: //p' $(RESULTS)/$(1)/$$*.out > $$@ ; \
+	fi
+	test -s $$@
+endef
+
+$(foreach a,$(RI_ALGORITHMS),$(eval $(call RI_ALGORITHM_template,$(a))))
+
 define LAD_ALGORITHM_template
 $(RESULTS)/stats/%.runtime.$(1) : | dir-stats
 	if grep -q 'exceeded' $(RESULTS)/$(1)/$$*.out ; then echo 'NaN' > $$@ ; \
@@ -131,9 +148,6 @@ endef
 
 $(foreach a,$(LAD_ALGORITHMS),$(eval $(call LAD_ALGORITHM_template,$(a))))
 
-$(RESULTS)/stats/%.runtime.vbs : $(foreach a,$(ALL_ALGORITHMS),$(RESULTS)/stats/%.runtime.$(a) ) | dir-stats
-	cat $(foreach a,$(ALL_ALGORITHMS),$(RESULTS)/stats/$*.runtime.$(a) ) | sed -e 's,NaN,100000000,' | sort -n | head -n1 > $@
-
 define MCSPLIT_ALGORITHM_template
 $(RESULTS)/stats/%.runtime.$(1) : | dir-stats
 	if grep -q 'TIMEOUT' $(RESULTS)/$(1)/$$*.out ; then echo 'NaN' > $$@ ; \
@@ -143,7 +157,4 @@ $(RESULTS)/stats/%.runtime.$(1) : | dir-stats
 endef
 
 $(foreach a,$(MCSPLIT_ALGORITHMS),$(eval $(call MCSPLIT_ALGORITHM_template,$(a))))
-
-$(RESULTS)/stats/%.runtime.vbs : $(foreach a,$(ALL_ALGORITHMS),$(RESULTS)/stats/%.runtime.$(a) ) | dir-stats
-	cat $(foreach a,$(ALL_ALGORITHMS),$(RESULTS)/stats/$*.runtime.$(a) ) | sed -e 's,NaN,100000000,' | sort -n | head -n1 > $@
 

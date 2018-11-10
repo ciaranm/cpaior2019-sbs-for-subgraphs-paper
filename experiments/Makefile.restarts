@@ -12,7 +12,14 @@ ALGORITHMS := \
     sequentialantiheuristic13 \
     sequentialinputordersoftmaxrestarts13 \
     sequentialrestartsshuffle13 \
-    sequentialdds13
+    sequentialrestartsshufflegoods13 \
+    sequentialdds13 \
+    sequentialinduced13 \
+    sequentialinputordersoftmaxinduced13 \
+    sequentialshuffleinduced13 \
+    sequentialantiheuristicinduced13 \
+    sequentialinputordersoftmaxrestartsinduced13 \
+    sequentialrestartsshuffleinduced13
 
 STACK_SPACE := 10485760
 RESULTS := results
@@ -28,7 +35,7 @@ $(RESULTS)/$(1)/%.out : | dir-$(1)
 	    $$$$(echo customisable-$(1) | sed -e 's,restarts,,' -e 's,shuffle,,' -e 's,biased,,' -e 's,softmax,,' -e 's,position,,' \
 	        -e 's,antiheuristic,,' -e 's,tiebreaking,,' -e 's,inputorder,,' -e 's,goods,,' -e 's,geometric,,' -e 's,constant,,' \
 		-e 's,ten,,' -e 's,hundred,,' -e 's,thousand,,' -e 's,basetwo,,' -e 's,basethree,,' -e 's,baseonepointfive,,' \
-		-e 's,var,,' -e 's,magic,,' -e 's,ddd*s,,' -e 's,[1234567890]\+,,' ) \
+		-e 's,var,,' -e 's,magic,,' -e 's,ddd*s,,' -e 's,induced,,' -e 's,[1234567890]\+,,' ) \
 	    $$$$(if echo $(1) | grep -q restarts ; then echo --restarts ; fi ) \
 	    $$$$(if echo $(1) | grep -q shuffle ; then echo --shuffle ; fi ) \
 	    $$$$(if echo $(1) | grep -q biased ; then echo --biased-shuffle ; fi ) \
@@ -50,6 +57,7 @@ $(RESULTS)/$(1)/%.out : | dir-$(1)
 	    $$$$(if echo $(1) | grep -q var ; then echo --biased-variable-ordering ; fi ) \
 	    $$$$(if echo $(1) | grep -q dds ; then echo --dds ; fi ) \
 	    $$$$(if echo $(1) | grep -q ddds ; then echo --ddds ; fi ) \
+	    $$$$(if echo $(1) | grep -q induced ; then echo --induced ; fi ) \
 	    --timeout $$(TIMEOUT) \
 	    $$(shell grep "^`basename $$*` " < instances.txt | cut -d' ' -f2-3 ) > >(tee $$@ )
 endef

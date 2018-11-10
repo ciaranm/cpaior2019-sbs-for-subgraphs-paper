@@ -3,7 +3,7 @@ FILTER := -1
 MODULUS := 1
 INSTANCES := $(shell cut -d' ' -f1 instances.txt | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi)
 TIMEOUT := 1000
-ALGORITHMS := vf2
+ALGORITHMS := vf2 vf2induced
 RESULTS := results
 
 all : $(foreach i, $(INSTANCES), $(foreach a, $(ALGORITHMS), $(RESULTS)/$(a)/$i.out ))
@@ -11,10 +11,9 @@ all : $(foreach i, $(INSTANCES), $(foreach a, $(ALGORITHMS), $(RESULTS)/$(a)/$i.
 dir-% :
 	mkdir -p $(RESULTS) $(RESULTS)/$*
 
-define ALGORITHM_template
-$(RESULTS)/$(1)/%.out : | dir-$(1)
-	../vflib/solve_vf $$(shell grep "^`basename $$*` " < instances.txt | cut -d' ' -f2-3 ) $$(TIMEOUT) > >(tee $$@ )
-endef
+$(RESULTS)/vf2/%.out : | dir-vf2
+	../vflib/solve_vf $(shell grep "^`basename $*` " < instances.txt | cut -d' ' -f2-3 ) $(TIMEOUT) > >(tee $@ )
 
-$(foreach a,$(ALGORITHMS),$(eval $(call ALGORITHM_template,$(a))))
+$(RESULTS)/vf2induced/%.out : | dir-vf2induced
+	../vflib/solve_vf_induced $(shell grep "^`basename $*` " < instances.txt | cut -d' ' -f2-3 ) $(TIMEOUT) > >(tee $@ )
 
