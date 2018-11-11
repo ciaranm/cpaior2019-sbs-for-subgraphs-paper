@@ -5,21 +5,19 @@ INSTANCES_FILE := instances.txt
 CATTER := cat
 INSTANCES := $(shell cat $(INSTANCES_FILE) | $(CATTER) | cut -d' ' -f1 | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi)
 GLASGOW_ALGORITHMS := \
-    sequential13 \
-    sequentialinputordersoftmax13 \
-    sequentialshuffle13 \
-    sequentialantiheuristic13 \
-    sequentialinputordersoftmaxrestarts13 \
-    sequentialrestartsshuffle13 \
-    sequentialrestartsshufflegoods13 \
-    sequentialdds13
+    glasgowdegreenorestartsnonogoods \
+    glasgowantinorestartsnonogoods \
+    glasgowrandomnorestartsnonogoods \
+    glasgowbiasednorestartsnonogoods \
+    glasgowdegreenorestartsnonogoodsdds \
+    glasgowrandom \
+    glasgowbiased \
+    glasgowbiasednonogoods \
 
-LAD_ALGORITHMS := lad pathlad
+LAD_ALGORITHMS := pathlad
 VF2_ALGORITHMS := vf2
 RI_ALGORITHMS := ri
-GLASGOWLION_ALGORITHMS := glasgow2 glasgow3
-MCSPLIT_ALGORITHMS := # non_ind_mcsp_2paths anti_non_ind_mcsp_2paths
-ALL_ALGORITHMS := $(GLASGOW_ALGORITHMS) $(MCSPLIT_ALGORITHMS) $(LAD_ALGORITHMS) $(VF2_ALGORITHMS) $(RI_ALGORITHMS) $(GLASGOWLION_ALGORITHMS)
+ALL_ALGORITHMS := $(GLASGOW_ALGORITHMS) $(LAD_ALGORITHMS) $(VF2_ALGORITHMS) $(RI_ALGORITHMS)
 RESULTS := results
 
 all : $(RESULTS)/runtimes.data $(RESULTS)/searchtimes.data $(RESULTS)/searchsizes.data

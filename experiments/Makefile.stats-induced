@@ -5,25 +5,20 @@ INSTANCES_FILE := instances.txt
 CATTER := cat
 INSTANCES := $(shell cat $(INSTANCES_FILE) | $(CATTER) | cut -d' ' -f1 | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi)
 GLASGOW_ALGORITHMS := \
-    sequentialinduced13 \
-    sequentialinputordersoftmaxinduced13 \
-    sequentialshuffleinduced13 \
-    sequentialantiheuristicinduced13 \
-    sequentialinputordersoftmaxrestartsinduced13 \
-    sequentialrestartsshuffleinduced13
+    glasgowdegreenorestartsnonogoodsinduced \
+    glasgowbiasedinduced \
 
 LAD_ALGORITHMS := pathladinduced
 VF2_ALGORITHMS := vf2induced
 VF3_ALGORITHMS := vf3induced
 RI_ALGORITHMS := riinduced
-MCSPLIT_ALGORITHMS := # non_ind_mcsp_2paths anti_non_ind_mcsp_2paths
-ALL_ALGORITHMS := $(GLASGOW_ALGORITHMS) $(LAD_ALGORITHMS) $(VF2_ALGORITHMS) $(VF3_ALGORITHMS) $(RI_ALGORITHMS) $(MCSPLIT_ALGORITHMS) $(GLASGOWLION_ALGORITHMS)
+ALL_ALGORITHMS := $(GLASGOW_ALGORITHMS) $(LAD_ALGORITHMS) $(VF2_ALGORITHMS) $(VF3_ALGORITHMS) $(RI_ALGORITHMS)
 STACK_SPACE := 10485760
 RESULTS := results
 
 SUMMARIES = $(foreach i, $(INSTANCES), $(RESULTS)/statsinduced/$i.summary)
 SATS = $(foreach i, $(INSTANCES), $(RESULTS)/statsinduced/$i.sat)
-RUNTIMES = $(foreach i, $(INSTANCES), $(foreach a, $(ALL_ALGORITHMS) vbs, $(RESULTS)/statsinduced/$i.runtime.$a ))
+RUNTIMES = $(foreach i, $(INSTANCES), $(foreach a, $(ALL_ALGORITHMS), $(RESULTS)/statsinduced/$i.runtime.$a ))
 SEARCHTIMES = $(foreach i, $(INSTANCES), $(foreach a, $(GLASGOW_ALGORITHMS) , $(RESULTS)/statsinduced/$i.searchtime.$a ))
 SEARCHSIZES = $(foreach i, $(INSTANCES), $(foreach a, $(GLASGOW_ALGORITHMS) , $(RESULTS)/statsinduced/$i.searchsize.$a ))
 
@@ -33,11 +28,7 @@ dir-% :
 	mkdir -p $(RESULTS) $(RESULTS)/$*
 
 $(RESULTS)/statsinduced/%.summary : | dir-statsinduced
-	{ for a in $(GLASGOWLION_ALGORITHMS) ; do \
-	  if grep -q aborted $(RESULTS)/$$a/$*.out ; then echo -n 'X' ; \
-	  elif grep -q false $(RESULTS)/$$a/$*.out ; then echo -n '0' ; \
-	  elif grep -q true $(RESULTS)/$$a/$*.out ; then echo -n '1' ; \
-	  else echo -n 'F' ; fi ; done ; \
+	{ \
 	  for a in $(GLASGOW_ALGORITHMS) ; do \
 	  if grep -q 'status = aborted' $(RESULTS)/$$a/$*.out ; then echo -n 'X' ; \
 	  elif grep -q 'status = false' $(RESULTS)/$$a/$*.out ; then echo -n '0' ; \
@@ -109,18 +100,6 @@ endef
 
 $(foreach a,$(GLASGOW_ALGORITHMS),$(eval $(call GLASGOW_ALGORITHM_template,$(a))))
 
-define GLASGOWLION_ALGORITHM_template
-$(RESULTS)/statsinduced/%.runtime.$(1) : | dir-statsinduced
-	if grep -q aborted $(RESULTS)/$(1)/$$*.out ; then \
-	    echo 'NaN' > $$@ ; \
-	else \
-	    tail -n1 $(RESULTS)/$(1)/$$*.out | cut -d' ' -f1 > $$@ ; \
-	fi
-	test -s $$@
-endef
-
-$(foreach a,$(GLASGOWLION_ALGORITHMS),$(eval $(call GLASGOWLION_ALGORITHM_template,$(a))))
-
 define VF2_ALGORITHM_template
 $(RESULTS)/statsinduced/%.runtime.$(1) : | dir-statsinduced
 	if grep -q aborted $(RESULTS)/$(1)/$$*.out ; then echo 'NaN' > $$@ ; \
@@ -160,20 +139,4 @@ $(RESULTS)/statsinduced/%.runtime.$(1) : | dir-statsinduced
 endef
 
 $(foreach a,$(LAD_ALGORITHMS),$(eval $(call LAD_ALGORITHM_template,$(a))))
-
-$(RESULTS)/statsinduced/%.runtime.vbs : $(foreach a,$(ALL_ALGORITHMS),$(RESULTS)/statsinduced/%.runtime.$(a) ) | dir-statsinduced
-	cat $(foreach a,$(ALL_ALGORITHMS),$(RESULTS)/statsinduced/$*.runtime.$(a) ) | sed -e 's,NaN,100000000,' | sort -n | head -n1 > $@
-
-define MCSPLIT_ALGORITHM_template
-$(RESULTS)/statsinduced/%.runtime.$(1) : | dir-statsinduced
-	if grep -q 'TIMEOUT' $(RESULTS)/$(1)/$$*.out ; then echo 'NaN' > $$@ ; \
-	    else sed -n -e '/^CPU/s/^.*: *//p' $(RESULTS)/$(1)/$$*.out > $$@ ; \
-	fi
-	test -s $$@
-endef
-
-$(foreach a,$(MCSPLIT_ALGORITHMS),$(eval $(call MCSPLIT_ALGORITHM_template,$(a))))
-
-$(RESULTS)/statsinduced/%.runtime.vbs : $(foreach a,$(ALL_ALGORITHMS),$(RESULTS)/statsinduced/%.runtime.$(a) ) | dir-statsinduced
-	cat $(foreach a,$(ALL_ALGORITHMS),$(RESULTS)/statsinduced/$*.runtime.$(a) ) | sed -e 's,NaN,100000000,' | sort -n | head -n1 > $@
 

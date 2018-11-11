@@ -5,19 +5,13 @@ INSTANCES_FILE := instances.txt
 CATTER := cat
 INSTANCES := $(shell cat $(INSTANCES_FILE) | $(CATTER) | cut -d' ' -f1 | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi)
 GLASGOW_ALGORITHMS := \
-    sequentialinduced13 \
-    sequentialinputordersoftmaxinduced13 \
-    sequentialshuffleinduced13 \
-    sequentialantiheuristicinduced13 \
-    sequentialinputordersoftmaxrestartsinduced13 \
-    sequentialrestartsshuffleinduced13
+    glasgowdegreenorestartsnonogoodsinduced \
+    glasgowbiasedinduced \
 
 LAD_ALGORITHMS := pathladinduced
 VF2_ALGORITHMS := vf2induced vf3induced
 RI_ALGORITHMS := riinduced
-GLASGOWLION_ALGORITHMS :=
-MCSPLIT_ALGORITHMS := # non_ind_mcsp_2paths anti_non_ind_mcsp_2paths
-ALL_ALGORITHMS := $(GLASGOW_ALGORITHMS) $(MCSPLIT_ALGORITHMS) $(LAD_ALGORITHMS) $(VF2_ALGORITHMS) $(RI_ALGORITHMS) $(GLASGOWLION_ALGORITHMS)
+ALL_ALGORITHMS := $(GLASGOW_ALGORITHMS) $(LAD_ALGORITHMS) $(VF2_ALGORITHMS) $(RI_ALGORITHMS)
 RESULTS := results
 
 all : $(RESULTS)/inducedruntimes.data $(RESULTS)/inducedsearchtimes.data $(RESULTS)/inducedsearchsizes.data
