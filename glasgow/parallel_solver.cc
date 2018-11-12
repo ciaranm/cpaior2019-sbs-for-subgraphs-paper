@@ -6,20 +6,25 @@
 
 #include <algorithm>
 #include <array>
-#include <cmath>
+#include <atomic>
+#include <condition_variable>
 #include <functional>
 #include <limits>
 #include <list>
 #include <map>
+#include <mutex>
 #include <numeric>
 #include <optional>
 #include <random>
+#include <thread>
 #include <type_traits>
 #include <utility>
 
 #include <boost/dynamic_bitset.hpp>
 
 using std::array;
+using std::atomic;
+using std::condition_variable;
 using std::iota;
 using std::fill;
 using std::find_if;
@@ -30,17 +35,20 @@ using std::max;
 using std::map;
 using std::move;
 using std::mt19937;
+using std::mutex;
 using std::next;
 using std::numeric_limits;
 using std::optional;
 using std::pair;
-using std::round;
+using std::scoped_lock;
 using std::sort;
 using std::stable_sort;
 using std::string;
 using std::swap;
+using std::thread;
 using std::to_string;
 using std::uniform_int_distribution;
+using std::unique_lock;
 using std::vector;
 
 using std::chrono::duration_cast;
@@ -51,6 +59,50 @@ using boost::dynamic_bitset;
 
 namespace
 {
+    struct barrier
+    {
+        const unsigned n;
+        int w;
+        long long g;
+        mutex m;
+        condition_variable cv;
+
+        barrier(unsigned nn) :
+            n(nn),
+            w(int(nn)),
+            g(0)
+        {
+        }
+
+        void count_down_and_wait()
+        {
+            unique_lock<mutex> l(m);
+            if (w == -1)
+                return;
+
+            if (0 == --w) {
+                ++g;
+                w = n;
+                cv.notify_all();
+            }
+            else {
+                int old_g = g;
+                while (true) {
+                    cv.wait(l);
+                    if (old_g != g || -1 == w)
+                        break;
+                }
+            }
+        }
+
+        auto cancel() -> void
+        {
+            unique_lock<mutex> l(m);
+            w = -1;
+            cv.notify_all();
+        }
+    };
+
     enum class SearchResult
     {
         Aborted,
@@ -58,14 +110,6 @@ namespace
         Satisfiable,
         SatisfiableButKeepGoing,
         Restart
-    };
-
-    enum class DiscrepancySearchResult
-    {
-        Aborted,
-        Unsatisfiable,
-        Satisfiable,
-        SatisfiableButKeepGoing
     };
 
     struct Assignment
@@ -145,8 +189,18 @@ namespace
         }
     };
 
+    struct SearchData
+    {
+        Nogoods nogoods;
+        Watches watches;
+        list<typename Nogoods::iterator> need_to_watch;
+        unsigned long long nodes = 0;
+
+        mt19937 thread_rand;
+    };
+
     template <typename BitSetType_, typename ArrayType_>
-    struct SIP
+    struct ParallelSIP
     {
         struct Domain
         {
@@ -181,13 +235,7 @@ namespace
 
         vector<int> pattern_vertex_labels, target_vertex_labels, pattern_edge_labels, target_edge_labels;
 
-        Nogoods nogoods;
-        Watches watches;
-        list<typename Nogoods::iterator> need_to_watch;
-
-        mt19937 global_rand;
-
-        SIP(const InputGraph & target, const InputGraph & pattern, const Params & a) :
+        ParallelSIP(const InputGraph & target, const InputGraph & pattern, const Params & a) :
             params(a),
             max_graphs(5 + (params.induced ? 1 : 0)),
             pattern_size(pattern.size()),
@@ -199,6 +247,12 @@ namespace
         {
             if (pattern.has_edge_labels() && ! params.induced)
                 throw UnsupportedConfiguration{ "Currently edge labels only work with --induced" };
+
+            if (params.enumerate)
+                throw UnsupportedConfiguration{ "Parallel enumeration is not currently supported" };
+
+            if (params.dds)
+                throw UnsupportedConfiguration{ "Parallel discrepancy search is not supported" };
 
             // strip out isolated vertices in the pattern, and build pattern_permutation
             for (unsigned v = 0 ; v < full_pattern_size ; ++v)
@@ -244,10 +298,6 @@ namespace
                             pattern_edge_labels[pattern_permutation.at(i) * pattern_size + pattern_permutation.at(j)] = r.first->second;
                         }
             }
-
-            // set up space for watches
-            if (! params.enumerate)
-                watches.initialise(pattern_size, target_size);
 
             // recode target to a bit graph
             target_graph_rows.resize(target_size * max_graphs, BitSetType_{ target_size, 0 });
@@ -328,12 +378,12 @@ namespace
                     });
         }
 
-        auto propagate_watches(Domains & new_domains, Assignments & assignments, const Assignment & current_assignment) -> bool
+        auto propagate_watches(SearchData & s, Domains & new_domains, Assignments & assignments, const Assignment & current_assignment) -> bool
         {
             if (params.enumerate)
                 return true;
 
-            auto & watches_to_update = watches[current_assignment];
+            auto & watches_to_update = s.watches[current_assignment];
             for (auto watch_to_update = watches_to_update.begin() ; watch_to_update != watches_to_update.end() ; ) {
                 Nogood & nogood = **watch_to_update;
 
@@ -352,7 +402,7 @@ namespace
                         swap(nogood.literals[0], *new_literal);
 
                         // start watching it
-                        watches[nogood.literals[0]].push_back(*watch_to_update);
+                        s.watches[nogood.literals[0]].push_back(*watch_to_update);
 
                         // remove the current watch, and update the loop iterator
                         watches_to_update.erase(watch_to_update++);
@@ -461,7 +511,7 @@ namespace
             return true;
         }
 
-        auto propagate(Domains & new_domains, Assignments & assignments) -> bool
+        auto propagate(SearchData & s, Domains & new_domains, Assignments & assignments) -> bool
         {
             // whilst we've got a unit domain...
             for (typename Domains::iterator branch_domain = find_unit_domain(new_domains) ;
@@ -475,7 +525,7 @@ namespace
                 assignments.values.push_back({ current_assignment, false, -1, -1 });
 
                 // propagate watches
-                if (! propagate_watches(new_domains, assignments, current_assignment))
+                if (! propagate_watches(s, new_domains, assignments, current_assignment))
                     return false;
 
                 // propagate simple all different and adjacency
@@ -524,6 +574,7 @@ namespace
         }
 
         auto post_nogood(
+                SearchData & s,
                 const Assignments & assignments)
         {
             if (params.enumerate || params.nogood_size_limit == 0)
@@ -538,11 +589,12 @@ namespace
             if (nogood.literals.size() > params.nogood_size_limit)
                 return;
 
-            nogoods.emplace_back(move(nogood));
-            need_to_watch.emplace_back(prev(nogoods.end()));
+            s.nogoods.emplace_back(move(nogood));
+            s.need_to_watch.emplace_back(prev(s.nogoods.end()));
         }
 
         auto softmax_shuffle(
+                SearchData & s,
                 ArrayType_ & branch_v,
                 unsigned branch_v_end
                 ) -> void
@@ -566,7 +618,7 @@ namespace
             for (unsigned start = 0 ; start < branch_v_end ; ++start) {
                 // pick a random number between 1 and total inclusive
                 uniform_int_distribution<long long> dist(1, total);
-                long long select_score = dist(global_rand);
+                long long select_score = dist(s.thread_rand);
 
                 // go over the list until we hit the score
                 unsigned select_element = start;
@@ -594,13 +646,15 @@ namespace
         }
 
         auto restarting_search(
+                SearchData & s,
                 Assignments & assignments,
                 const Domains & domains,
                 unsigned long long & nodes,
                 unsigned long long & propagations,
                 unsigned long long & solution_count,
                 int depth,
-                long long & backtracks_until_restart) -> SearchResult
+                long long & backtracks_until_restart,
+                atomic<bool> & do_a_restart) -> SearchResult
         {
             if (params.abort->load())
                 return SearchResult::Aborted;
@@ -641,11 +695,11 @@ namespace
                     break;
 
                 case ValueOrdering::Biased:
-                    softmax_shuffle(branch_v, branch_v_end);
+                    softmax_shuffle(s, branch_v, branch_v_end);
                     break;
 
                 case ValueOrdering::Random:
-                    shuffle(branch_v.begin(), branch_v.begin() + branch_v_end, global_rand);
+                    shuffle(branch_v.begin(), branch_v.begin() + branch_v_end, s.thread_rand);
                     break;
             }
 
@@ -665,15 +719,15 @@ namespace
 
                 // propagate
                 ++propagations;
-                if (! propagate(new_domains, assignments)) {
+                if (! propagate(s, new_domains, assignments)) {
                     // failure? restore assignments and go on to the next thing
                     assignments.values.resize(assignments_size);
                     continue;
                 }
 
                 // recursive search
-                auto search_result = restarting_search(assignments, new_domains, nodes, propagations,
-                        solution_count, depth + 1, backtracks_until_restart);
+                auto search_result = restarting_search(s, assignments, new_domains, nodes, propagations,
+                        solution_count, depth + 1, backtracks_until_restart, do_a_restart);
 
                 switch (search_result) {
                     case SearchResult::Satisfiable:
@@ -689,7 +743,7 @@ namespace
                         // post nogoods for everything we've done so far
                         for (auto l = branch_v.begin() ; l != f_v ; ++l) {
                             assignments.values.push_back({ { branch_domain->v, unsigned(*l) }, true, -2, -2 });
-                            post_nogood(assignments);
+                            post_nogood(s, assignments);
                             assignments.values.pop_back();
                         }
 
@@ -712,8 +766,9 @@ namespace
             }
 
             // no values remaining, backtrack, or possibly kick off a restart
-            if (actually_hit_a_failure && backtracks_until_restart > 0 && 0 == --backtracks_until_restart) {
-                post_nogood(assignments);
+            if ((do_a_restart) || (actually_hit_a_failure && backtracks_until_restart > 0 && 0 == --backtracks_until_restart)) {
+                do_a_restart = true;
+                post_nogood(s, assignments);
                 return SearchResult::Restart;
             }
             else if (actually_hit_a_success)
@@ -722,117 +777,10 @@ namespace
                 return SearchResult::Unsatisfiable;
         }
 
-        auto dds_search(
-                Assignments & assignments,
-                const Domains & domains,
-                unsigned long long & nodes,
-                unsigned long long & propagations,
-                unsigned long long & solution_count,
-                int depth,
-                int discrepancy_k,
-                bool & used_all_discrepancies) -> DiscrepancySearchResult
+        auto initialise_domains(Domains & domains) -> bool
         {
-            if (params.abort->load())
-                return DiscrepancySearchResult::Aborted;
-
-            ++nodes;
-
-            // find ourselves a domain, or succeed if we're all assigned
-            const Domain * branch_domain = find_branch_domain(domains);
-            if (! branch_domain) {
-                if (params.enumerate) {
-                    ++solution_count;
-                    return DiscrepancySearchResult::SatisfiableButKeepGoing;
-                }
-                else
-                    return DiscrepancySearchResult::Satisfiable;
-            }
-
-            // pull out the remaining values in this domain for branching
-            auto remaining = branch_domain->values;
-
-            ArrayType_ branch_v;
-            if constexpr (is_same<ArrayType_, vector<int> >::value)
-                branch_v.resize(target_size);
-
-            unsigned branch_v_end = 0;
-            for (auto f_v = remaining.find_first() ; f_v != decltype(remaining)::npos ; f_v = remaining.find_first()) {
-                remaining.reset(f_v);
-                branch_v[branch_v_end++] = f_v;
-            }
-
-            degree_sort(branch_v, branch_v_end, false);
-
-            int discrepancy_count = 0;
-            bool actually_hit_a_success = false;
-
-            // for each value remaining...
-            for (auto f_v = branch_v.begin(), f_end = branch_v.begin() + branch_v_end ; f_v != f_end ; ++f_v) {
-                if (discrepancy_k != 1) {
-                    // modified in-place by appending, we can restore by shrinking
-                    auto assignments_size = assignments.values.size();
-
-                    // make the assignment
-                    assignments.values.push_back({ { branch_domain->v, unsigned(*f_v) }, true, discrepancy_count, int(branch_v_end) });
-
-                    // set up new domains
-                    Domains new_domains = copy_nonfixed_domains_and_make_assignment(domains, branch_domain->v, *f_v);
-
-                    // propagate
-                    ++propagations;
-                    if (! propagate(new_domains, assignments)) {
-                        // failure? restore assignments and go on to the next thing
-                        assignments.values.resize(assignments_size);
-                        continue;
-                    }
-
-                    // recursive search
-                    auto search_result = dds_search(assignments, new_domains, nodes, propagations,
-                            solution_count, depth + 1, max(0, discrepancy_k - 1), used_all_discrepancies);
-
-                    switch (search_result) {
-                        case DiscrepancySearchResult::Satisfiable:
-                            return DiscrepancySearchResult::Satisfiable;
-
-                        case DiscrepancySearchResult::Aborted:
-                            return DiscrepancySearchResult::Aborted;
-
-                        case DiscrepancySearchResult::SatisfiableButKeepGoing:
-                            // restore assignments
-                            assignments.values.resize(assignments_size);
-                            actually_hit_a_success = true;
-                            break;
-
-                        case DiscrepancySearchResult::Unsatisfiable:
-                            // restore assignments
-                            assignments.values.resize(assignments_size);
-                            break;
-                    }
-
-                    if (0 == discrepancy_k) {
-                        used_all_discrepancies = true;
-                        break;
-                    }
-                }
-
-                --discrepancy_k;
-                ++discrepancy_count;
-            }
-
-            if (0 == discrepancy_k)
-                used_all_discrepancies = true;
-
-            // no values remaining, backtrack
-            if (actually_hit_a_success)
-                return DiscrepancySearchResult::SatisfiableButKeepGoing;
-            else
-                return DiscrepancySearchResult::Unsatisfiable;
-        }
-
-        auto initialise_domains(Domains & domains, bool presolve) -> bool
-        {
-            int graphs_to_consider = presolve ? 1 : max_graphs;
-            if ((! presolve) && params.induced) {
+            int graphs_to_consider = max_graphs;
+            if (params.induced) {
                 // when looking at the complement graph, if the largest degree
                 // in the pattern is smaller than the smallest degree in the
                 // target, then we're going to spend a lot of time doing
@@ -849,21 +797,19 @@ namespace
             vector<vector<vector<int> > > patterns_ndss(graphs_to_consider);
             vector<vector<optional<vector<int> > > > targets_ndss(graphs_to_consider);
 
-            if (! presolve) {
-                for (int g = 0 ; g < graphs_to_consider ; ++g) {
-                    patterns_ndss.at(g).resize(pattern_size);
-                    targets_ndss.at(g).resize(target_size);
-                }
+            for (int g = 0 ; g < graphs_to_consider ; ++g) {
+                patterns_ndss.at(g).resize(pattern_size);
+                targets_ndss.at(g).resize(target_size);
+            }
 
-                for (int g = 0 ; g < graphs_to_consider ; ++g) {
-                    for (unsigned i = 0 ; i < pattern_size ; ++i) {
-                        auto ni = pattern_graph_rows[i * max_graphs + g];
-                        for (auto j = ni.find_first() ; j != decltype(ni)::npos ; j = ni.find_first()) {
-                            ni.reset(j);
-                            patterns_ndss.at(g).at(i).push_back(patterns_degrees.at(g).at(j));
-                        }
-                        sort(patterns_ndss.at(g).at(i).begin(), patterns_ndss.at(g).at(i).end(), greater<int>());
+            for (int g = 0 ; g < graphs_to_consider ; ++g) {
+                for (unsigned i = 0 ; i < pattern_size ; ++i) {
+                    auto ni = pattern_graph_rows[i * max_graphs + g];
+                    for (auto j = ni.find_first() ; j != decltype(ni)::npos ; j = ni.find_first()) {
+                        ni.reset(j);
+                        patterns_ndss.at(g).at(i).push_back(patterns_degrees.at(g).at(j));
                     }
+                    sort(patterns_ndss.at(g).at(i).begin(), patterns_ndss.at(g).at(i).end(), greater<int>());
                 }
             }
 
@@ -905,7 +851,7 @@ namespace
                             // not ok, degrees differ
                             ok = false;
                         }
-                        else if (! presolve) {
+                        else {
                             // full compare of neighbourhood degree sequences
                             need_nds(j);
                             for (unsigned x = 0 ; ok && x < patterns_ndss.at(g).at(i).size() ; ++x) {
@@ -1021,7 +967,7 @@ namespace
 
         auto solve() -> Result
         {
-            Result result;
+            Result shared_result;
 
             build_supplemental_graphs(pattern_graph_rows, pattern_size);
             build_supplemental_graphs(target_graph_rows, target_size);
@@ -1058,260 +1004,175 @@ namespace
                             pattern_adjacencies_bits[i * pattern_size + j] |= (1u << g);
 
             // domains
-            Domains domains(pattern_size, Domain{ target_size });
-            if (! initialise_domains(domains, false)) {
-                result.complete = true;
-                return result;
+            Domains top_domains(pattern_size, Domain{ target_size });
+            if (! initialise_domains(top_domains)) {
+                shared_result.complete = true;
+                return shared_result;
             }
-
-            // assignments
-            Assignments assignments;
-            assignments.values.reserve(pattern_size);
 
             // start search timer
             auto search_start_time = steady_clock::now();
 
-            // do the appropriate search variant
-            if (params.dds) {
-                bool done = false;
+            list<thread> workers;
+            mutex shared_result_mutex;
+            atomic<bool> do_a_restart{ false };
 
-                for (int discrepancy_k = 0 ; ! done ; ++discrepancy_k) {
-                    bool used_all_discrepancies = false;
-
-                    ++result.propagations;
-                    if (propagate(domains, assignments)) {
-                        auto assignments_copy = assignments;
-
-                        switch (dds_search(assignments_copy, domains, result.nodes, result.propagations,
-                                    result.solution_count, 0, discrepancy_k, used_all_discrepancies)) {
-                            case DiscrepancySearchResult::Satisfiable:
-                                save_result(assignments_copy, result);
-                                result.complete = true;
-                                done = true;
-                                break;
-
-                            case DiscrepancySearchResult::SatisfiableButKeepGoing:
-                            case DiscrepancySearchResult::Unsatisfiable:
-                                if (! used_all_discrepancies) {
-                                    result.complete = true;
-                                    done = true;
-                                    result.extra_stats.emplace_back("last_discrepancy = " + to_string(discrepancy_k));
-                                }
-                                break;
-
-                            case DiscrepancySearchResult::Aborted:
-                                done = true;
-                                break;
-                        }
-                    }
-                    else {
-                        result.complete = true;
-                        done = true;
-                    }
-                }
+            vector<SearchData> search_data(params.n_threads);
+            for (int t = 0 ; t < params.n_threads ; ++t) {
+                if (0 != t)
+                    search_data[t].thread_rand.seed(t);
+                search_data[t].watches.initialise(pattern_size, target_size);
             }
-            else {
-                bool done = false;
-                list<long long> luby = {{ 1 }};
-                auto current_luby = luby.begin();
-                double current_geometric = params.restarts_constant;
-                unsigned number_of_restarts = 0;
 
-                while (! done) {
-                    long long backtracks_until_restart;
+            barrier nogoods_ready_barrier{ unsigned(params.n_threads) }, nogoods_shared_barrier{ unsigned(params.n_threads) };
 
-                    if (params.enumerate || 0 == params.restarts_constant)
-                        backtracks_until_restart = -1;
-                    else if (0.0 != params.geometric_multiplier) {
-                        current_geometric *= params.geometric_multiplier;
-                        backtracks_until_restart = round(current_geometric);
-                    }
-                    else {
-                        backtracks_until_restart = *current_luby * params.restarts_constant;
-                        if (next(current_luby) == luby.end()) {
-                            luby.insert(luby.end(), luby.begin(), luby.end());
-                            luby.push_back(*luby.rbegin() * 2);
+            for (int t = 0 ; t < params.n_threads ; ++t) {
+                workers.emplace_back([t, &params = this->params, &s = search_data[t], &all_search_data = search_data,
+                        &top_domains, &shared_result, &shared_result_mutex, &nogoods_ready_barrier, &nogoods_shared_barrier,
+                        &do_a_restart, this] () -> void {
+                    Result thread_result;
+                    Domains domains = top_domains;
+
+                    Assignments assignments;
+                    assignments.values.reserve(pattern_size);
+
+                    // do the appropriate search variant
+                    bool done = false;
+                    list<long long> luby = {{ 1 }};
+                    auto current_luby = luby.begin();
+                    double current_geometric = params.restarts_constant;
+                    unsigned number_of_restarts = 0;
+
+                    // keep going until someone posts an empty nogood, signifying done
+                    while (true) {
+                        long long backtracks_until_restart;
+
+                        if (params.enumerate || 0 == params.restarts_constant)
+                            backtracks_until_restart = -1;
+                        else if (params.triggered_restarts && 0 != t)
+                            backtracks_until_restart = -1;
+                        else if (0.0 != params.geometric_multiplier) {
+                            current_geometric *= params.geometric_multiplier;
+                            backtracks_until_restart = round(current_geometric);
+                        } else {
+                            backtracks_until_restart = *current_luby * params.restarts_constant;
+                            if (next(current_luby) == luby.end()) {
+                                luby.insert(luby.end(), luby.begin(), luby.end());
+                                luby.push_back(*luby.rbegin() * 2);
+                            }
+                            ++current_luby;
                         }
-                        ++current_luby;
-                    }
 
-                    ++number_of_restarts;
+                        ++number_of_restarts;
 
-                    // start watching new nogoods. we're not backjumping so this is a bit icky.
-                    for (auto & n : need_to_watch) {
-                        if (n->literals.empty()) {
-                            done = true;
-                            break;
-                        }
-                        else if (1 == n->literals.size()) {
-                            for (auto & d : domains)
-                                if (d.v == n->literals[0].pattern_vertex) {
-                                    d.values.reset(n->literals[0].target_vertex);
-                                    d.count = d.values.count();
+                        nogoods_ready_barrier.count_down_and_wait();
+
+                        // start watching new nogoods from all threads
+                        for (auto & ss : all_search_data) {
+                            for (auto & new_nogood : ss.need_to_watch) {
+                                // have to copy nogoods not owned by us, they are permuted
+                                Nogoods::iterator n = new_nogood;
+                                if (&ss != &s)
+                                    n = s.nogoods.insert(s.nogoods.end(), *new_nogood);
+
+                                if (n->literals.empty()) {
+                                    done = true;
                                     break;
                                 }
+                                else if (1 == n->literals.size()) {
+                                    for (auto & d : domains)
+                                        if (d.v == n->literals[0].pattern_vertex) {
+                                            d.values.reset(n->literals[0].target_vertex);
+                                            d.count = d.values.count();
+                                            break;
+                                        }
+                                }
+                                else {
+                                    s.watches[n->literals[0]].push_back(n);
+                                    s.watches[n->literals[1]].push_back(n);
+                                }
+                            }
+                        }
+
+                        if (0 == t)
+                            do_a_restart = false;
+
+                        nogoods_shared_barrier.count_down_and_wait();
+
+                        // clear our own "need to watch" list
+                        s.need_to_watch.clear();
+
+                        if (done)
+                            break;
+
+                        ++thread_result.propagations;
+                        if (propagate(s, domains, assignments)) {
+                            auto assignments_copy = assignments;
+
+                            switch (restarting_search(s, assignments_copy, domains, thread_result.nodes, thread_result.propagations,
+                                        thread_result.solution_count, 0, backtracks_until_restart, do_a_restart)) {
+                                case SearchResult::Satisfiable:
+                                    save_result(assignments_copy, thread_result);
+                                    thread_result.extra_stats.emplace_back("stop_reason = satisfiable");
+                                    thread_result.complete = true;
+                                    done = true;
+                                    post_nogood(s, Assignments{});
+                                    params.abort->store(true);
+                                    break;
+
+                                case SearchResult::SatisfiableButKeepGoing:
+                                    thread_result.extra_stats.emplace_back("stop_reason = satisfiable_but_keep_going");
+                                    thread_result.complete = true;
+                                    done = true;
+                                    post_nogood(s, Assignments{});
+                                    break;
+
+                                case SearchResult::Unsatisfiable:
+                                    thread_result.extra_stats.emplace_back("stop_reason = unsatisfiable");
+                                    thread_result.complete = true;
+                                    done = true;
+                                    params.abort->store(true);
+                                    post_nogood(s, Assignments{});
+                                    break;
+
+                                case SearchResult::Aborted:
+                                    thread_result.extra_stats.emplace_back("stop_reason = aborted");
+                                    done = true;
+                                    post_nogood(s, Assignments{});
+                                    break;
+
+                                case SearchResult::Restart:
+                                    break;
+                            }
                         }
                         else {
-                            watches[n->literals[0]].push_back(n);
-                            watches[n->literals[1]].push_back(n);
+                            thread_result.extra_stats.emplace_back("stop_reason = propagation");
+                            thread_result.complete = true;
+                            done = true;
+                            params.abort->store(true);
+                            post_nogood(s, Assignments{});
                         }
                     }
-                    need_to_watch.clear();
 
-                    if (done)
-                        break;
+                    if (! params.enumerate)
+                        thread_result.extra_stats.emplace_back("restarts = " + to_string(number_of_restarts));
 
-                    ++result.propagations;
-                    if (propagate(domains, assignments)) {
-                        auto assignments_copy = assignments;
+                    thread_result.extra_stats.emplace_back("nogoods_size = " + to_string(s.nogoods.size()));
+                    thread_result.extra_stats.emplace_back("nodes = " + to_string(thread_result.nodes));
+                    thread_result.extra_stats.emplace_back("propagations = " + to_string(thread_result.nodes));
 
-                        switch (restarting_search(assignments_copy, domains, result.nodes, result.propagations,
-                                    result.solution_count, 0, backtracks_until_restart)) {
-                            case SearchResult::Satisfiable:
-                                save_result(assignments_copy, result);
-                                result.complete = true;
-                                done = true;
-                                break;
-
-                            case SearchResult::SatisfiableButKeepGoing:
-                                result.complete = true;
-                                done = true;
-                                break;
-
-                            case SearchResult::Unsatisfiable:
-                                result.complete = true;
-                                done = true;
-                                break;
-
-                            case SearchResult::Aborted:
-                                done = true;
-                                break;
-
-                            case SearchResult::Restart:
-                                break;
-                        }
-                    }
-                    else {
-                        result.complete = true;
-                        done = true;
-                    }
-                }
-
-                if (! params.enumerate)
-                    result.extra_stats.emplace_back("restarts = " + to_string(number_of_restarts));
-
-                result.extra_stats.emplace_back("nogoods_size = " + to_string(nogoods.size()));
-
-                map<int, int> nogoods_lengths;
-                for (auto & n : nogoods)
-                    nogoods_lengths[n.literals.size()]++;
-
-                string nogoods_lengths_str;
-                for (auto & n : nogoods_lengths) {
-                    nogoods_lengths_str += " ";
-                    nogoods_lengths_str += to_string(n.first) + ":" + to_string(n.second);
-                }
-                result.extra_stats.emplace_back("nogoods_lengths =" + nogoods_lengths_str);
+                    scoped_lock<mutex> result_lock(shared_result_mutex);
+                    shared_result.merge("t" + to_string(t) + ".", thread_result);
+                });
             }
 
-            result.extra_stats.emplace_back("search_time = " + to_string(
+            for (auto & w : workers)
+                w.join();
+
+            shared_result.extra_stats.emplace_back("search_time = " + to_string(
                         duration_cast<milliseconds>(steady_clock::now() - search_start_time).count()));
 
-            return result;
-        }
-
-        auto presolve() -> Result
-        {
-            Result result;
-
-            // build complement graphs
-            if (params.induced) {
-                build_complement_graphs(pattern_graph_rows, pattern_size);
-                build_complement_graphs(target_graph_rows, target_size);
-            }
-
-            // pattern and target degrees, not including supplemental graphs
-            patterns_degrees.at(0).resize(pattern_size);
-            targets_degrees.at(0).resize(target_size);
-
-            for (unsigned i = 0 ; i < pattern_size ; ++i)
-                patterns_degrees.at(0).at(i) = pattern_graph_rows[i * max_graphs + 0].count();
-
-            for (unsigned i = 0 ; i < target_size ; ++i)
-                targets_degrees.at(0).at(i) = target_graph_rows[i * max_graphs + 0].count();
-
-            for (unsigned i = 0 ; i < target_size ; ++i)
-                largest_target_degree = max(largest_target_degree, targets_degrees[0][i]);
-
-            // pattern adjacencies, compressed
-            pattern_adjacencies_bits.resize(pattern_size * pattern_size);
-            for (unsigned i = 0 ; i < pattern_size ; ++i)
-                for (unsigned j = 0 ; j < pattern_size ; ++j) {
-                    if (pattern_graph_rows[i * max_graphs + 0].test(j))
-                        pattern_adjacencies_bits[i * pattern_size + j] |= (1u << 0);
-                    if (params.induced && pattern_graph_rows[i * max_graphs + 5].test(j))
-                        pattern_adjacencies_bits[i * pattern_size + j] |= (1u << 5);
-                }
-
-            // domains
-            Domains domains(pattern_size, Domain{ target_size });
-            if (! initialise_domains(domains, true)) {
-                result.complete = true;
-                return result;
-            }
-
-            // assignments
-            Assignments assignments;
-            assignments.values.reserve(pattern_size);
-
-            // start search timer
-            auto search_start_time = steady_clock::now();
-
-            // do just a little bit of search
-            bool done = false;
-
-            for (int pass = 0 ; pass < (params.enumerate ? 1 : 100) && ! done ; ++pass) {
-                auto assignments_copy = assignments;
-                auto domains_copy = domains;
-                long long backtracks_until_give_up = (params.enumerate ? 1000 : 10);
-                ++result.propagations;
-                if (propagate(domains_copy, assignments_copy)) {
-                    switch (restarting_search(assignments_copy, domains_copy, result.nodes, result.propagations,
-                                result.solution_count, 0, backtracks_until_give_up)) {
-                        case SearchResult::Satisfiable:
-                            save_result(assignments_copy, result);
-                            result.complete = true;
-                            done = true;
-                            break;
-
-                        case SearchResult::SatisfiableButKeepGoing:
-                            result.complete = true;
-                            done = true;
-                            break;
-
-                        case SearchResult::Unsatisfiable:
-                            result.complete = true;
-                            done = true;
-                            break;
-
-                        case SearchResult::Aborted:
-                            done = true;
-                            break;
-
-                        case SearchResult::Restart:
-                            break;
-                    }
-                }
-                else {
-                    result.complete = true;
-                    done = true;
-                }
-            }
-
-            result.extra_stats.emplace_back("search_time = " + to_string(
-                        duration_cast<milliseconds>(steady_clock::now() - search_start_time).count()));
-
-            return result;
+            return shared_result;
         }
 
         auto run() -> Result
@@ -1324,39 +1185,17 @@ namespace
                 return result;
             }
 
-            Result presolve_result;
-            auto presolve_start_time = steady_clock::now();
-
-            if (params.presolve) {
-                presolve_result = presolve();
-                if (presolve_result.complete)
-                    presolve_result.extra_stats.emplace_back("presolved = true");
-            }
-
-            auto presolve_time = duration_cast<milliseconds>(steady_clock::now() - presolve_start_time).count();
-
-            if (presolve_result.complete)
-                return presolve_result;
-
             Result result = solve();
-
-            if (params.presolve) {
-                for (auto & s : presolve_result.extra_stats)
-                    result.extra_stats.emplace_back("presolve_" + s);
-                result.extra_stats.emplace_back("presolved = false");
-                result.extra_stats.emplace_back("presolve_time = " + to_string(presolve_time));
-            }
-
             return result;
         }
     };
 }
 
-auto sequential_subgraph_isomorphism(const pair<InputGraph, InputGraph> & graphs, const Params & params) -> Result
+auto parallel_subgraph_isomorphism(const pair<InputGraph, InputGraph> & graphs, const Params & params) -> Result
 {
     if (graphs.first.size() > graphs.second.size())
         return Result{ };
 
-    return select_graph_size<SIP, Result>(AllGraphSizes(), graphs.second, graphs.first, params);
+    return select_graph_size<ParallelSIP, Result>(AllGraphSizes(), graphs.second, graphs.first, params);
 }
 

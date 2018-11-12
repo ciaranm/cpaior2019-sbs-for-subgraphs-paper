@@ -2,6 +2,7 @@
 
 #include "formats/read_file_format.hh"
 #include "solver.hh"
+#include "parallel_solver.hh"
 
 #include <boost/program_options.hpp>
 
@@ -121,9 +122,16 @@ auto main(int argc, char * argv[]) -> int
             ("presolve",                                     "Try presolving (hacky, experimental, possibly useful for easy instances")
             ("nogood-size-limit",  po::value<int>(),         "Maximum size of nogood to generate (0 disables nogoods")
             ("restarts-constant",  po::value<int>(),         "How often to perform restarts (0 disables restarts)")
+            ("geometric-restarts", po::value<double>(),      "Use geometric restarts with the specified multiplier (default is Luby)")
             ("value-ordering",     po::value<std::string>(), "Specify value-ordering heuristic (biased / degree / antidegree / random)");
-
         display_options.add(configuration_options);
+
+        po::options_description parallel_options{ "Parallelism options" };
+        parallel_options.add_options()
+            ("threads",            po::value<int>(),         "Number of threads to use (1 for sequential)")
+            ("triggered-restarts",                           "Trigger restarts using the first thread");
+            ;
+        display_options.add(parallel_options);
 
         po::options_description all_options{ "All options" };
         all_options.add_options()
@@ -160,20 +168,26 @@ auto main(int argc, char * argv[]) -> int
             return EXIT_FAILURE;
         }
 
-        auto algorithm = sequential_subgraph_isomorphism;
-
         /* Figure out what our options should be. */
         Params params;
+
+        if (options_vars.count("threads"))
+            params.n_threads = options_vars["threads"].as<int>();
+
+        auto algorithm = (1 == params.n_threads) ? sequential_subgraph_isomorphism : parallel_subgraph_isomorphism;
 
         params.induced = options_vars.count("induced");
         params.enumerate = options_vars.count("enumerate");
         params.presolve = options_vars.count("presolve");
         params.dds = options_vars.count("dds");
+        params.triggered_restarts = options_vars.count("triggered-restarts");
 
         if (options_vars.count("nogood-size-limit"))
             params.nogood_size_limit = options_vars["nogood-size-limit"].as<int>();
         if (options_vars.count("restarts-constant"))
             params.restarts_constant = options_vars["restarts-constant"].as<int>();
+        if (options_vars.count("geometric-restarts"))
+            params.geometric_multiplier = options_vars["geometric-restarts"].as<double>();
 
         if (options_vars.count("value-ordering")) {
             std::string value_ordering_heuristic = options_vars["value-ordering"].as<std::string>();

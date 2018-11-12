@@ -3,9 +3,10 @@
 #ifndef GLASGOW_SUBGRAPH_SOLVER_RESULT_HH
 #define GLASGOW_SUBGRAPH_SOLVER_RESULT_HH 1
 
-#include <map>
-#include <list>
 #include <chrono>
+#include <list>
+#include <map>
+#include <string>
 
 struct Result
 {
@@ -26,6 +27,9 @@ struct Result
 
     /// Did we perform a complete search?
     bool complete = false;
+
+    /// Merge contents of another result
+    auto merge(const std::string & prefix, const Result & other) -> void;
 };
 
 #endif
