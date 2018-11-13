@@ -1042,6 +1042,7 @@ namespace
                     auto current_luby = luby.begin();
                     double current_geometric = params.restarts_constant;
                     unsigned number_of_restarts = 0;
+                    bool first_pass = true;
 
                     // keep going until someone posts an empty nogood, signifying done
                     while (true) {
@@ -1065,42 +1066,46 @@ namespace
 
                         ++number_of_restarts;
 
-                        nogoods_ready_barrier.count_down_and_wait();
+                        if (! first_pass) {
+                            nogoods_ready_barrier.count_down_and_wait();
 
-                        // start watching new nogoods from all threads
-                        for (auto & ss : all_search_data) {
-                            for (auto & new_nogood : ss.need_to_watch) {
-                                // have to copy nogoods not owned by us, they are permuted
-                                Nogoods::iterator n = new_nogood;
-                                if (&ss != &s)
-                                    n = s.nogoods.insert(s.nogoods.end(), *new_nogood);
+                            // start watching new nogoods from all threads
+                            for (auto & ss : all_search_data) {
+                                for (auto & new_nogood : ss.need_to_watch) {
+                                    // have to copy nogoods not owned by us, they are permuted
+                                    Nogoods::iterator n = new_nogood;
+                                    if (&ss != &s)
+                                        n = s.nogoods.insert(s.nogoods.end(), *new_nogood);
 
-                                if (n->literals.empty()) {
-                                    done = true;
-                                    break;
-                                }
-                                else if (1 == n->literals.size()) {
-                                    for (auto & d : domains)
-                                        if (d.v == n->literals[0].pattern_vertex) {
-                                            d.values.reset(n->literals[0].target_vertex);
-                                            d.count = d.values.count();
-                                            break;
-                                        }
-                                }
-                                else {
-                                    s.watches[n->literals[0]].push_back(n);
-                                    s.watches[n->literals[1]].push_back(n);
+                                    if (n->literals.empty()) {
+                                        done = true;
+                                        break;
+                                    }
+                                    else if (1 == n->literals.size()) {
+                                        for (auto & d : domains)
+                                            if (d.v == n->literals[0].pattern_vertex) {
+                                                d.values.reset(n->literals[0].target_vertex);
+                                                d.count = d.values.count();
+                                                break;
+                                            }
+                                    }
+                                    else {
+                                        s.watches[n->literals[0]].push_back(n);
+                                        s.watches[n->literals[1]].push_back(n);
+                                    }
                                 }
                             }
+
+                            if (0 == t)
+                                do_a_restart = false;
+
+                            nogoods_shared_barrier.count_down_and_wait();
+
+                            // clear our own "need to watch" list
+                            s.need_to_watch.clear();
                         }
 
-                        if (0 == t)
-                            do_a_restart = false;
-
-                        nogoods_shared_barrier.count_down_and_wait();
-
-                        // clear our own "need to watch" list
-                        s.need_to_watch.clear();
+                        first_pass = false;
 
                         if (done)
                             break;
