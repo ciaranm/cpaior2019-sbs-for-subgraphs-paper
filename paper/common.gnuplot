@@ -19,14 +19,18 @@ cumy(x)=(isfail(x) ? 1e-10 : 1)
 cumsaty(x)=(stringcolumn("sat") eq "1" ? cumy(x) : 1e-10)
 cumunsaty(x)=(stringcolumn("sat") eq "0" ? cumy(x) : 1e-10)
 
-norestarts="sequential13"
-softmax="sequentialinputordersoftmax13"
-random="sequentialshuffle13"
-randomrestarts="sequentialrestartsshuffle13"
-randomrestartsgoods="sequentialrestartsshufflegoods13"
-anti="sequentialantiheuristic13"
-final="sequentialinputordersoftmaxrestarts13"
-dds="sequentialdds13"
+norestarts="glasgowdegreenorestartsnonogoods"
+softmax="glasgowbiasednorestartsnonogoods"
+random="glasgowrandomnorestartsnonogoods"
+randomrestarts="glasgowrandom"
+biasedrestartsgoods="glasgowbiasednonogoods"
+anti="glasgowantinorestartsnonogoods"
+final="glasgowbiased"
+dds="glasgowdegreenorestartsnonogoodsdds"
+
+par="glasgowbiasedthreads32"
+parconst="glasgowbiasedconstantthreads32"
+parconsttick="glasgowbiasedconstanttriggeredthreads32"
 
 mcsplitdown="mcsplitdown14"
 mcsplitdownbiasedrestarts="mcsplitdownbiasedrestarts14"
@@ -39,8 +43,8 @@ pathlad="pathlad"
 vf2="vf2"
 ri="ri"
 
-norestartsinduced="sequentialinduced13"
-finalinduced="sequentialinputordersoftmaxrestartsinduced13"
+norestartsinduced="glasgowdegreenorestartsnonogoodsinduced"
+finalinduced="glasgowbiasedinduced"
 
 pathladinduced="pathladinduced"
 vf2induced="vf2induced"

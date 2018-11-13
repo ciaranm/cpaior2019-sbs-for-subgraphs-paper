@@ -6,6 +6,37 @@ set output "gen-graph-restarts.tex"
 load "parula.pal"
 load "common.gnuplot"
 
+solvedfinal=-1
+solvednorestarts=-1
+set table "/dev/null"
+plot "runtimes.data" u (cumx(norestarts)):(solvednorestarts=solvednorestarts+(stringcolumn("sat")ne"1"||isfail(norestarts)?0:1)) smooth cumulative
+plot "runtimes.data" u (cumx(final)):(solvedfinal=solvedfinal+(stringcolumn("sat")ne"1"||isfail(final)?0:1)) smooth cumulative
+unset table
+
+set table "gen-as-runtimes-norestarts-sat.data"
+set format x '%.0f'
+set format x '%.0f'
+plot "runtimes.data" u (cumx(norestarts)):(stringcolumn("sat")ne"1"||isfail(norestarts)?0:1) smooth cumulative
+unset table
+
+set table "gen-as-runtimes-final-sat.data"
+set format x '%.0f'
+set format x '%.0f'
+plot "runtimes.data" u (cumx(final)):(stringcolumn("sat")ne"1"||isfail(final)?0:1) smooth cumulative
+unset table
+
+lastnorestarts=0
+lastnorestartsvalue=0
+set table "/dev/null"
+plot "gen-as-runtimes-norestarts-sat.data" u 1:(valid(2)?lastnorestartsvalue=$2:NaN)
+plot "gen-as-runtimes-norestarts-sat.data" u 1:(lastnorestarts=(valid(1)&&lastnorestarts==0&&$2==lastnorestartsvalue)?(sprintf("%d",$1)):(lastnorestarts))
+unset table
+
+finalthreshold=1e6
+set table "/dev/null"
+plot "gen-as-runtimes-final-sat.data" u 1:(finalthreshold=($2>=solvednorestarts&&valid(1)&&$1<finalthreshold)?(sprintf("%d",$1)):(finalthreshold))
+unset table
+
 set xlabel "Runtime (ms)"
 set ylabel "Sat Instances Solved" offset 0.5
 set xrange [1e2:1e6]
@@ -13,6 +44,9 @@ set logscale x
 set format x '$10^{%T}$'
 set yrange [1400:2100]
 set key bottom right Left samplen 2 width -6
+
+set arrow 1 from lastnorestarts, solvednorestarts to finalthreshold, solvednorestarts front
+set label 1 right at lastnorestarts, solvednorestarts "".sprintf("$%.1f{\\times}$", ((0.0+lastnorestarts) / finalthreshold)) offset character 1.0, character 0.5
 
 plot \
     "runtimes.data" u (cumx(final)):(cumsaty(final)) smooth cumulative w l ti 'Biased + Restarts' ls 1, \

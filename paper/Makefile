@@ -9,18 +9,17 @@ GRAPHS = \
 	 gen-graph-scatter-dds.pdf \
 	 gen-graph-dds.pdf \
 	 gen-graph-scatter-random.pdf \
-	 gen-graph-scatter-random-goods.pdf \
+	 gen-graph-scatter-biased-goods.pdf \
 	 gen-graph-others.pdf \
 	 gen-graph-others-zoom.pdf \
 	 gen-graph-others-induced.pdf \
 	 gen-graph-others-induced-zoom.pdf \
 	 gen-graph-scatter-heuristics.pdf \
 	 gen-graph-scatter-by-family.pdf \
-	 gen-graph-as.pdf \
 	 gen-graph-scatter-mcsplit.pdf \
 	 gen-graph-scatter-kdown.pdf \
 	 gen-graph-mcs.pdf \
-	 gen-graph-as-mcs.pdf
+	 gen-graph-parallel.pdf
 
 gen-n-sat.tex : runtimes.data
 	cut -d' ' -f3 < runtimes.data | grep --count 1 | sed -e 's#\([0-9][0-9][0-9]\)$$#,\1#'> $@

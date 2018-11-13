@@ -1,12 +1,12 @@
 # vim: set et ft=gnuplot sw=4 :
 
 set terminal tikz standalone color size 5.63cm,6cm font '\scriptsize' preamble '\usepackage{times,microtype}'
-set output "gen-graph-scatter-random-goods.tex"
+set output "gen-graph-scatter-biased-goods.tex"
 
 load "parula.pal"
 load "common.gnuplot"
 
-set xlabel "Degree Search Time (ms)"
+set xlabel "Biased Search Time (ms)"
 set ylabel "Without Nogoods Search Time (ms)" offset 0.5
 set logscale x
 set logscale y
@@ -19,7 +19,7 @@ plotfile="searchtimes.data"
 satcol="sat"
 famcol="family"
 xcol=norestarts
-ycol=randomrestartsgoods
+ycol=biasedrestartsgoods
 
 load "scatter.gnuplot"
 

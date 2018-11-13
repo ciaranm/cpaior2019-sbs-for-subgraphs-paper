@@ -44,11 +44,12 @@ supported by the Engineering and Physical Sciences Research Council (grant numbe
 EP/M508056/1). This work used the Cirrus UK National Tier-2 HPC Service at EPCC
 (http://www.cirrus.ac.uk) funded by the University of Edinburgh and EPSRC (EP/P020267/1).}}
 
-\author{Ciaran McCreesh\orcidID{0000-0002-6106-4871}\and
+\author{Blair Archibald\orcidID{????-????-????-????}\and
+Ciaran McCreesh\orcidID{0000-0002-6106-4871}\and
 Patrick Prosser\orcidID{0000-0003-4460-6912} \and
 James Trimble\orcidID{0000-0001-7282-8745}}
 
-\authorrunning{C. McCreesh et al.}
+\authorrunning{B. Archibald et al.}
 
 \institute{University of Glasgow, Glasgow, Scotland\\
 \email{ciaran.mccreesh@glasgow.ac.uk}}
@@ -296,11 +297,14 @@ structures and algorithms, and propagates constraints in a fixed order rather th
 
 \subsection{Experimental Setup}
 
-Our experiments are performed on systems with dual Intel Xeon E5-2697A v4 CPUs and 512GBytes RAM,
-running Ubuntu 17.04, using GCC 7.2.0 as the compiler. We use a deterministic pseudo-random number
-generator for reproducibility.  We use the dataset introduced by \citet{Kotthoff et al.\
-}{DBLP:conf/lion/KotthoffMS16} for evaluation. This dataset brings together a range of
-randomly-generated and application instance families from earlier papers:
+Our experiments are performed on the EPCC Cirrus HPC facility, on systems with dual Intel Xeon
+E5-2695 v4 CPUs and 256GBytes RAM, running Centos 7.3.1611. ?? C++ native threads, MPI. We use GCC
+7.2.0 as the compiler. ?? Steady clock times. We use a deterministic pseudo-random number generator
+for reproducibility.
+
+We use the dataset introduced by \citet{Kotthoff et al.\ }{DBLP:conf/lion/KotthoffMS16} for
+evaluation. This dataset brings together a range of randomly-generated and application instance
+families from earlier papers:
 
 \begin{description}
     \item[BVG(r), M4D(r), and Rand] are families of randomly generated graphs using different models (bounded
@@ -540,8 +544,8 @@ done alongside a mechanism to avoid heavy commitment to any particular random ch
 \Cref{figure:old-vs-new} also shows that the biased heuristic together with restarts is better
 still---that is, if we are introducing restarts, then it is better to add a small amount of
 randomness to a tailored heuristic than it is to throw away the heuristic altogether.  Indeed, the
-original algorithm can solve 1,983 satisfiable instances by 993.0 seconds, whilst the biased and
-random restarting algorithms require only 9.2 seconds and 33.8 seconds respectively to solve the
+original algorithm can solve ?? satisfiable instances by ?? seconds, whilst the biased and
+random restarting algorithms require only ?? seconds and ?? seconds respectively to solve the
 same number.
 
 In the more detailed view in the right-hand plot of \cref{figure:old-vs-new}, comparing the basic
@@ -556,7 +560,7 @@ backtracking search in a setting where we both have a strong \emph{value}-orderi
 \emph{and} care about both satisfiable and unsatisfiable instances.
 
 \begin{figure}[tb]
-    \includegraphics*{gen-graph-scatter-random-goods.pdf}
+    \includegraphics*{gen-graph-scatter-biased-goods.pdf}
     \hfill
     \includegraphics*{gen-graph-scatter-random.pdf}
     \caption{On the left, not using nogood recording introduces slowdowns, particularly on
@@ -567,11 +571,18 @@ backtracking search in a setting where we both have a strong \emph{value}-orderi
 
 As we might expect, these properties do not hold if any of the combination of changes are disabled.
 In the left-hand plot of \cref{figure:features}, we see large slowdowns on unsatisfiable instances
-when using a random value ordering and restarts but without nogood recording, and on the right-hand
-plot we see many more satisfiable instances above the $x-y$ diagonal when using the random
-value-ordering heuristic as opposed to the degree-biased heuristic.
+when disabling nogood recording, and on the right-hand plot we see many more satisfiable instances
+above the $x-y$ diagonal when using the random value-ordering heuristic as opposed to the
+degree-biased heuristic.
 
 \section{Parallel Search}
+
+\begin{figure}[tb]
+    \centering
+    \includegraphics*{gen-graph-parallel.pdf}
+
+    \caption{Parallel}\label{figure:parallel}
+\end{figure}
 
 ?? No sharing, sharing with Luby restarts, sharing with constant restarts, sharing with triggered
 restarts
