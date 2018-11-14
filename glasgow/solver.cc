@@ -668,6 +668,7 @@ namespace
                 if (! propagate(new_domains, assignments)) {
                     // failure? restore assignments and go on to the next thing
                     assignments.values.resize(assignments_size);
+                    actually_hit_a_failure = true;
                     continue;
                 }
 
