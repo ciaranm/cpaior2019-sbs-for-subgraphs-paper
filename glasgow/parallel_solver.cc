@@ -704,15 +704,10 @@ namespace
             }
 
             int discrepancy_count = 0;
-            bool actually_hit_a_success = false, actually_hit_a_failure = false, completed_the_loop = true;
+            bool actually_hit_a_success = false, actually_hit_a_failure = false;
 
             // for each value remaining...
             for (auto f_v = branch_v.begin(), f_end = branch_v.begin() + branch_v_end ; f_v != f_end ; ++f_v) {
-                if (do_a_restart) {
-                    completed_the_loop = false;
-                    break;
-                }
-
                 // modified in-place by appending, we can restore by shrinking
                 auto assignments_size = assignments.values.size();
 
@@ -734,7 +729,7 @@ namespace
                 // recursive search
                 auto search_result = restarting_search(s, assignments, new_domains, nodes, propagations,
                         solution_count, depth + 1, backtracks_until_restart, do_a_restart);
-
+                    
                 switch (search_result) {
                     case SearchResult::Satisfiable:
                         return SearchResult::Satisfiable;
@@ -774,8 +769,7 @@ namespace
             // no values remaining, backtrack, or possibly kick off a restart
             if ((do_a_restart) || (actually_hit_a_failure && backtracks_until_restart > 0 && 0 == --backtracks_until_restart)) {
                 do_a_restart = true;
-                if (completed_the_loop)
-                    post_nogood(s, assignments);
+                post_nogood(s, assignments);
                 return SearchResult::Restart;
             }
             else if (actually_hit_a_success)
