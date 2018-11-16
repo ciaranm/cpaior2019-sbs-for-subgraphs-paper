@@ -1,0 +1,15 @@
+hostname = r1i4n21
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=antidegree --nogood-size-limit=0 --restarts-constant=0 --timeout 1000 --format lad ../instances/LV/g9 ../instances/LV/g26
+started_at = 2018-11-11 12:10:01
+pattern_file = ../instances/LV/g9
+target_file = ../instances/LV/g26
+status = true
+nodes = 56
+propagations = 132
+mapping = (0 -> 5) (1 -> 50) (2 -> 7) (3 -> 56) (4 -> 15) (5 -> 39) (6 -> 0) (7 -> 3) (8 -> 71) (9 -> 27) (10 -> 34) (11 -> 75) (12 -> 54) (13 -> 6) (14 -> 52) (15 -> 1) (16 -> 24) (17 -> 65) (18 -> 17) (19 -> 62) (20 -> 68) (21 -> 36) (22 -> 26) (23 -> 18) (24 -> 57) (25 -> 60) (26 -> 43) (27 -> 2) (28 -> 47) (29 -> 32) (30 -> 46) (31 -> 58) (32 -> 4) (33 -> 72) (34 -> 8) (35 -> 9) (36 -> 10) 
+runtime = 1
+where = 0/24 -1/-1 2/8 -1/-1 0/5 -1/-1 0/5 -1/-1 -1/-1 3/4 -1/-1 0/5 -1/-1 0/4 -1/-1 0/3 -1/-1 0/2 -1/-1 -1/-1 0/6 -1/-1 -1/-1 0/5 -1/-1 0/4 -1/-1 0/3 -1/-1 0/11 -1/-1 0/5 -1/-1 0/4 -1/-1 0/3 -1/-1 0/10 -1/-1 0/16 -1/-1 0/7 -1/-1 0/6 -1/-1 0/5 -1/-1 0/4 -1/-1 0/3 -1/-1 0/2 -1/-1 -1/-1 0/25 -1/-1 0/24 -1/-1
+restarts = 1
+nogoods_size = 0
+nogoods_lengths =
+search_time = 0

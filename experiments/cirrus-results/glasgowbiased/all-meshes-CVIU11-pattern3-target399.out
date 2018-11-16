@@ -1,0 +1,13 @@
+hostname = r2i2n30
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --timeout 1000 --format lad ../instances/meshes-CVIU11/patterns/pattern3 ../instances/meshes-CVIU11/targets/target399
+started_at = 2018-11-15 18:56:10
+pattern_file = ../instances/meshes-CVIU11/patterns/pattern3
+target_file = ../instances/meshes-CVIU11/targets/target399
+status = aborted
+nodes = 39704720
+propagations = 83518654
+runtime = 1000039
+restarts = 9585
+nogoods_size = 102580
+nogoods_lengths = 1:70 2:953 3:1428 4:485 5:587 6:535 7:619 8:876 9:1108 10:1324 11:1619 12:1932 13:2244 14:2752 15:3285 16:3680 17:4001 18:4164 19:4101 20:4020 21:3933 22:3707 23:3672 24:3628 25:3564 26:3663 27:3493 28:3608 29:3571 30:3352 31:3244 32:3072 33:2874 34:2621 35:2473 36:2198 37:1924 38:1742 39:1485 40:1152 41:993 42:766 43:627 44:444 45:319 46:237 47:163 48:106 49:56 50:45 51:41 52:10 53:8 54:1 55:4 56:1
+search_time = 999866

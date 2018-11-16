@@ -1,0 +1,15 @@
+hostname = r1i4n24
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=degree --nogood-size-limit=0 --restarts-constant=0 --timeout 1000 --format lad ../instances/images-CVIU11/patterns/pattern15 ../instances/images-CVIU11/targets/target67
+started_at = 2018-11-11 12:25:06
+pattern_file = ../instances/images-CVIU11/patterns/pattern15
+target_file = ../instances/images-CVIU11/targets/target67
+status = true
+nodes = 30
+propagations = 339
+mapping = (0 -> 4294) (1 -> 4293) (2 -> 4292) (3 -> 4291) (4 -> 4302) (5 -> 4301) (6 -> 4290) (7 -> 4289) (8 -> 4288) (9 -> 4304) (10 -> 4303) (11 -> 4296) (12 -> 4297) (13 -> 4298) (14 -> 4299) (15 -> 4300) (16 -> 4295) (17 -> 4406) (18 -> 4305) 
+runtime = 204
+where = 21/1036 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1
+restarts = 1
+nogoods_size = 0
+nogoods_lengths =
+search_time = 2

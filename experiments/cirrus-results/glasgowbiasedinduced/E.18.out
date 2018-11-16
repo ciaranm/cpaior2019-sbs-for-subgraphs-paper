@@ -1,0 +1,13 @@
+hostname = r2i1n34
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --induced --timeout 1000 --format lad ../instances/scalefree/E.18/pattern ../instances/scalefree/E.18/target
+started_at = 2018-11-15 19:15:12
+pattern_file = ../instances/scalefree/E.18/pattern
+target_file = ../instances/scalefree/E.18/target
+status = false
+nodes = 0
+propagations = 1
+runtime = 122
+restarts = 1
+nogoods_size = 0
+nogoods_lengths =
+search_time = 0

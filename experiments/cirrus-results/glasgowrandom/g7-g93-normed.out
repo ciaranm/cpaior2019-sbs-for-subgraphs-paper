@@ -1,0 +1,15 @@
+hostname = r2i2n27
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=random --timeout 1000 --format lad ../instances/LV/g7 ../instances/largerGraphs/g93-normed
+started_at = 2018-11-15 20:03:11
+pattern_file = ../instances/LV/g7
+target_file = ../instances/largerGraphs/g93-normed
+status = true
+nodes = 1391
+propagations = 5016
+mapping = (0 -> 1377) (1 -> 236) (2 -> 277) (3 -> 816) (4 -> 177) (5 -> 777) (6 -> 216) (7 -> 877) (8 -> 836) (9 -> 494) (10 -> 458) (11 -> 487) (12 -> 598) (13 -> 426) (14 -> 523) (15 -> 454) (16 -> 566) (17 -> 515) (18 -> 594) (19 -> 586) 
+runtime = 1638
+where = 0/1800 -1/-1 0/266 -1/-1 0/195 -1/-1 0/71 -1/-1 0/70 -1/-1 0/36 -1/-1 0/14 -1/-1 1/13 -1/-1 0/7 -1/-1 0/6 -1/-1 0/5 -1/-1 0/4 -1/-1 0/3 -1/-1 0/2 -1/-1 -1/-1 0/6 -1/-1 0/5 -1/-1 0/4 -1/-1 0/3 -1/-1 0/2 -1/-1
+restarts = 3
+nogoods_size = 40
+nogoods_lengths = 6:5 7:15 8:5 9:2 10:2 11:5 12:6
+search_time = 6

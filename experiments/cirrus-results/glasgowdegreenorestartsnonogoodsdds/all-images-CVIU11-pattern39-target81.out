@@ -1,0 +1,11 @@
+hostname = r1i1n23
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=degree --nogood-size-limit=0 --restarts-constant=0 --dds --timeout 1000 --format lad ../instances/images-CVIU11/patterns/pattern39 ../instances/images-CVIU11/targets/target81
+started_at = 2018-11-11 12:02:38
+pattern_file = ../instances/images-CVIU11/patterns/pattern39
+target_file = ../instances/images-CVIU11/targets/target81
+status = false
+nodes = 18
+propagations = 53
+runtime = 126
+last_discrepancy = 5
+search_time = 0

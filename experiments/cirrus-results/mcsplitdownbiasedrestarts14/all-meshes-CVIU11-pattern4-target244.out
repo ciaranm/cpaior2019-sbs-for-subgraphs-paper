@@ -1,0 +1,27 @@
+New incumbent 1 at time 381 ms
+New incumbent 2 at time 382 ms
+New incumbent 3 at time 383 ms
+Upper bound: 39
+New incumbent 4 at time 517 ms
+New incumbent 5 at time 523 ms
+Upper bound: 38
+New incumbent 6 at time 1159 ms
+Upper bound: 37
+New incumbent 7 at time 1361 ms
+New incumbent 8 at time 1414 ms
+Upper bound: 36
+New incumbent 9 at time 5312 ms
+New incumbent 10 at time 42719 ms
+Upper bound: 35
+New incumbent 11 at time 231060 ms
+New incumbent 12 at time 241233 ms
+Solution size 12
+(0 -> 1) (2 -> 795) (3 -> 796) (4 -> 797) (6 -> 962) (7 -> 961) (9 -> 988) (10 -> 994) (11 -> 991) (14 -> 869) (15 -> 932) (16 -> 936) 
+Peak nogood count:                  356517
+Final nogood count:                 353439
+Nodes:                              32527769
+Time of last incumbent update (ms): 241233
+CPU time (ms):                      1000504
+TIMEOUT
+Summary:
+TIMEOUT 356517 353439 32527769 241233 1000504

@@ -1,0 +1,13 @@
+hostname = r2i2n21
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --induced --timeout 1000 --format lad ../instances/LV/g11 ../instances/LV/g40
+started_at = 2018-11-15 19:38:44
+pattern_file = ../instances/LV/g11
+target_file = ../instances/LV/g40
+status = false
+nodes = 46952
+propagations = 383927
+runtime = 285
+restarts = 31
+nogoods_size = 1332
+nogoods_lengths = 1:109 2:836 3:362 4:25
+search_time = 279

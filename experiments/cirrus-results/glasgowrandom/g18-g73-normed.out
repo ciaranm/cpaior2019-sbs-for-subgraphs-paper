@@ -1,0 +1,13 @@
+hostname = r1i1n11
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=random --timeout 1000 --format lad ../instances/LV/g18 ../instances/largerGraphs/g73-normed
+started_at = 2018-11-15 18:53:52
+pattern_file = ../instances/LV/g18
+target_file = ../instances/largerGraphs/g73-normed
+status = aborted
+nodes = 166499719
+propagations = 485285469
+runtime = 1000451
+restarts = 33796
+nogoods_size = 606796
+nogoods_lengths = 1:50 2:231 3:2113 4:7014 5:12638 6:16036 7:17372 8:15423 9:14226 10:12786 11:12230 12:12579 13:12772 14:12407 15:12513 16:13113 17:14356 18:15783 19:18266 20:21348 21:24951 22:28844 23:32708 24:35360 25:36638 26:36495 27:34345 28:31552 29:27796 30:22468 31:17565 32:13188 33:9006 34:5772 35:3381 36:1842 37:973 38:433 39:142 40:59 41:16 42:4 43:1 44:1
+search_time = 1000028

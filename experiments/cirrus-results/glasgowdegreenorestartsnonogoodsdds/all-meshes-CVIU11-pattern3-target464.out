@@ -1,0 +1,10 @@
+hostname = r1i4n27
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=degree --nogood-size-limit=0 --restarts-constant=0 --dds --timeout 1000 --format lad ../instances/meshes-CVIU11/patterns/pattern3 ../instances/meshes-CVIU11/targets/target464
+started_at = 2018-11-11 12:48:32
+pattern_file = ../instances/meshes-CVIU11/patterns/pattern3
+target_file = ../instances/meshes-CVIU11/targets/target464
+status = aborted
+nodes = 18148482
+propagations = 22816175
+runtime = 1000004
+search_time = 998803

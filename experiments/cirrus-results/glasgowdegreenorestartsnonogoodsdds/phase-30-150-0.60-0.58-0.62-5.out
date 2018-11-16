@@ -1,0 +1,12 @@
+hostname = r2i1n34
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=degree --nogood-size-limit=0 --restarts-constant=0 --dds --timeout 1000 --format lad ../instances/phase/phase-30-150-0.60-0.58-0.62-5-pattern ../instances/phase/phase-30-150-0.60-0.58-0.62-5-target
+started_at = 2018-11-11 11:28:34
+pattern_file = ../instances/phase/phase-30-150-0.60-0.58-0.62-5-pattern
+target_file = ../instances/phase/phase-30-150-0.60-0.58-0.62-5-target
+status = true
+nodes = 326649739
+propagations = 550071726
+mapping = (0 -> 77) (1 -> 128) (2 -> 41) (3 -> 55) (4 -> 79) (5 -> 63) (6 -> 126) (7 -> 3) (8 -> 44) (9 -> 108) (10 -> 106) (11 -> 15) (12 -> 110) (13 -> 43) (14 -> 139) (15 -> 97) (16 -> 62) (17 -> 65) (18 -> 113) (19 -> 89) (20 -> 38) (21 -> 137) (22 -> 135) (23 -> 131) (24 -> 71) (25 -> 117) (26 -> 119) (27 -> 6) (28 -> 56) (29 -> 7) 
+runtime = 639420
+where = 0/150 -1/-1 0/106 -1/-1 1/71 -1/-1 2/52 -1/-1 4/39 -1/-1 2/24 -1/-1 0/17 -1/-1 1/12 -1/-1 7/10 -1/-1 1/7 -1/-1 1/5 -1/-1 0/3 -1/-1 0/2 -1/-1 0/2 -1/-1 0/3 -1/-1 0/2 -1/-1 0/3 -1/-1 0/2 -1/-1 0/2 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1
+search_time = 639407

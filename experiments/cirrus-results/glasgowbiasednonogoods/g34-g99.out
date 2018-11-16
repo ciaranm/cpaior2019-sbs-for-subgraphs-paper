@@ -1,0 +1,13 @@
+hostname = r2i2n12
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --nogood-size-limit=0 --timeout 1000 --format lad ../instances/LV/g34 ../instances/largerGraphs/g99
+started_at = 2018-11-15 19:17:49
+pattern_file = ../instances/LV/g34
+target_file = ../instances/largerGraphs/g99
+status = false
+nodes = 18899
+propagations = 65824
+runtime = 753
+restarts = 15
+nogoods_size = 0
+nogoods_lengths =
+search_time = 718

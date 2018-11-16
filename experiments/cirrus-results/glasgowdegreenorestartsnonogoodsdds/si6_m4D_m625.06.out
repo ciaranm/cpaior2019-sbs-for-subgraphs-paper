@@ -1,0 +1,10 @@
+hostname = r1i2n21
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=degree --nogood-size-limit=0 --restarts-constant=0 --dds --timeout 1000 --format lad ../instances/si/si6_m4D_m4D_625/si6_m4D_m625.06/pattern ../instances/si/si6_m4D_m4D_625/si6_m4D_m625.06/target
+started_at = 2018-11-11 12:29:54
+pattern_file = ../instances/si/si6_m4D_m4D_625/si6_m4D_m625.06/pattern
+target_file = ../instances/si/si6_m4D_m4D_625/si6_m4D_m625.06/target
+status = aborted
+nodes = 7614462
+propagations = 42161697
+runtime = 1000001
+search_time = 999967

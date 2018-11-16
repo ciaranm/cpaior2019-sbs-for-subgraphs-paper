@@ -1,0 +1,15 @@
+hostname = r1i4n21
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=random --nogood-size-limit=0 --restarts-constant=0 --timeout 1000 --format lad ../instances/si/si2_bvg_b09_200/si2_b09_m200.07/pattern ../instances/si/si2_bvg_b09_200/si2_b09_m200.07/target
+started_at = 2018-11-11 12:51:41
+pattern_file = ../instances/si/si2_bvg_b09_200/si2_b09_m200.07/pattern
+target_file = ../instances/si/si2_bvg_b09_200/si2_b09_m200.07/target
+status = true
+nodes = 3
+propagations = 3
+mapping = (0 -> 62) (1 -> 76) (2 -> 127) (3 -> 116) (4 -> 181) (5 -> 134) (6 -> 46) (7 -> 37) (8 -> 128) (9 -> 32) (10 -> 54) (11 -> 172) (12 -> 98) (13 -> 198) (14 -> 136) (15 -> 57) (16 -> 40) (17 -> 194) (18 -> 45) (19 -> 120) (20 -> 179) (21 -> 35) (22 -> 135) (23 -> 82) (24 -> 70) (25 -> 20) (26 -> 184) (27 -> 185) (28 -> 108) (29 -> 145) (30 -> 177) (31 -> 77) (32 -> 149) (33 -> 180) (34 -> 85) (35 -> 138) (36 -> 164) (37 -> 28) (38 -> 51) (39 -> 162) 
+runtime = 3
+where = 0/200 -1/-1 -1/-1 0/2 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1
+restarts = 1
+nogoods_size = 0
+nogoods_lengths =
+search_time = 0

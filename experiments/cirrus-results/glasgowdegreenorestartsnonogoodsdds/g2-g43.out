@@ -1,0 +1,12 @@
+hostname = r2i1n34
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=degree --nogood-size-limit=0 --restarts-constant=0 --dds --timeout 1000 --format lad ../instances/LV/g2 ../instances/LV/g43
+started_at = 2018-11-11 12:16:01
+pattern_file = ../instances/LV/g2
+target_file = ../instances/LV/g43
+status = true
+nodes = 11
+propagations = 11
+mapping = (0 -> 114) (1 -> 125) (2 -> 19) (3 -> 122) (4 -> 115) (5 -> 112) (6 -> 52) (7 -> 44) (8 -> 29) (9 -> 23) 
+runtime = 1
+where = 0/127 -1/-1 0/29 -1/-1 0/27 -1/-1 0/26 -1/-1 0/24 -1/-1 0/23 -1/-1 0/22 -1/-1 0/21 -1/-1 0/20 -1/-1 0/12 -1/-1
+search_time = 0

@@ -39,17 +39,17 @@
 
 \begin{document}
 
-\title{Beating Simple Backtracking Search in Subgraph Algorithms\thanks{This work was
-supported by the Engineering and Physical Sciences Research Council (grant numbers EP/026842/1 and
-EP/M508056/1). This work used the Cirrus UK National Tier-2 HPC Service at EPCC
+\title{Sequential and Parallel Solution-Biased Search for Subgraph Algorithms\thanks{This work was
+supported by the Engineering and Physical Sciences Research Council (grant numbers EP/P026842/1,
+EP/M508056/1, and EP/N007565). This work used the Cirrus UK National Tier-2 HPC Service at EPCC
 (http://www.cirrus.ac.uk) funded by the University of Edinburgh and EPSRC (EP/P020267/1).}}
 
-\author{Blair Archibald\orcidID{????-????-????-????}\and
+\author{Blair Archibald\orcidID{0000-0003-3699-6658}\and
 Ciaran McCreesh\orcidID{0000-0002-6106-4871}\and
 Patrick Prosser\orcidID{0000-0003-4460-6912} \and
 James Trimble\orcidID{0000-0001-7282-8745}}
 
-\authorrunning{B. Archibald et al.}
+%\authorrunning{B. Archibald et al.}
 
 \institute{University of Glasgow, Glasgow, Scotland\\
 \email{ciaran.mccreesh@glasgow.ac.uk}}
@@ -580,6 +580,12 @@ degree-biased heuristic.
 \begin{figure}[tb]
     \centering
     \includegraphics*{gen-graph-parallel.pdf}
+
+    \medskip
+
+    \includegraphics*{gen-graph-scatter-par.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-parconsttick.pdf}
 
     \caption{Parallel}\label{figure:parallel}
 \end{figure}

@@ -1,0 +1,9 @@
+hostname = r1i4n23
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --nogood-size-limit=0 --restarts-constant=0 --timeout 1000 --format lad ../instances/LV/g15 ../instances/largerGraphs/g66-normed
+started_at = 2018-11-11 12:28:26
+pattern_file = ../instances/LV/g15
+target_file = ../instances/largerGraphs/g66-normed
+status = false
+nodes = 0
+propagations = 0
+runtime = 6

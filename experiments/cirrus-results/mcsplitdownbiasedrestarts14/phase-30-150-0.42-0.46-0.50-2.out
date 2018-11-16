@@ -1,0 +1,20 @@
+New incumbent 1 at time 2 ms
+New incumbent 2 at time 2 ms
+New incumbent 3 at time 2 ms
+New incumbent 4 at time 2 ms
+New incumbent 5 at time 2 ms
+New incumbent 6 at time 2 ms
+New incumbent 7 at time 3 ms
+New incumbent 8 at time 15 ms
+New incumbent 9 at time 254260 ms
+Upper bound: 29
+Solution size 9
+(0 -> 114) (4 -> 106) (9 -> 60) (10 -> 113) (14 -> 104) (20 -> 123) (22 -> 81) (25 -> 36) (29 -> 23) 
+Peak nogood count:                  9304
+Final nogood count:                 9284
+Nodes:                              107815707
+Time of last incumbent update (ms): 254260
+CPU time (ms):                      1000008
+TIMEOUT
+Summary:
+TIMEOUT 9304 9284 107815707 254260 1000008

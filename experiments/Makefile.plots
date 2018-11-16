@@ -13,6 +13,9 @@ GLASGOW_ALGORITHMS := \
     glasgowrandom \
     glasgowbiased \
     glasgowbiasednonogoods \
+    glasgowbiasedconstant10000threads36 \
+    glasgowbiasedconstant10000triggered2threads36 \
+    glasgowbiasedthreads36
 
 LAD_ALGORITHMS := pathlad
 VF2_ALGORITHMS := vf2

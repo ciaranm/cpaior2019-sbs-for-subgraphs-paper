@@ -1,0 +1,13 @@
+hostname = r2i2n9
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=random --timeout 1000 --format lad ../instances/si/si2_rand_r01_600/si2_r01_m600.08/pattern ../instances/si/si2_rand_r01_600/si2_r01_m600.08/target
+started_at = 2018-11-15 19:41:17
+pattern_file = ../instances/si/si2_rand_r01_600/si2_r01_m600.08/pattern
+target_file = ../instances/si/si2_rand_r01_600/si2_r01_m600.08/target
+status = aborted
+nodes = 31957129
+propagations = 94395477
+runtime = 1000056
+restarts = 8190
+nogoods_size = 165179
+nogoods_lengths = 1:203 2:26642 3:86936 4:18566 5:21384 6:8968 7:1990 8:428 9:59 10:3
+search_time = 999831

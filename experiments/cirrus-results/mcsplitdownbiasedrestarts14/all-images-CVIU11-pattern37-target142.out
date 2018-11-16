@@ -1,0 +1,49 @@
+New incumbent 1 at time 564 ms
+New incumbent 2 at time 566 ms
+New incumbent 3 at time 566 ms
+New incumbent 4 at time 566 ms
+New incumbent 5 at time 566 ms
+New incumbent 6 at time 566 ms
+New incumbent 7 at time 566 ms
+New incumbent 8 at time 581 ms
+New incumbent 9 at time 582 ms
+New incumbent 10 at time 582 ms
+New incumbent 11 at time 766 ms
+Upper bound: 103
+New incumbent 12 at time 940 ms
+New incumbent 13 at time 940 ms
+New incumbent 14 at time 1472 ms
+New incumbent 15 at time 1472 ms
+New incumbent 16 at time 1472 ms
+New incumbent 17 at time 1550 ms
+New incumbent 18 at time 2988 ms
+New incumbent 19 at time 2988 ms
+Upper bound: 102
+New incumbent 20 at time 9207 ms
+New incumbent 21 at time 10920 ms
+New incumbent 22 at time 11432 ms
+New incumbent 23 at time 17217 ms
+New incumbent 24 at time 17401 ms
+New incumbent 25 at time 19496 ms
+New incumbent 26 at time 19496 ms
+Upper bound: 101
+New incumbent 27 at time 61648 ms
+New incumbent 28 at time 61648 ms
+New incumbent 29 at time 94342 ms
+New incumbent 30 at time 310466 ms
+New incumbent 31 at time 310467 ms
+New incumbent 32 at time 310467 ms
+Upper bound: 100
+New incumbent 33 at time 712293 ms
+New incumbent 34 at time 833429 ms
+New incumbent 35 at time 863312 ms
+Solution size 35
+(0 -> 2125) (1 -> 2126) (2 -> 2127) (3 -> 2128) (4 -> 2120) (5 -> 2121) (6 -> 2133) (7 -> 2134) (8 -> 2135) (9 -> 2107) (10 -> 2108) (11 -> 2109) (12 -> 2282) (13 -> 2283) (14 -> 2286) (18 -> 2112) (20 -> 2113) (21 -> 2114) (23 -> 2119) (24 -> 2118) (28 -> 1933) (31 -> 2040) (32 -> 2041) (56 -> 2044) (59 -> 2129) (60 -> 2124) (61 -> 2123) (63 -> 2122) (64 -> 2043) (68 -> 2116) (69 -> 2117) (84 -> 2098) (85 -> 2284) (86 -> 2285) (87 -> 2281) 
+Peak nogood count:                  122245
+Final nogood count:                 122245
+Nodes:                              19418002
+Time of last incumbent update (ms): 863312
+CPU time (ms):                      1000190
+TIMEOUT
+Summary:
+TIMEOUT 122245 122245 19418002 863312 1000190

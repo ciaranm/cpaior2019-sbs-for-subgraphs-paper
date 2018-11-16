@@ -1,0 +1,53 @@
+New incumbent 1 at time 101 ms
+New incumbent 2 at time 101 ms
+New incumbent 3 at time 101 ms
+New incumbent 4 at time 101 ms
+New incumbent 5 at time 101 ms
+New incumbent 6 at time 101 ms
+New incumbent 7 at time 103 ms
+New incumbent 8 at time 105 ms
+Upper bound: 44
+New incumbent 9 at time 165 ms
+New incumbent 10 at time 165 ms
+New incumbent 11 at time 165 ms
+New incumbent 12 at time 315 ms
+New incumbent 13 at time 322 ms
+New incumbent 14 at time 322 ms
+New incumbent 15 at time 460 ms
+Upper bound: 43
+New incumbent 16 at time 2080 ms
+New incumbent 17 at time 2082 ms
+New incumbent 18 at time 3186 ms
+New incumbent 19 at time 3186 ms
+New incumbent 20 at time 3186 ms
+New incumbent 21 at time 3186 ms
+New incumbent 22 at time 3186 ms
+Upper bound: 42
+New incumbent 23 at time 10841 ms
+New incumbent 24 at time 12694 ms
+New incumbent 25 at time 16838 ms
+New incumbent 26 at time 37410 ms
+New incumbent 27 at time 43807 ms
+New incumbent 28 at time 43807 ms
+New incumbent 29 at time 129154 ms
+New incumbent 30 at time 129154 ms
+New incumbent 31 at time 129154 ms
+Upper bound: 41
+New incumbent 32 at time 655088 ms
+New incumbent 33 at time 655089 ms
+New incumbent 34 at time 824134 ms
+New incumbent 35 at time 824134 ms
+New incumbent 36 at time 824134 ms
+New incumbent 37 at time 824134 ms
+New incumbent 38 at time 824134 ms
+New incumbent 39 at time 824170 ms
+Solution size 39
+(0 -> 663) (1 -> 662) (3 -> 1064) (4 -> 1065) (5 -> 1183) (6 -> 1182) (7 -> 1181) (8 -> 1062) (9 -> 1061) (10 -> 1058) (12 -> 1057) (13 -> 1056) (14 -> 1200) (16 -> 679) (17 -> 678) (18 -> 667) (19 -> 666) (20 -> 665) (21 -> 664) (22 -> 676) (23 -> 675) (25 -> 927) (26 -> 928) (27 -> 646) (28 -> 645) (29 -> 674) (30 -> 652) (31 -> 651) (32 -> 650) (33 -> 647) (34 -> 673) (35 -> 643) (36 -> 644) (37 -> 642) (38 -> 671) (39 -> 670) (40 -> 669) (41 -> 677) (44 -> 1063) 
+Peak nogood count:                  234272
+Final nogood count:                 158348
+Nodes:                              35451512
+Time of last incumbent update (ms): 824170
+CPU time (ms):                      1000306
+TIMEOUT
+Summary:
+TIMEOUT 234272 158348 35451512 824170 1000306

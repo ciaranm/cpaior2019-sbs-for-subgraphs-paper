@@ -1,0 +1,15 @@
+hostname = r1i0n16
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=antidegree --nogood-size-limit=0 --restarts-constant=0 --timeout 1000 --format lad ../instances/LV/g5 ../instances/largerGraphs/g60-normed
+started_at = 2018-11-11 12:05:53
+pattern_file = ../instances/LV/g5
+target_file = ../instances/largerGraphs/g60-normed
+status = true
+nodes = 951
+propagations = 2250
+mapping = (0 -> 110) (1 -> 120) (2 -> 47) (3 -> 117) (4 -> 258) (5 -> 223) (6 -> 246) (7 -> 54) (8 -> 72) (9 -> 27) (10 -> 121) 
+runtime = 5
+where = 1/69 -1/-1 0/10 -1/-1 0/3 -1/-1 0/2 -1/-1 -1/-1 0/6 -1/-1 0/5 -1/-1 0/4 -1/-1 0/3 -1/-1 0/2 -1/-1 -1/-1
+restarts = 1
+nogoods_size = 0
+nogoods_lengths =
+search_time = 1

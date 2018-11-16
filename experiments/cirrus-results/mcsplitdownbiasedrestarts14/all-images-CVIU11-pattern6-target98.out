@@ -1,0 +1,60 @@
+New incumbent 1 at time 355 ms
+New incumbent 2 at time 357 ms
+New incumbent 3 at time 357 ms
+New incumbent 4 at time 357 ms
+New incumbent 5 at time 358 ms
+New incumbent 6 at time 396 ms
+Upper bound: 52
+New incumbent 7 at time 562 ms
+New incumbent 8 at time 562 ms
+New incumbent 9 at time 563 ms
+New incumbent 10 at time 563 ms
+New incumbent 11 at time 563 ms
+New incumbent 12 at time 580 ms
+New incumbent 13 at time 580 ms
+New incumbent 14 at time 626 ms
+New incumbent 15 at time 1154 ms
+New incumbent 16 at time 1222 ms
+New incumbent 17 at time 2128 ms
+New incumbent 18 at time 2336 ms
+New incumbent 19 at time 2337 ms
+New incumbent 20 at time 2337 ms
+Upper bound: 51
+New incumbent 21 at time 2759 ms
+New incumbent 22 at time 2759 ms
+New incumbent 23 at time 2759 ms
+New incumbent 24 at time 2760 ms
+New incumbent 25 at time 2760 ms
+New incumbent 26 at time 2760 ms
+New incumbent 27 at time 2761 ms
+New incumbent 28 at time 2761 ms
+New incumbent 29 at time 3318 ms
+New incumbent 30 at time 3336 ms
+New incumbent 31 at time 3784 ms
+New incumbent 32 at time 8007 ms
+New incumbent 33 at time 8007 ms
+New incumbent 34 at time 8007 ms
+New incumbent 35 at time 8007 ms
+New incumbent 36 at time 8007 ms
+New incumbent 37 at time 27431 ms
+New incumbent 38 at time 27431 ms
+New incumbent 39 at time 27431 ms
+Upper bound: 50
+New incumbent 40 at time 57387 ms
+New incumbent 41 at time 57387 ms
+New incumbent 42 at time 57387 ms
+New incumbent 43 at time 89854 ms
+New incumbent 44 at time 89854 ms
+New incumbent 45 at time 89854 ms
+New incumbent 46 at time 142299 ms
+New incumbent 47 at time 142299 ms
+Solution size 47
+(0 -> 1394) (1 -> 1395) (2 -> 1256) (3 -> 1397) (4 -> 1393) (6 -> 1921) (7 -> 1920) (8 -> 1935) (9 -> 1945) (12 -> 1871) (14 -> 1916) (15 -> 1917) (16 -> 1953) (17 -> 1952) (18 -> 1938) (19 -> 1939) (20 -> 1951) (21 -> 1936) (22 -> 1937) (23 -> 1943) (24 -> 1942) (25 -> 1940) (27 -> 1344) (28 -> 1311) (30 -> 1316) (31 -> 1343) (32 -> 1317) (33 -> 1318) (34 -> 1331) (35 -> 1332) (36 -> 1333) (37 -> 1334) (38 -> 1335) (39 -> 1241) (40 -> 1240) (41 -> 1243) (42 -> 1338) (43 -> 1339) (44 -> 1340) (45 -> 1248) (46 -> 1249) (47 -> 1250) (48 -> 1251) (49 -> 1252) (50 -> 1253) (51 -> 1254) (52 -> 1396) 
+Peak nogood count:                  64933
+Final nogood count:                 64873
+Nodes:                              29444469
+Time of last incumbent update (ms): 142299
+CPU time (ms):                      1000163
+TIMEOUT
+Summary:
+TIMEOUT 64933 64873 29444469 142299 1000163

@@ -1,0 +1,12 @@
+hostname = r1i4n29
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=degree --nogood-size-limit=0 --restarts-constant=0 --dds --timeout 1000 --format lad ../instances/LV/g6 ../instances/largerGraphs/g58-normed
+started_at = 2018-11-11 12:27:29
+pattern_file = ../instances/LV/g6
+target_file = ../instances/largerGraphs/g58-normed
+status = true
+nodes = 412
+propagations = 692
+mapping = (0 -> 217) (1 -> 275) (2 -> 149) (3 -> 210) (4 -> 151) (5 -> 61) (6 -> 60) (7 -> 1) (8 -> 243) (9 -> 34) (10 -> 266) (11 -> 113) (12 -> 153) (13 -> 258) (14 -> 201) (15 -> 160) (16 -> 43) (17 -> 164) (18 -> 16) 
+runtime = 3
+where = 0/22 -1/-1 5/14 -1/-1 1/5 -1/-1 -1/-1 -1/-1 -1/-1 0/4 -1/-1 0/3 -1/-1 0/4 -1/-1 0/3 -1/-1 -1/-1 -1/-1 0/5 -1/-1 0/3 -1/-1 0/2 -1/-1 0/5 -1/-1 0/7 -1/-1 0/13 -1/-1 0/24 -1/-1
+search_time = 0
