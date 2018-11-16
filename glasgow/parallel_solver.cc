@@ -704,12 +704,14 @@ namespace
             }
 
             int discrepancy_count = 0;
-            bool actually_hit_a_success = false, actually_hit_a_failure = false;
+            bool actually_hit_a_success = false, actually_hit_a_failure = false, completed_the_loop = true;
 
             // for each value remaining...
             for (auto f_v = branch_v.begin(), f_end = branch_v.begin() + branch_v_end ; f_v != f_end ; ++f_v) {
-                if (do_a_restart)
+                if (do_a_restart) {
+                    completed_the_loop = false;
                     break;
+                }
 
                 // modified in-place by appending, we can restore by shrinking
                 auto assignments_size = assignments.values.size();
@@ -772,7 +774,8 @@ namespace
             // no values remaining, backtrack, or possibly kick off a restart
             if ((do_a_restart) || (actually_hit_a_failure && backtracks_until_restart > 0 && 0 == --backtracks_until_restart)) {
                 do_a_restart = true;
-                post_nogood(s, assignments);
+                if (completed_the_loop)
+                    post_nogood(s, assignments);
                 return SearchResult::Restart;
             }
             else if (actually_hit_a_success)
