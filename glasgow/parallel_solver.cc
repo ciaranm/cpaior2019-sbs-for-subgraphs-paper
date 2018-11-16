@@ -708,6 +708,9 @@ namespace
 
             // for each value remaining...
             for (auto f_v = branch_v.begin(), f_end = branch_v.begin() + branch_v_end ; f_v != f_end ; ++f_v) {
+                if (do_a_restart)
+                    break;
+
                 // modified in-place by appending, we can restore by shrinking
                 auto assignments_size = assignments.values.size();
 
