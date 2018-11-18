@@ -41,6 +41,8 @@ struct Result
 #ifdef WITH_MPI
     template <typename Archive_>
     void serialize(Archive_ & ar, const unsigned int) {
+        ar & nodes;
+        ar & propagations;
         ar & isomorphism;
         ar & extra_stats;
     }

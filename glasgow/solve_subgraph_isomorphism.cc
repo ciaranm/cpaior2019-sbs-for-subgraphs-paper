@@ -41,6 +41,7 @@ using std::exception;
 using std::function;
 using std::localtime;
 using std::make_pair;
+using std::move;
 using std::mutex;
 using std::put_time;
 using std::string;
@@ -252,16 +253,13 @@ auto main(int argc, char * argv[]) -> int
 
 #ifdef WITH_MPI
         /* Merge resulty things */
+        Result combined_result;
         vector<Result> all_results;
-        Result empty_result;
-        gather(mpi_comm, 0 == mpi_comm.rank() ? empty_result : result, all_results, 0);
-        if (do_output_here) {
-            for (auto & r : all_results) {
-                if (! r.isomorphism.empty())
-                    result.isomorphism = r.isomorphism;
-                result.extra_stats.insert(result.extra_stats.end(), r.extra_stats.begin(), r.extra_stats.end());
-            }
-        }
+        gather(mpi_comm, result, all_results, 0);
+        if (do_output_here)
+            for (auto & r : all_results)
+                combined_result.merge("", r);
+        result = move(combined_result);
 #endif
 
         if (do_output_here) {
