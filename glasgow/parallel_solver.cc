@@ -729,7 +729,7 @@ namespace
                 // recursive search
                 auto search_result = restarting_search(s, assignments, new_domains, nodes, propagations,
                         solution_count, depth + 1, backtracks_until_restart, do_a_restart);
-                    
+
                 switch (search_result) {
                     case SearchResult::Satisfiable:
                         return SearchResult::Satisfiable;
