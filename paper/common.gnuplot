@@ -13,11 +13,15 @@ set xtics nomirror
 set ytics nomirror
 
 timeout=1e6
+issat(x)=stringcolumn("sat") eq "1" ? 1 : 0
+isunsat(x)=stringcolumn("sat") eq "0" ? 1 : 0
 isfail(x)=(stringcolumn(x) eq "NaN" || column(x) >= timeout)
 cumx(x)=(isfail(x) ? 1e6 : ((x eq ri || x eq riinduced) ? column(x) * 1000 : column(x)))
+cumsatx(x)=(issat(x) ? cumx(x) : 0)
+cumunsatx(x)=(isunsat(x) ? cumx(x) : 0)
 cumy(x)=(isfail(x) ? 1e-10 : 1)
-cumsaty(x)=(stringcolumn("sat") eq "1" ? cumy(x) : 1e-10)
-cumunsaty(x)=(stringcolumn("sat") eq "0" ? cumy(x) : 1e-10)
+cumsaty(x)=(issat(x) ? cumy(x) : 1e-10)
+cumunsaty(x)=(issat(x) ? cumy(x) : 1e-10)
 
 norestarts="glasgowdegreenorestartsnonogoods"
 softmax="glasgowbiasednorestartsnonogoods"
@@ -28,9 +32,11 @@ anti="glasgowantinorestartsnonogoods"
 final="glasgowbiased"
 dds="glasgowdegreenorestartsnonogoodsdds"
 
-par="glasgowbiasedthreads36"
-parconst="glasgowbiasedconstant10000threads36"
-parconsttick="glasgowbiasedconstant10000triggered2threads36"
+par="glasgowbiasedthreads36v2"
+par2="glasgowbiasedthreads36v2"
+parconst="glasgowbiasedconstant10000threads36v2"
+parconsttick="glasgowbiasedconstant10000triggeredthreads36v2"
+parconsttick2="glasgowbiasedconstant10000triggeredthreads36v2"
 
 mcsplitdown="mcsplitdown14"
 mcsplitdownbiasedrestarts="mcsplitdownbiasedrestarts14"

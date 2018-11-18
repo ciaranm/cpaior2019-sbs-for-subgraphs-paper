@@ -21,7 +21,11 @@ GRAPHS = \
 	 gen-graph-mcs.pdf \
 	 gen-graph-parallel.pdf \
 	 gen-graph-scatter-par.pdf \
-	 gen-graph-scatter-parconsttick.pdf
+	 gen-graph-scatter-parconsttick.pdf \
+	 gen-graph-scatter-par-repeat.pdf \
+	 gen-graph-scatter-parconsttick-repeat.pdf \
+	 gen-graph-scatter-parconst-nodes.pdf \
+	 gen-graph-scatter-parconsttick-nodes.pdf \
 
 gen-n-sat.tex : runtimes.data
 	cut -d' ' -f3 < runtimes.data | grep --count 1 | sed -e 's#\([0-9][0-9][0-9]\)$$#,\1#'> $@

@@ -8,7 +8,7 @@
 \usepackage{tikz}
 \usepackage{cleveref}
 
-% \usepackage{showframe}
+\usepackage{showframe}
 
 \newcommand{\neighbourhood}{\operatorname{N}}
 \newcommand{\vertexset}{\operatorname{V}}
@@ -58,18 +58,16 @@ James Trimble\orcidID{0000-0001-7282-8745}}
 
 \begin{abstract}
     The current state of the art in subgraph isomorphism solving involves using degree as a
-    value-ordering heuristics to direct backtracking search. Such a search makes a heavy commitment
-    to the first branching choice, which is often incorrect. We evaluate discrepancy-based searches
-    as an alternative, but find them too expensive to be effective in this situation, even on
-    satisfiable instances. We then demonstrate that a random value-ordering heuristic with restarts
-    beats conventional search with the best-known tailored heuristic. This motivates the
-    introduction of a novel slightly-random heuristic with similar behaviour to the tailored
-    heuristic: when combined with restarts and nogood recording, this new search strategy is over ??
-    times more effective on satisfiable instances, and does not affect performance on
-    unsatisfiable instances. Such a search can also be parallelised in a way which is much
-    simpler than conventional work-stealing: we obtain further speedups of ??  on ??  cores, and
-    ?? over ?? distributed-memory hosts. Finally, we show that this search strategy also improves
-    two maximum common induced subgraph algorithms.
+    value-ordering heuristic to direct backtracking search. Such a search makes a heavy commitment
+    to the first branching choice, which is often incorrect. To mitigate this, we introduce and
+    evaluate a new approach, which we call ``solution-biased search''. By combining a
+    slightly-random value-ordering heuristic, rapid restarts, and nogood recording, we achieve two
+    orders of magnitude faster performance on satisfiable instances, whilst not affecting
+    performance on unsatisfiable instances. This search can also be parallelised in a very simple
+    but effective way, giving us a further speedup of over thirty from thirty-six cores, across both
+    satisfiable and unsatisfiable instances.  Finally, we show that solution-biased search is also
+    suitable for optimisation problems, by using it to improve two maximum common induced subgraph
+    algorithms.
 \end{abstract}
 
 \section{Introduction}
@@ -577,7 +575,7 @@ degree-biased heuristic.
 
 \section{Parallel Search}
 
-\begin{figure}[tb]
+\begin{figure}[p]
     \centering
     \includegraphics*{gen-graph-parallel.pdf}
 
@@ -587,7 +585,21 @@ degree-biased heuristic.
     \hfill
     \includegraphics*{gen-graph-scatter-parconsttick.pdf}
 
+    \medskip
+
+    \includegraphics*{gen-graph-scatter-par-repeat.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-parconsttick-repeat.pdf}
+
     \caption{Parallel}\label{figure:parallel}
+\end{figure}
+
+\begin{figure}[tb]
+    \includegraphics*{gen-graph-scatter-parconst-nodes.pdf}
+    \hfill
+    \includegraphics*{gen-graph-scatter-parconsttick-nodes.pdf}
+
+    \caption{Parallel nodes}\label{figure:parallelnodes}
 \end{figure}
 
 ?? No sharing, sharing with Luby restarts, sharing with constant restarts, sharing with triggered
