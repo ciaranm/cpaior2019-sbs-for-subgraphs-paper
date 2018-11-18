@@ -2,7 +2,16 @@
 
 #include "formats/read_file_format.hh"
 #include "solver.hh"
-#include "parallel_solver.hh"
+
+#ifdef WITH_MPI
+#    include "mpi_solver.hh"
+#    include <boost/mpi/environment.hpp>
+#    include <boost/mpi/communicator.hpp>
+#    include <boost/mpi/collectives.hpp>
+#else
+#    include "solver.hh"
+#    include "parallel_solver.hh"
+#endif
 
 #include <boost/program_options.hpp>
 
@@ -15,6 +24,7 @@
 #include <iostream>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #include <unistd.h>
 
@@ -36,6 +46,7 @@ using std::put_time;
 using std::string;
 using std::thread;
 using std::unique_lock;
+using std::vector;
 
 using std::chrono::seconds;
 using std::chrono::steady_clock;
@@ -43,68 +54,17 @@ using std::chrono::system_clock;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 
-/* Helper: return a function that runs the specified algorithm, dealing
- * with timing information and timeouts. */
-template <typename Result_, typename Params_, typename Data_>
-auto run_this_wrapped(const function<Result_ (const Data_ &, const Params_ &)> & func)
-    -> function<Result_ (const Data_ &, Params_ &, bool &, int)>
-{
-    return [func] (const Data_ & data, Params_ & params, bool & aborted, int timeout) -> Result_ {
-        /* For a timeout, we use a thread and a timed CV. We also wake the
-         * CV up if we're done, so the timeout thread can terminate. */
-        thread timeout_thread;
-        mutex timeout_mutex;
-        condition_variable timeout_cv;
-        atomic<bool> abort;
-        abort.store(false);
-        params.abort = &abort;
-        if (0 != timeout) {
-            timeout_thread = thread([&] {
-                    auto abort_time = steady_clock::now() + seconds(timeout);
-                    {
-                        /* Sleep until either we've reached the time limit,
-                         * or we've finished all the work. */
-                        unique_lock<mutex> guard(timeout_mutex);
-                        while (! abort.load()) {
-                            if (cv_status::timeout == timeout_cv.wait_until(guard, abort_time)) {
-                                /* We've woken up, and it's due to a timeout. */
-                                aborted = true;
-                                break;
-                            }
-                        }
-                    }
-                    abort.store(true);
-                    });
-        }
-
-        /* Start the clock */
-        params.start_time = steady_clock::now();
-        auto result = func(data, params);
-
-        /* Clean up the timeout thread */
-        if (timeout_thread.joinable()) {
-            {
-                unique_lock<mutex> guard(timeout_mutex);
-                abort.store(true);
-                timeout_cv.notify_all();
-            }
-            timeout_thread.join();
-        }
-
-        return result;
-    };
-}
-
-/* Helper: return a function that runs the specified algorithm, dealing
- * with timing information and timeouts. */
-template <typename Result_, typename Params_, typename Data_>
-auto run_this(Result_ func(const Data_ &, const Params_ &)) -> function<Result_ (const Data_ &, Params_ &, bool &, int)>
-{
-    return run_this_wrapped(function<Result_ (const Data_ &, const Params_ &)>(func));
-}
+#ifdef WITH_MPI
+using boost::mpi::gather;
+#endif
 
 auto main(int argc, char * argv[]) -> int
 {
+#ifdef WITH_MPI
+    boost::mpi::environment mpi_env(boost::mpi::threading::level::multiple);
+    boost::mpi::communicator mpi_comm;
+#endif
+
     try {
         po::options_description display_options{ "Program options" };
         display_options.add_options()
@@ -174,7 +134,9 @@ auto main(int argc, char * argv[]) -> int
         if (options_vars.count("threads"))
             params.n_threads = options_vars["threads"].as<int>();
 
+#ifndef WITH_MPI
         auto algorithm = (1 == params.n_threads) ? sequential_subgraph_isomorphism : parallel_subgraph_isomorphism;
+#endif
 
         params.induced = options_vars.count("induced");
         params.enumerate = options_vars.count("enumerate");
@@ -205,16 +167,23 @@ auto main(int argc, char * argv[]) -> int
             }
         }
 
-        char hostname_buf[255];
-        if (0 == gethostname(hostname_buf, 255))
-            cout << "hostname = " << string(hostname_buf) << endl;
-        cout << "commandline =";
-        for (int i = 0 ; i < argc ; ++i)
-            cout << " " << argv[i];
-        cout << endl;
+        bool do_output_here = true;
+#ifdef WITH_MPI
+        do_output_here = mpi_comm.rank() == 0;
+#endif
 
-        auto started_at = system_clock::to_time_t(system_clock::now());
-        cout << "started_at = " << put_time(localtime(&started_at), "%F %T") << endl;
+        if (do_output_here) {
+            char hostname_buf[255];
+            if (0 == gethostname(hostname_buf, 255))
+                cout << "hostname = " << string(hostname_buf) << endl;
+            cout << "commandline =";
+            for (int i = 0 ; i < argc ; ++i)
+                cout << " " << argv[i];
+            cout << endl;
+
+            auto started_at = system_clock::to_time_t(system_clock::now());
+            cout << "started_at = " << put_time(localtime(&started_at), "%F %T") << endl;
+        }
 
         /* Read in the graphs */
         string default_format_name = options_vars.count("format") ? options_vars["format"].as<string>() : "auto";
@@ -224,46 +193,105 @@ auto main(int argc, char * argv[]) -> int
             read_file_format(pattern_format_name, options_vars["pattern-file"].as<string>()),
             read_file_format(target_format_name, options_vars["target-file"].as<string>()));
 
-        cout << "pattern_file = " << options_vars["pattern-file"].as<std::string>() << endl;
-        cout << "target_file = " << options_vars["target-file"].as<std::string>() << endl;
+        if (do_output_here) {
+            cout << "pattern_file = " << options_vars["pattern-file"].as<std::string>() << endl;
+            cout << "target_file = " << options_vars["target-file"].as<std::string>() << endl;
+        }
 
-        /* Do the actual run. */
+        int timeout = options_vars.count("timeout") ? options_vars["timeout"].as<int>() : 0;
+
+        /* For a timeout, we use a thread and a timed CV. We also wake the
+         * CV up if we're done, so the timeout thread can terminate. */
         bool aborted = false;
-        auto result = run_this(algorithm)(
-                graphs,
-                params,
-                aborted,
-                options_vars.count("timeout") ? options_vars["timeout"].as<int>() : 0);
+        thread timeout_thread;
+        mutex timeout_mutex;
+        condition_variable timeout_cv;
+        atomic<bool> abort;
+        abort.store(false);
+        params.abort = &abort;
+        if (0 != timeout) {
+            timeout_thread = thread([&] {
+                    auto abort_time = steady_clock::now() + seconds(timeout);
+                    {
+                        /* Sleep until either we've reached the time limit,
+                         * or we've finished all the work. */
+                        unique_lock<mutex> guard(timeout_mutex);
+                        while (! abort.load()) {
+                            if (cv_status::timeout == timeout_cv.wait_until(guard, abort_time)) {
+                                /* We've woken up, and it's due to a timeout. */
+                                aborted = true;
+                                break;
+                            }
+                        }
+                    }
+                    abort.store(true);
+                    });
+        }
+
+        /* Start the clock */
+        params.start_time = steady_clock::now();
+
+#ifdef WITH_MPI
+        auto result = mpi_subgraph_isomorphism(mpi_comm, graphs, params);
+#else
+        auto result = algorithm(graphs, params);
+#endif
 
         /* Stop the clock. */
         auto overall_time = duration_cast<milliseconds>(steady_clock::now() - params.start_time);
 
-        cout << "status = ";
-        if (aborted)
-            cout << "aborted";
-        else if ((! result.isomorphism.empty()) || (params.enumerate && result.solution_count > 0))
-            cout << "true";
-        else
-            cout << "false";
-        cout << endl;
-
-        if (params.enumerate)
-            cout << "solution_count = " << result.solution_count << endl;
-
-        cout << "nodes = " << result.nodes << endl;
-        cout << "propagations = " << result.propagations << endl;
-
-        if (! result.isomorphism.empty()) {
-            cout << "mapping = ";
-            for (auto v : result.isomorphism)
-                cout << "(" << v.first << " -> " << v.second << ") ";
-            cout << endl;
+        /* Clean up the timeout thread */
+        if (timeout_thread.joinable()) {
+            {
+                unique_lock<mutex> guard(timeout_mutex);
+                abort.store(true);
+                timeout_cv.notify_all();
+            }
+            timeout_thread.join();
         }
 
-        cout << "runtime = " << overall_time.count() << endl;
+#ifdef WITH_MPI
+        /* Merge resulty things */
+        vector<Result> all_results;
+        Result empty_result;
+        gather(mpi_comm, 0 == mpi_comm.rank() ? empty_result : result, all_results, 0);
+        if (do_output_here) {
+            for (auto & r : all_results) {
+                if (! r.isomorphism.empty())
+                    result.isomorphism = r.isomorphism;
+                result.extra_stats.insert(result.extra_stats.end(), r.extra_stats.begin(), r.extra_stats.end());
+            }
+        }
+#endif
 
-        for (const auto & s : result.extra_stats)
-            cout << s << endl;
+        if (do_output_here) {
+            cout << "status = ";
+            if (aborted)
+                cout << "aborted";
+            else if ((! result.isomorphism.empty()) || (params.enumerate && result.solution_count > 0))
+                cout << "true";
+            else
+                cout << "false";
+            cout << endl;
+
+            if (params.enumerate)
+                cout << "solution_count = " << result.solution_count << endl;
+
+            cout << "nodes = " << result.nodes << endl;
+            cout << "propagations = " << result.propagations << endl;
+
+            if (! result.isomorphism.empty()) {
+                cout << "mapping = ";
+                for (auto v : result.isomorphism)
+                    cout << "(" << v.first << " -> " << v.second << ") ";
+                cout << endl;
+            }
+
+            cout << "runtime = " << overall_time.count() << endl;
+
+            for (const auto & s : result.extra_stats)
+                cout << s << endl;
+        }
 
         if (! result.isomorphism.empty()) {
             for (int i = 0 ; i < graphs.first.size() ; ++i) {

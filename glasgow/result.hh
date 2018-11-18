@@ -8,6 +8,13 @@
 #include <map>
 #include <string>
 
+#ifdef WITH_MPI
+#    include <boost/serialization/vector.hpp>
+#    include <boost/serialization/list.hpp>
+#    include <boost/serialization/utility.hpp>
+#    include <boost/serialization/map.hpp>
+#endif
+
 struct Result
 {
     /// The isomorphism, empty if none found.
@@ -30,6 +37,14 @@ struct Result
 
     /// Merge contents of another result
     auto merge(const std::string & prefix, const Result & other) -> void;
+
+#ifdef WITH_MPI
+    template <typename Archive_>
+    void serialize(Archive_ & ar, const unsigned int) {
+        ar & isomorphism;
+        ar & extra_stats;
+    }
+#endif
 };
 
 #endif
