@@ -6,17 +6,12 @@ INSTANCES_FILE := instances.txt
 INSTANCES := $(shell cat $(INSTANCES_FILE) | $(CATTER) | cut -d' ' -f1 | if [[ $(FILTER) == -1 ]] ; then cat ; else awk "(NR % $(MODULUS)) == ($(FILTER) % $(MODULUS))" ; fi)
 TIMEOUT := 1000
 ALGORITHMS := \
-    glasgowdegreenorestartsnonogoods \
-    glasgowantinorestartsnonogoods \
-    glasgowrandomnorestartsnonogoods \
-    glasgowbiasednorestartsnonogoods \
-    glasgowdegreenorestartsnonogoodsdds \
-    glasgowrandom \
-    glasgowbiased \
-    glasgowbiasednonogoods \
-    glasgowdegreenorestartsnonogoodsinduced \
-    glasgowbiasedinduced \
-    glasgowbiasedconstant5400 \
+    glasgowbiasedthreads36v1 \
+    glasgowbiasedconstant5400threads36v1 \
+    glasgowbiasedconstant5400triggeredthreads36v1 \
+    glasgowbiasedthreads36v2 \
+    glasgowbiasedconstant5400threads36v2 \
+    glasgowbiasedconstant5400triggeredthreads36v2 \
 
 STACK_SPACE := 10485760
 RESULTS := results
@@ -38,6 +33,8 @@ $(RESULTS)/$(1)/%.out : | dir-$(1)
 	    $$$$(if echo $(1) | grep -q dds ; then echo --dds ; fi ) \
 	    $$$$(if echo $(1) | grep -q induced ; then echo --induced ; fi ) \
 	    $$$$(if echo $(1) | grep -q constant ; then echo --geometric-restarts=1.0 --restarts-constant=$$$$(echo $(1) | sed -e 's,.*constant\([1234567890]\+\).*,\1,' ) ; fi ) \
+	    $$$$(if echo $(1) | grep -q triggered ; then echo --triggered-restarts ; fi ) \
+	    $$$$(if echo $(1) | grep -q threads ; then echo --threads=$$$$(echo $(1) | sed -e 's,.*threads\([1234567890]\+\).*,\1,' ) ; fi ) \
 	    --timeout $$(TIMEOUT) \
 	    --format lad \
 	    $$(shell grep "^`basename $$*` " < instances.txt | cut -d' ' -f2-3 ) > >(tee $$@ )
