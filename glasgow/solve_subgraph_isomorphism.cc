@@ -83,6 +83,7 @@ auto main(int argc, char * argv[]) -> int
             ("presolve",                                     "Try presolving (hacky, experimental, possibly useful for easy instances")
             ("nogood-size-limit",  po::value<int>(),         "Maximum size of nogood to generate (0 disables nogoods")
             ("restarts-constant",  po::value<int>(),         "How often to perform restarts (0 disables restarts)")
+            ("restart-timer",      po::value<int>(),         "Also restart after this many milliseconds (0 disables)")
             ("geometric-restarts", po::value<double>(),      "Use geometric restarts with the specified multiplier (default is Luby)")
             ("value-ordering",     po::value<std::string>(), "Specify value-ordering heuristic (biased / degree / antidegree / random)");
         display_options.add(configuration_options);
@@ -151,6 +152,8 @@ auto main(int argc, char * argv[]) -> int
             params.restarts_constant = options_vars["restarts-constant"].as<int>();
         if (options_vars.count("geometric-restarts"))
             params.geometric_multiplier = options_vars["geometric-restarts"].as<double>();
+        if (options_vars.count("restart-timer"))
+            params.restart_timer = milliseconds{ options_vars["restart-timer"].as<int>() };
 
         if (options_vars.count("value-ordering")) {
             std::string value_ordering_heuristic = options_vars["value-ordering"].as<std::string>();

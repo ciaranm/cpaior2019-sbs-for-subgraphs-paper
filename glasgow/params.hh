@@ -47,6 +47,9 @@ struct Params
     /// Largest size of nogood to store (0 disables nogoods)
     unsigned nogood_size_limit = std::numeric_limits<unsigned>::max();
 
+    /// Also restart after this many milliseconds (0 disables, use a large constant to only restart on timer)
+    std::chrono::milliseconds restart_timer = {};
+
     /// How many threads to use (only if we are a parallel algorithm)
     int n_threads = 1;
 

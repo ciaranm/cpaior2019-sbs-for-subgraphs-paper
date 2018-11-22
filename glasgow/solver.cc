@@ -46,6 +46,7 @@ using std::vector;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::steady_clock;
+using std::chrono::operator""ms;
 
 using boost::dynamic_bitset;
 
@@ -600,7 +601,8 @@ namespace
                 unsigned long long & propagations,
                 unsigned long long & solution_count,
                 int depth,
-                long long & backtracks_until_restart) -> SearchResult
+                long long & backtracks_until_restart,
+                steady_clock::time_point * restart_at) -> SearchResult
         {
             if (params.abort->load())
                 return SearchResult::Aborted;
@@ -674,7 +676,7 @@ namespace
 
                 // recursive search
                 auto search_result = restarting_search(assignments, new_domains, nodes, propagations,
-                        solution_count, depth + 1, backtracks_until_restart);
+                        solution_count, depth + 1, backtracks_until_restart, restart_at);
 
                 switch (search_result) {
                     case SearchResult::Satisfiable:
@@ -713,7 +715,8 @@ namespace
             }
 
             // no values remaining, backtrack, or possibly kick off a restart
-            if (actually_hit_a_failure && backtracks_until_restart > 0 && 0 == --backtracks_until_restart) {
+            if (actually_hit_a_failure && ((backtracks_until_restart > 0 && 0 == --backtracks_until_restart)
+                       || (restart_at && steady_clock::now() > *restart_at))) {
                 post_nogood(assignments);
                 return SearchResult::Restart;
             }
@@ -1166,8 +1169,13 @@ namespace
                     if (propagate(domains, assignments)) {
                         auto assignments_copy = assignments;
 
+                        steady_clock::time_point restart_at;
+                        if (0ms != params.restart_timer)
+                            restart_at = steady_clock::now() + params.restart_timer;
+
                         switch (restarting_search(assignments_copy, domains, result.nodes, result.propagations,
-                                    result.solution_count, 0, backtracks_until_restart)) {
+                                    result.solution_count, 0, backtracks_until_restart,
+                                    (params.restart_timer != 0ms) ? &restart_at : nullptr)) {
                             case SearchResult::Satisfiable:
                                 save_result(assignments_copy, result);
                                 result.complete = true;
@@ -1278,7 +1286,7 @@ namespace
                 ++result.propagations;
                 if (propagate(domains_copy, assignments_copy)) {
                     switch (restarting_search(assignments_copy, domains_copy, result.nodes, result.propagations,
-                                result.solution_count, 0, backtracks_until_give_up)) {
+                                result.solution_count, 0, backtracks_until_give_up, nullptr)) {
                         case SearchResult::Satisfiable:
                             save_result(assignments_copy, result);
                             result.complete = true;
