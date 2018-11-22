@@ -13,10 +13,17 @@ GLASGOW_ALGORITHMS := \
     glasgowrandom \
     glasgowbiased \
     glasgowbiasednonogoods \
-    glasgowbiasedconstant10000threads36v2 \
-    glasgowbiasedconstant10000triggeredthreads36v2 \
+    glasgowbiasedconstant5400 \
+    glasgowbiasedthreads36v1 \
     glasgowbiasedthreads36v2 \
-    glasgowbiasedconstant1420triggeredthreads36v2 \
+    glasgowbiasedconstant5400threads36v1 \
+    glasgowbiasedconstant5400threads36v2 \
+    glasgowbiasedconstant5400triggeredthreads36v1 \
+    glasgowbiasedconstant5400triggeredthreads36v2 \
+    glasgowbiasedrestartsconstant5400triggeredmpih5x2t18 \
+    glasgowbiasedrestartsconstant5400triggeredmpih10x2t18 \
+    glasgowrandomrestartsconstant5400triggeredmpih5x2t18 \
+    glasgowbiasedrestartsconstant5400triggerednr32mpih5x2t18 \
 
 LAD_ALGORITHMS := pathlad
 VF2_ALGORITHMS := vf2

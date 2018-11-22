@@ -14,12 +14,12 @@ set format x '$10^{%T}$'
 set format y '$~%.0f$'
 set yrange [0:14621]
 set ytics add ('$14621$' 14621) add ('' 14000)
-set key above right Left width -4 maxrows 4 height 1
+set key above right Left width -2 maxrows 4 height 1
 
 plot \
     "inducedruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti 'Glasgow:', \
-    "inducedruntimes.data" u (cumx(finalinduced)):(cumy(finalinduced)) smooth cumulative w l ti '~~~~After' ls 3, \
-    "inducedruntimes.data" u (cumx(norestartsinduced)):(cumy(norestartsinduced)) smooth cumulative w l ti '~~~~Before' ls 4 dt (2,2), \
+    "inducedruntimes.data" u (cumx(finalinduced)):(cumy(finalinduced)) smooth cumulative w l ti '~~~~SBS' ls 3, \
+    "inducedruntimes.data" u (cumx(norestartsinduced)):(cumy(norestartsinduced)) smooth cumulative w l ti '~~~~DFS' ls 4 dt (2,2), \
     "inducedruntimes.data" u (NaN):(NaN) w p lc rgb 'white' ti '~', \
     "inducedruntimes.data" u (cumx(pathladinduced)):(cumy(pathladinduced)) smooth cumulative w l ti 'PathLAD' ls 5 dt (6,2), \
     "inducedruntimes.data" u (cumx(vf2induced)):(cumy(vf2induced)) smooth cumulative w l ti 'VF2' ls 6 dt (18,2), \

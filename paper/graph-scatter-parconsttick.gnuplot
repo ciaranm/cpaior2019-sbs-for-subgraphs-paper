@@ -15,11 +15,11 @@ set format y '$10^{%T}$'
 set key horiz rmargin maxcols 1 samplen 1 width -3
 set size square
 
-plotfile="searchtimes.data"
+plotfile="runtimes.data"
 satcol="sat"
 famcol="family"
-xcol=final
-ycol=parconsttick
+xcol="glasgowbiasedrestartsconstant5400triggeredmpih5x2t18"
+ycol="glasgowbiasedrestartsconstant5400triggerednr32mpih5x2t18"
 
 load "scatter.gnuplot"
 

@@ -8,7 +8,7 @@
 \usepackage{tikz}
 \usepackage{cleveref}
 
-\usepackage{showframe}
+% \usepackage{showframe}
 
 \newcommand{\neighbourhood}{\operatorname{N}}
 \newcommand{\vertexset}{\operatorname{V}}
@@ -64,7 +64,7 @@ James Trimble\orcidID{0000-0001-7282-8745}}
     slightly-random value-ordering heuristic, rapid restarts, and nogood recording, we achieve two
     orders of magnitude faster performance on satisfiable instances, whilst not affecting
     performance on unsatisfiable instances. This search can also be parallelised in a very simple
-    but effective way, giving us a further speedup of over thirty from thirty-six cores, across both
+    but effective way, giving us a further speedup of over ?? from thirty-six cores, across both
     satisfiable and unsatisfiable instances.  Finally, we show that solution-biased search is also
     suitable for optimisation problems, by using it to improve two maximum common induced subgraph
     algorithms.
@@ -73,29 +73,28 @@ James Trimble\orcidID{0000-0001-7282-8745}}
 \section{Introduction}
 
 The subgraph isomorphism problem is to decide whether a copy of a small ``pattern'' graph occurs
-inside a larger ``target'' graph. Although the problem is \NP-complete, by combining design techniques from
-artificial intelligence with careful algorithm engineering, modern subgraph isomorphism solvers can
-often produce exact solutions quickly even on graphs with thousands of vertices. The current single
-strongest subgraph isomorphism solver uses ``highest degree first'' as a value-ordering heuristic to
-direct a constraint programming style search
+inside a larger ``target'' graph. Although the problem is \NP-complete, by combining design
+techniques from artificial intelligence with careful algorithm engineering, modern subgraph
+isomorphism solvers can often produce exact solutions quickly even on graphs with thousands of
+vertices. The current single strongest subgraph isomorphism solver uses ``highest degree first'' as
+a value-ordering heuristic to direct a constraint programming style search
 \cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:journals/jair/McCreeshPST18}. This
-heuristic is much better than branching randomly, but is still far from perfect. We therefore
-investigate different techniques for offsetting mistakes in value-ordering decisions. We first try
-discrepancy searches, which turn out to be much too expensive to be a practical solution. We then
-look at using random value-ordering, restarts, and nogood recording, which together give better
-aggregate performance at the expense of much worse behaviour on many instances. Next, we introduce a
-new way of adapting the existing value-ordering heuristic to introduce just a small amount of
-randomness.  This lets us make a state-of-the-art subgraph algorithm perform much better
-on a large number of satisfiable instances, whilst performing worse only rarely on satisfiable
-instances, and never on unsatisfiable instances.
+heuristic is much better than branching randomly, but is still far from perfect. To offset mistakes
+made by this heuristic, this paper proposes a new perspective on value-ordering: rather than
+defining a search order, we use degree to direct what \emph{proportion} of the search effort should
+be spent in each subproblem. By combining rapid restarts and nogood recording, and introducing a
+small amount of randomness into the value-ordering heuristic, we make a state-of-the-art subgraph
+algorithm perform two orders of magnitude better on a large number of satisfiable instances, whilst
+performing worse only rarely on satisfiable instances, and never on unsatisfiable instances.
 
-?? Parallel
-
-Finally, we show that this strategy is also effective in an optimisation setting, producing benefits
-in two maximum common induced subgraph algorithms. This combination of techniques gives us, for the
-first time, a practical alternative to backtracking search for constraint programming style
-algorithms where we have a strong value-ordering heuristic and where we care both about satisfiable
-and unsatisfiable instances. ?? Parallel
+This new form of search can also be parallelised. By running many threads with different random
+seeds but the same restart schedule, and sharing nogoods only following restarts, we can achieve
+speedups of ??, with a \emph{much} simpler implementation than conventional work-stealing.  Finally,
+we show that this strategy is also effective in an optimisation setting, producing benefits in two
+maximum common induced subgraph algorithms. This combination of techniques gives us, for the first
+time, a practical alternative to backtracking search for constraint programming style algorithms
+where we have a strong value-ordering heuristic and where we care both about satisfiable and
+unsatisfiable instances.
 
 \subsection{Definitions}
 
@@ -296,9 +295,10 @@ structures and algorithms, and propagates constraints in a fixed order rather th
 \subsection{Experimental Setup}
 
 Our experiments are performed on the EPCC Cirrus HPC facility, on systems with dual Intel Xeon
-E5-2695 v4 CPUs and 256GBytes RAM, running Centos 7.3.1611. ?? C++ native threads, MPI. We use GCC
-7.2.0 as the compiler. ?? Steady clock times. We use a deterministic pseudo-random number generator
-for reproducibility.
+E5-2695 v4 CPUs and 256GBytes RAM, running Centos 7.3.1611. We use GCC 7.2.0 as the compiler. For
+paralellism, we use C++ native threads, and for distributed parallelism we also use the SGI MPT
+implementation of MPI. All timing measurements are steady-clock, and we use a deterministic
+pseudo-random number generator for reproducibility.
 
 We use the dataset introduced by \citet{Kotthoff et al.\ }{DBLP:conf/lion/KotthoffMS16} for
 evaluation. This dataset brings together a range of randomly-generated and application instance
@@ -353,11 +353,12 @@ non-induced problem, and at least \input{gen-n-unsat.tex}\unskip\ are unsatisfia
     \label{figure:others}
 \end{figure}
 
-We begin by verifying that the Glasgow Subgraph Solver is the state of the art. In the first and
+We begin with a set of baseline performance measurements. In the first and
 third plots \cref{figure:others} we show the cumulative number of instances solved over time for the
-non-induced and induced problems respectively. We compare the Glasgow Subgraph Solver (both
-unmodified, and with the modifications described in the remainder of this paper), the PathLAD
-variation of the LAD algorithm \cite{DBLP:journals/ai/Solnon10,DBLP:conf/lion/KotthoffMS16}, VF2
+non-induced and induced problems respectively. We compare the Glasgow Subgraph Solver using
+depth-first search (DFS) and with the modifications described in the remainder of this paper
+(solution-biased search, SBS), the PathLAD variation of the LAD algorithm
+\cite{DBLP:journals/ai/Solnon10,DBLP:conf/lion/KotthoffMS16}, VF2
 \cite{DBLP:journals/pami/CordellaFSV04}, RI \cite{DBLP:journals/bmcbi/BonniciGPSF13}, and VF3
 \cite{DBLP:conf/gbrpr/CarlettiFSV17} (which only supports the induced problem), in each case using
 the original implementation provided by the algorithm's authors. For each algorithm, the $y$ value
@@ -395,8 +396,6 @@ backtracking search can be extremely costly.
     \caption{Comparing depth-bounded discrepancy search to backtracking search, both with the degree
     heuristic.}\label{figure:scatter-dds}
 \end{figure}
-
-?? Also do LDS?
 
 \Cref{figure:scatter-dds} shows the effects of adding Walsh's \cite{DBLP:conf/ijcai/Walsh97}
 depth-bounded discrepancy search (DDS) to the solver (results with other discrepancy search variants
@@ -575,7 +574,7 @@ degree-biased heuristic.
 
 \section{Parallel Search}
 
-\begin{figure}[p]
+\begin{figure}[tb]
     \centering
     \includegraphics*{gen-graph-parallel.pdf}
 
@@ -585,22 +584,20 @@ degree-biased heuristic.
     \hfill
     \includegraphics*{gen-graph-scatter-parconsttick.pdf}
 
-    \medskip
-
-    \includegraphics*{gen-graph-scatter-par-repeat.pdf}
-    \hfill
-    \includegraphics*{gen-graph-scatter-parconsttick-repeat.pdf}
-
     \caption{Parallel}\label{figure:parallel}
 \end{figure}
 
-\begin{figure}[tb]
-    \includegraphics*{gen-graph-scatter-parconst-nodes.pdf}
-    \hfill
-    \includegraphics*{gen-graph-scatter-parconsttick-nodes.pdf}
-
-    \caption{Parallel nodes}\label{figure:parallelnodes}
-\end{figure}
+% \begin{figure}[tb]
+%     \includegraphics*{gen-graph-scatter-par-repeat.pdf}
+%     \hfill
+%     \includegraphics*{gen-graph-scatter-parconsttick-repeat.pdf}
+%
+%     \includegraphics*{gen-graph-scatter-parconst-nodes.pdf}
+%     \hfill
+%     \includegraphics*{gen-graph-scatter-parconsttick-nodes.pdf}
+%
+%     \caption{Parallel nodes}\label{figure:parallelnodes}
+% \end{figure}
 
 ?? No sharing, sharing with Luby restarts, sharing with constant restarts, sharing with triggered
 restarts

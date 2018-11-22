@@ -1,0 +1,6 @@
+hostname = r1i2n10
+commandline = ../glasgow/mpi_solve_subgraph_isomorphism --timeout 1000 --format lad --geometric-restarts=1.0 --restarts-constant=5400 --triggered-restarts --threads 18 --value-ordering=random ../instances/LV/g24 ../instances/largerGraphs/g93-normed
+started_at = 2018-11-20 20:34:20
+pattern_file = ../instances/LV/g24
+target_file = ../instances/largerGraphs/g93-normed
+status = aborted

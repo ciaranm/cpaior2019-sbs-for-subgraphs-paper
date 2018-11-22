@@ -1,0 +1,15 @@
+hostname = r1i1n35
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --geometric-restarts=1.0 --restarts-constant=5400 --timeout 1000 --format lad ../instances/LV/g2 ../instances/largerGraphs/g101
+started_at = 2018-11-19 14:51:13
+pattern_file = ../instances/LV/g2
+target_file = ../instances/largerGraphs/g101
+status = true
+nodes = 8
+propagations = 8
+mapping = (0 -> 1779) (1 -> 688) (2 -> 296) (3 -> 1069) (4 -> 2087) (5 -> 2077) (6 -> 1515) (7 -> 1360) (8 -> 1670) (9 -> 226) 
+runtime = 36
+where = 0/2184 -1/-1 0/6 -1/-1 0/5 -1/-1 0/5 -1/-1 0/5 -1/-1 0/5 -1/-1 0/5 -1/-1 -1/-1 -1/-1 -1/-1
+restarts = 1
+nogoods_size = 0
+nogoods_lengths =
+search_time = 1
