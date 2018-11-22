@@ -54,6 +54,7 @@ using std::vector;
 using std::chrono::duration_cast;
 using std::chrono::milliseconds;
 using std::chrono::steady_clock;
+using std::chrono::operator""ms;
 
 using boost::dynamic_bitset;
 
@@ -654,6 +655,7 @@ namespace
                 unsigned long long & solution_count,
                 int depth,
                 long long & backtracks_until_restart,
+                steady_clock::time_point * restart_at,
                 atomic<bool> & do_a_restart) -> SearchResult
         {
             if (params.abort->load())
@@ -728,7 +730,7 @@ namespace
 
                 // recursive search
                 auto search_result = restarting_search(s, assignments, new_domains, nodes, propagations,
-                        solution_count, depth + 1, backtracks_until_restart, do_a_restart);
+                        solution_count, depth + 1, backtracks_until_restart, restart_at, do_a_restart);
 
                 switch (search_result) {
                     case SearchResult::Satisfiable:
@@ -767,7 +769,8 @@ namespace
             }
 
             // no values remaining, backtrack, or possibly kick off a restart
-            if ((do_a_restart) || (actually_hit_a_failure && backtracks_until_restart > 0 && 0 == --backtracks_until_restart)) {
+            if ((do_a_restart) || (actually_hit_a_failure && ((backtracks_until_restart > 0 && 0 == --backtracks_until_restart)
+                            || (restart_at && steady_clock::now() > *restart_at)))) {
                 do_a_restart = true;
                 post_nogood(s, assignments);
                 return SearchResult::Restart;
@@ -1115,8 +1118,15 @@ namespace
                         if (propagate(s, domains, assignments)) {
                             auto assignments_copy = assignments;
 
+                            steady_clock::time_point restart_at, * restart_at_ptr = nullptr;
+                            if (0ms != params.restart_timer)
+                                if ((! params.triggered_restarts) || (0 == t)) {
+                                    restart_at = steady_clock::now() + params.restart_timer;
+                                    restart_at_ptr = &restart_at;
+                                }
+
                             switch (restarting_search(s, assignments_copy, domains, thread_result.nodes, thread_result.propagations,
-                                        thread_result.solution_count, 0, backtracks_until_restart, do_a_restart)) {
+                                        thread_result.solution_count, 0, backtracks_until_restart, restart_at_ptr, do_a_restart)) {
                                 case SearchResult::Satisfiable:
                                     save_result(assignments_copy, thread_result);
                                     thread_result.extra_stats.emplace_back("stop_reason = satisfiable");
