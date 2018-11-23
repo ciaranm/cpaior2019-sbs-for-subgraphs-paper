@@ -102,5 +102,4 @@ plot \
     "runtimes.data" u (cumx(parconst)):(cumy(parconst)) smooth cumulative w l ti 'Parallel C' ls 4 dt (6,2), \
     "runtimes.data" u (cumx(parconsttick)):(cumy(parconsttick)) smooth cumulative w l ti 'Parallel TC' ls 5 dt (18,2), \
     "runtimes.data" u (cumx(dist5)):(cumy(dist5)) smooth cumulative w l ti 'Distributed 5' ls 7 dt (6,2,2,2), \
-    "runtimes.data" u (cumx("glasgowbiasedrestartsconstant5400triggerednr32mpih5x2t18")):(cumy("glasgowbiasedrestartsconstant5400triggerednr32mpih5x2t18")) smooth cumulative w l ti 'Distributed 5R32' ls 8 dt (18,2,2,2)
 

@@ -19,7 +19,7 @@ plotfile="searchtimes.data"
 satcol="sat"
 famcol="family"
 xcol=final
-ycol=par
+ycol="glasgowbiasedtimer100triggeredthreads36v1"
 
 load "scatter.gnuplot"
 

@@ -6,8 +6,8 @@ set output "gen-graph-scatter-random.tex"
 load "parula.pal"
 load "common.gnuplot"
 
-set xlabel "Degree Search Time (ms)"
-set ylabel "Random + Restarts Search Time (ms)" offset 0.5
+set xlabel "DFS Search Time (ms)"
+set ylabel "RSR Search Time (ms)" offset 0.5
 set logscale x
 set logscale y
 set format x '$10^{%T}$'

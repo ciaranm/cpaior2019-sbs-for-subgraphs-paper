@@ -43,15 +43,15 @@ set xrange [1e2:1e6]
 set logscale x
 set format x '$10^{%T}$'
 set yrange [1400:2100]
-set key bottom right Left samplen 2 width -6
+set key bottom right Left width -2
 
 set arrow 1 from lastnorestarts, solvednorestarts to finalthreshold, solvednorestarts front
 set label 1 right at lastnorestarts, solvednorestarts "".sprintf("$%.1f{\\times}$", ((0.0+lastnorestarts) / finalthreshold)) offset character 1.0, character 0.5
 
 plot \
-    "runtimes.data" u (cumx(final)):(cumsaty(final)) smooth cumulative w l ti 'Biased + Restarts' ls 1, \
-    "runtimes.data" u (cumx(randomrestarts)):(cumsaty(randomrestarts)) smooth cumulative w l ti 'Random + Restarts' ls 2 dt (2,2), \
-    "runtimes.data" u (cumx(softmax)):(cumsaty(softmax)) smooth cumulative w l ti 'Biased' ls 4 dt (6,2), \
-    "runtimes.data" u (cumx(norestarts)):(cumsaty(norestarts)) smooth cumulative w l ti 'Degree' ls 6 dt (18,2), \
-    "runtimes.data" u (cumx(random)):(cumsaty(random)) smooth cumulative w l ti 'Random' ls 7 dt (6,2,2,2)
+    "runtimes.data" u (cumx(final)):(cumsaty(final)) smooth cumulative w l ti 'SBS' ls 1, \
+    "runtimes.data" u (cumx(randomrestarts)):(cumsaty(randomrestarts)) smooth cumulative w l ti 'RSR' ls 2 dt (2,2), \
+    "runtimes.data" u (cumx(softmax)):(cumsaty(softmax)) smooth cumulative w l ti 'DFS Biased' ls 4 dt (6,2), \
+    "runtimes.data" u (cumx(norestarts)):(cumsaty(norestarts)) smooth cumulative w l ti 'DFS Degree' ls 6 dt (18,2), \
+    "runtimes.data" u (cumx(random)):(cumsaty(random)) smooth cumulative w l ti 'DFS Random' ls 7 dt (6,2,2,2)
 

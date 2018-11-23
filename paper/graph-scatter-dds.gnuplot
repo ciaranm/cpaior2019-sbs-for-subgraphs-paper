@@ -6,8 +6,8 @@ set output "gen-graph-scatter-dds.tex"
 load "parula.pal"
 load "common.gnuplot"
 
-set xlabel "Degree Search Time (ms)"
-set ylabel "Degree + DDS Search Time (ms)" offset 0.5
+set xlabel "DFS Search Time (ms)"
+set ylabel "DDS Search Time (ms)" offset 0.5
 set logscale x
 set logscale y
 set format x '$10^{%T}$'

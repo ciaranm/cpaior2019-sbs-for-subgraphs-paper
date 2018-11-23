@@ -18,8 +18,8 @@ set size square
 plotfile="searchsizes.data"
 satcol="sat"
 famcol="family"
-xcol=parconst
-ycol=par
+xcol=par
+ycol=par2
 
 load "nodescatter.gnuplot"
 

@@ -6,8 +6,8 @@ set output "gen-graph-scatter-biased-goods.tex"
 load "parula.pal"
 load "common.gnuplot"
 
-set xlabel "Biased Search Time (ms)"
-set ylabel "Without Nogoods Search Time (ms)" offset 0.5
+set xlabel "SBS Search Time (ms)"
+set ylabel "SBS $-$ Nogoods Search Time (ms)" offset 0.5
 set logscale x
 set logscale y
 set format x '$10^{%T}$'
