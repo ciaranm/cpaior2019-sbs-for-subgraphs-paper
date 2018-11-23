@@ -55,6 +55,9 @@ struct Params
 
     /// Use thread 0 to trigger restarts?
     bool triggered_restarts = false;
+
+    /// Measure the Fraser distribution?
+    bool fraserify = false;
 };
 
 class UnsupportedConfiguration :

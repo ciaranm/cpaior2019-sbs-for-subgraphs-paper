@@ -79,6 +79,7 @@ auto main(int argc, char * argv[]) -> int
 
         po::options_description configuration_options{ "Advanced configuration options" };
         configuration_options.add_options()
+            ("fraserify",                                    "Output Fraser distribution statistics")
             ("dds",                                          "Use DDS (forces degree value-ordering, no restarts or nogoods)")
             ("presolve",                                     "Try presolving (hacky, experimental, possibly useful for easy instances")
             ("nogood-size-limit",  po::value<int>(),         "Maximum size of nogood to generate (0 disables nogoods")
@@ -145,6 +146,7 @@ auto main(int argc, char * argv[]) -> int
         params.presolve = options_vars.count("presolve");
         params.dds = options_vars.count("dds");
         params.triggered_restarts = options_vars.count("triggered-restarts");
+        params.fraserify = options_vars.count("fraserify");
 
         if (options_vars.count("nogood-size-limit"))
             params.nogood_size_limit = options_vars["nogood-size-limit"].as<int>();

@@ -601,8 +601,10 @@ namespace
                 unsigned long long & propagations,
                 unsigned long long & solution_count,
                 int depth,
+                int position_at_previous_depth,
                 long long & backtracks_until_restart,
-                steady_clock::time_point * restart_at) -> SearchResult
+                steady_clock::time_point * restart_at,
+                std::list<std::string> & extra_stats) -> SearchResult
         {
             if (params.abort->load())
                 return SearchResult::Aborted;
@@ -654,6 +656,12 @@ namespace
             int discrepancy_count = 0;
             bool actually_hit_a_success = false, actually_hit_a_failure = false;
 
+            unsigned long long nodes_before = nodes, solutions_before = solution_count;
+            if (params.fraserify && 0 == depth) {
+                extra_stats.emplace_back("fraser_pattern_degree = " + to_string(patterns_degrees[0][branch_domain->v]));
+                extra_stats.emplace_back("fraser_branch_v_end = " + to_string(branch_v_end));
+            }
+
             // for each value remaining...
             for (auto f_v = branch_v.begin(), f_end = branch_v.begin() + branch_v_end ; f_v != f_end ; ++f_v) {
                 // modified in-place by appending, we can restore by shrinking
@@ -674,9 +682,12 @@ namespace
                     continue;
                 }
 
+                if (params.fraserify && 0 == depth)
+                    extra_stats.emplace_back("fraser_target_degree_" + to_string(f_v - branch_v.begin()) + " = " + to_string(targets_degrees[0][*f_v]));
+
                 // recursive search
                 auto search_result = restarting_search(assignments, new_domains, nodes, propagations,
-                        solution_count, depth + 1, backtracks_until_restart, restart_at);
+                        solution_count, depth + 1, f_v - branch_v.begin(), backtracks_until_restart, restart_at, extra_stats);
 
                 switch (search_result) {
                     case SearchResult::Satisfiable:
@@ -712,6 +723,11 @@ namespace
                 }
 
                 ++discrepancy_count;
+            }
+
+            if (params.fraserify && depth == 1) {
+                extra_stats.emplace_back("fraser_target_nodes_" + to_string(position_at_previous_depth) + " = " + to_string(nodes - nodes_before));
+                extra_stats.emplace_back("fraser_target_solution_counts_" + to_string(position_at_previous_depth) + " = " + to_string(solution_count - solutions_before));
             }
 
             // no values remaining, backtrack, or possibly kick off a restart
@@ -1174,8 +1190,8 @@ namespace
                             restart_at = steady_clock::now() + params.restart_timer;
 
                         switch (restarting_search(assignments_copy, domains, result.nodes, result.propagations,
-                                    result.solution_count, 0, backtracks_until_restart,
-                                    (params.restart_timer != 0ms) ? &restart_at : nullptr)) {
+                                    result.solution_count, 0, 0, backtracks_until_restart,
+                                    (params.restart_timer != 0ms) ? &restart_at : nullptr, result.extra_stats)) {
                             case SearchResult::Satisfiable:
                                 save_result(assignments_copy, result);
                                 result.complete = true;
@@ -1286,7 +1302,7 @@ namespace
                 ++result.propagations;
                 if (propagate(domains_copy, assignments_copy)) {
                     switch (restarting_search(assignments_copy, domains_copy, result.nodes, result.propagations,
-                                result.solution_count, 0, backtracks_until_give_up, nullptr)) {
+                                result.solution_count, 0, 0, backtracks_until_give_up, nullptr, result.extra_stats)) {
                         case SearchResult::Satisfiable:
                             save_result(assignments_copy, result);
                             result.complete = true;
