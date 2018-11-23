@@ -1,0 +1,9 @@
+hostname = r1i3n30
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --triggered-restarts --geometric-restarts=1.0 --restarts-constant=100000 --restart-timer=100 --threads=36 --timeout 1000 --format lad ../instances/LV/g40 ../instances/largerGraphs/g92
+started_at = 2018-11-22 23:12:43
+pattern_file = ../instances/LV/g40
+target_file = ../instances/largerGraphs/g92
+status = false
+nodes = 0
+propagations = 0
+runtime = 25

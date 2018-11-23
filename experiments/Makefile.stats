@@ -24,6 +24,10 @@ GLASGOW_ALGORITHMS := \
     glasgowbiasedrestartsconstant5400triggeredmpih10x2t18 \
     glasgowrandomrestartsconstant5400triggeredmpih5x2t18 \
     glasgowbiasedrestartsconstant5400triggerednr32mpih5x2t18 \
+    glasgowbiasedtimer100 \
+    glasgowbiasedtimer100triggeredthreads36v1 \
+    glasgowbiasedtimer100triggeredthreads36v2 \
+    glasgowbiasedtimer100triggeredthreads36mpih5x2t18
 
 LAD_ALGORITHMS := pathlad
 VF2_ALGORITHMS := vf2

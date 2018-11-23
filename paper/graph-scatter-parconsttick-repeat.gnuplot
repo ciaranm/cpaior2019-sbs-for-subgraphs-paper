@@ -6,8 +6,8 @@ set output "gen-graph-scatter-parconsttick-repeat.tex"
 load "parula.pal"
 load "common.gnuplot"
 
-set xlabel "Parallel CT Search Time (ms)"
-set ylabel "Parallel CT Repeat Search Time (ms)" offset 0.5
+set xlabel "Parallel Timer Search Time (ms)"
+set ylabel "Parallel Timer Repeat Search Time (ms)" offset 0.5
 set logscale x
 set logscale y
 set format x '$10^{%T}$'
@@ -18,8 +18,8 @@ set size square
 plotfile="searchtimes.data"
 satcol="sat"
 famcol="family"
-xcol=parconsttick
-ycol=parconsttick2
+xcol=partimer
+ycol=partimer2
 
 load "scatter.gnuplot"
 

@@ -1,0 +1,15 @@
+hostname = r1i3n17
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --geometric-restarts=1.0 --restarts-constant=100000 --restart-timer=100 --timeout 1000 --format lad ../instances/images-PR15/pattern12 ../instances/images-PR15/target
+started_at = 2018-11-23 04:51:03
+pattern_file = ../instances/images-PR15/pattern12
+target_file = ../instances/images-PR15/target
+status = true
+nodes = 7
+propagations = 150
+mapping = (0 -> 3532) (1 -> 2732) (2 -> 2731) (3 -> 2730) (4 -> 2735) (5 -> 2734) (6 -> 2733) 
+runtime = 181
+where = 5/3410 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1 -1/-1
+restarts = 1
+nogoods_size = 0
+nogoods_lengths =
+search_time = 4
