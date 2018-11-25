@@ -66,10 +66,10 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
     slightly-random value-ordering heuristic, rapid restarts, and nogood recording, we achieve two
     orders of magnitude faster performance on satisfiable instances, whilst not affecting
     performance on unsatisfiable instances. This search can be parallelised in a very simple
-    but effective way, giving us a further speedup of over ?? from thirty-six cores, across both
-    satisfiable and unsatisfiable instances.  We also show that solution-biased search is also
-    suitable for optimisation problems, by using it to improve two maximum common induced subgraph
-    algorithms.
+    but effective way: across both satisfiable and unsatisfiable instances, we get a further speedup
+    of over thirty from thirty-six cores, or one hundred from ten distributed-memory hosts.  We also
+    show that solution-biased search is also suitable for optimisation problems, by using it to
+    improve two maximum common induced subgraph algorithms.
 \end{abstract}
 
 \section{Introduction}
@@ -338,15 +338,15 @@ non-induced problem, and at least \input{gen-n-unsat.tex}\unskip\ are unsatisfia
 \section{Improving Sequential Search}
 
 \begin{figure}[tb]
-    \includegraphics*{gen-graph-others.pdf}
+    \includegraphics{gen-graph-others.pdf}
     \hfill
-    \includegraphics*{gen-graph-others-induced.pdf}
+    \includegraphics{gen-graph-others-induced.pdf}
 
     \bigskip
 
-    \includegraphics*{gen-graph-others-zoom.pdf}
+    \includegraphics{gen-graph-others-zoom.pdf}
     \hfill
-    \includegraphics*{gen-graph-others-induced-zoom.pdf}
+    \includegraphics{gen-graph-others-induced-zoom.pdf}
 
     \caption{On the top row, the cumulative number of instances solved over time, comparing our algorithm
     (both in its basic form, and with the improvements introduced in the remainder of the paper) to
@@ -391,9 +391,9 @@ discrepancies; in such cases, the heavy commitment to early branching choices ma
 backtracking search can be extremely costly.
 
 \begin{figure}[tb]
-    \includegraphics*{gen-graph-dds.pdf}
+    \includegraphics{gen-graph-dds.pdf}
     \hfill
-    \includegraphics*{gen-graph-scatter-dds.pdf}
+    \includegraphics{gen-graph-scatter-dds.pdf}
 
     \caption{Comparing depth-bounded discrepancy search (DDS) to depth-first backtracking search
     (DFS), both using degree as the value-ordering heuristic.}\label{figure:scatter-dds}
@@ -420,9 +420,9 @@ heavy-commitment backtracking search.
 \subsection{Value-Ordering Heuristics}
 
 \begin{figure}[tb]
-    \includegraphics*{gen-graph-value-ordering-heuristics.pdf}
+    \includegraphics{gen-graph-value-ordering-heuristics.pdf}
     \hfill
-    \includegraphics*{gen-graph-scatter-heuristics.pdf}
+    \includegraphics{gen-graph-scatter-heuristics.pdf}
 
     \caption{On the left, the cumulative number of satisfiable instances solved over time, using
     four different value-ordering heuristics. On the right, an instance by instance comparison of
@@ -532,9 +532,9 @@ propagation queue).
 \subsection{Solution-Biased Search in Practice}
 
 \begin{figure}[tb]
-    \includegraphics*{gen-graph-restarts.pdf}
+    \includegraphics{gen-graph-restarts.pdf}
     \hfill
-    \includegraphics*{gen-graph-scatter-by-family.pdf}
+    \includegraphics{gen-graph-scatter-by-family.pdf}
 
     \caption{On the left, the number of satisfiable instances solved over time, comparing
     solution-biased search (SBS), random search with restarts (RSR), and the three value-ordering
@@ -566,9 +566,9 @@ a viable alternative to backtracking search in a setting where we both have a st
 \emph{value}-ordering heuristic, \emph{and} care about both satisfiable and unsatisfiable instances.
 
 \begin{figure}[tb]
-    \includegraphics*{gen-graph-scatter-biased-goods.pdf}
+    \includegraphics{gen-graph-scatter-biased-goods.pdf}
     \hfill
-    \includegraphics*{gen-graph-scatter-random.pdf}
+    \includegraphics{gen-graph-scatter-random.pdf}
     \caption{On the left, not using nogood recording introduces slowdowns, particularly on
     unsatisfiable instances. On the right, using a random value-ordering gives much worse
     performance on many satisfiable instances.}
@@ -601,42 +601,30 @@ restarts
 ?? Scalability to MPI
 
 \begin{figure}[tb]
-    \centering
-    \includegraphics*{gen-graph-parallel.pdf}
+    \includegraphics{gen-graph-parallel.pdf}
 
     \medskip
 
-    \includegraphics*{gen-graph-scatter-par.pdf}
+    \includegraphics{gen-graph-scatter-par.pdf}
     \hfill
-    \includegraphics*{gen-graph-scatter-parconsttick.pdf}
+    \includegraphics{gen-graph-scatter-dist.pdf}
 
-    \caption{Parallel}\label{figure:parallel}
+    \caption{Above, the cumulative number of instances solved over time, comparing the sequential
+    algorithm to results using 32 threads on a single machine, and using five or ten distributed
+    memory hosts. Below, instance by instance comparisons.}\label{figure:parallel}
 \end{figure}
-
-% \begin{figure}[tb]
-%     \includegraphics*{gen-graph-scatter-par-repeat.pdf}
-%     \hfill
-%     \includegraphics*{gen-graph-scatter-parconsttick-repeat.pdf}
-% 
-%     \includegraphics*{gen-graph-scatter-parconst-nodes.pdf}
-%     \hfill
-%     \includegraphics*{gen-graph-scatter-parconsttick-nodes.pdf}
-% 
-%     \caption{Parallel nodes}\label{figure:parallelnodes}
-% \end{figure}
-
 
 \section{Maximum Common Subgraph Algorithms}
 
 \begin{figure}[tb]
     \centering
-    \includegraphics*{gen-graph-mcs.pdf}
+    \includegraphics{gen-graph-mcs.pdf}
 
     \medskip
 
-    \includegraphics*{gen-graph-scatter-kdown.pdf}
+    \includegraphics{gen-graph-scatter-kdown.pdf}
     \hfill
-    \includegraphics*{gen-graph-scatter-mcsplit.pdf}
+    \includegraphics{gen-graph-scatter-mcsplit.pdf}
 
     \caption{Above, the cumulative number of maximum common induced subgraph instances solved by
     k${\downarrow}$ and McSplit${\downarrow}$ over time, with and without restarts and nogood

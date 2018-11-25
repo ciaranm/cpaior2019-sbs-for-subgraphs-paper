@@ -6,8 +6,8 @@ set output "gen-graph-scatter-par.tex"
 load "parula.pal"
 load "common.gnuplot"
 
-set xlabel "Sequential Search Time (ms)"
-set ylabel "Parallel Search Time (ms)" offset 0.5
+set xlabel "SDS (Timer) Search Time (ms)"
+set ylabel "32 Threads (Timer) Search Time (ms)" offset 0.5
 set logscale x
 set logscale y
 set format x '$10^{%T}$'
@@ -18,8 +18,8 @@ set size square
 plotfile="searchtimes.data"
 satcol="sat"
 famcol="family"
-xcol=final
-ycol="glasgowbiasedtimer100triggeredthreads36v1"
+xcol=timer
+ycol=partimer
 
 load "scatter.gnuplot"
 

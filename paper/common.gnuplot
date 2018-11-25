@@ -17,6 +17,7 @@ issat(x)=stringcolumn("sat") eq "1" ? 1 : 0
 isunsat(x)=stringcolumn("sat") eq "0" ? 1 : 0
 isfail(x)=(stringcolumn(x) eq "NaN" || column(x) >= timeout)
 cumx(x)=(isfail(x) ? 1e6 : ((x eq ri || x eq riinduced) ? column(x) * 1000 : column(x)))
+cumminx(x)=(isfail(x) ? 1e6 : column(x) < 1000 ? 1000 : column(x))
 cumsatx(x)=(issat(x) ? cumx(x) : 0)
 cumunsatx(x)=(isunsat(x) ? cumx(x) : 0)
 cumy(x)=(isfail(x) ? 1e-10 : 1)
@@ -38,6 +39,7 @@ par2="glasgowbiasedthreads36v2"
 partimer="glasgowbiasedtimer100triggeredthreads36v1"
 partimer2="glasgowbiasedtimer100triggeredthreads36v2"
 dist5="glasgowbiasedtimer100triggeredthreads36mpih5x2t18"
+dist10="glasgowbiasedtimer100triggeredthreads36mpih10x2t18"
 
 mcsplitdown="mcsplitdown14"
 mcsplitdownbiasedrestarts="mcsplitdownbiasedrestarts14"
@@ -58,3 +60,4 @@ vf2induced="vf2induced"
 vf3induced="vf3induced"
 riinduced="riinduced"
 
+filter1000=0

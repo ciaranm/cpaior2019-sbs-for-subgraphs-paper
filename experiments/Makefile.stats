@@ -27,7 +27,8 @@ GLASGOW_ALGORITHMS := \
     glasgowbiasedtimer100 \
     glasgowbiasedtimer100triggeredthreads36v1 \
     glasgowbiasedtimer100triggeredthreads36v2 \
-    glasgowbiasedtimer100triggeredthreads36mpih5x2t18
+    glasgowbiasedtimer100triggeredthreads36mpih5x2t18 \
+    glasgowbiasedtimer100triggeredthreads36mpih10x2t18 \
 
 LAD_ALGORITHMS := pathlad
 VF2_ALGORITHMS := vf2
@@ -53,7 +54,7 @@ $(RESULTS)/stats/%.summary : | dir-stats
 	  if grep -q 'status = aborted' $(RESULTS)/$$a/$*.out ; then echo -n 'X' ; \
 	  elif grep -q 'status = false' $(RESULTS)/$$a/$*.out ; then echo -n '0' ; \
 	  elif grep -q 'status = true' $(RESULTS)/$$a/$*.out ; then echo -n '1' ; \
-	  elif grep -q 'status = skipped' $(RESULTS)/$$a/$*.out ; then echo -n '1' ; \
+	  elif grep -q 'status = skipped' $(RESULTS)/$$a/$*.out ; then echo -n '' ; \
 	  else echo -n 'F' ; fi ; done ; \
 	  for a in $(LAD_ALGORITHMS) ; do \
 	  if grep -q 'exceeded' $(RESULTS)/$$a/$*.out ; then echo -n 'X' ; \
