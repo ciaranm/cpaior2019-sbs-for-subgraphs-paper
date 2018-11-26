@@ -6,8 +6,8 @@ set output "gen-graph-scatter-kdown.tex"
 load "inferno.pal"
 load "common.gnuplot"
 
-set xlabel "k${\\downarrow}$ Runtime (ms)"
-set ylabel "Biased + Restarts k${\\downarrow}$ Runtime (ms)" offset 0.5
+set xlabel "DFS k${\\downarrow}$ Runtime (ms)"
+set ylabel "SBS k${\\downarrow}$ Runtime (ms)" offset 0.5
 set logscale x
 set logscale y
 set format x '$10^{%T}$'

@@ -67,7 +67,7 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
     orders of magnitude faster performance on satisfiable instances, whilst not affecting
     performance on unsatisfiable instances. This search can be parallelised in a very simple
     but effective way: across both satisfiable and unsatisfiable instances, we get a further speedup
-    of over thirty from thirty-six cores, or one hundred from ten distributed-memory hosts.  We also
+    of over thirty from thirty six cores, or ninety five from ten distributed-memory hosts.  We also
     show that solution-biased search is also suitable for optimisation problems, by using it to
     improve two maximum common induced subgraph algorithms.
 \end{abstract}
@@ -75,11 +75,13 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
 \section{Introduction}
 
 The subgraph isomorphism problem is to decide whether a copy of a small ``pattern'' graph occurs
-inside a larger ``target'' graph. Although the problem is \NP-complete, by combining design
-techniques from artificial intelligence with careful algorithm engineering, modern subgraph
-isomorphism solvers can often produce exact solutions quickly even on graphs with thousands of
-vertices. The current single strongest subgraph isomorphism solver uses ``highest degree first'' as
-a value-ordering heuristic to direct a constraint programming style search
+inside a larger ``target'' graph.  ?? Applications
+
+Although the problem is \NP-complete, by combining design techniques from artificial intelligence
+with careful algorithm engineering, modern subgraph isomorphism solvers can often produce exact
+solutions quickly even on graphs with thousands of vertices. The current single strongest subgraph
+isomorphism solver uses ``highest degree first'' as a value-ordering heuristic to direct a
+constraint programming style search
 \cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16,DBLP:journals/jair/McCreeshPST18}. This
 heuristic is much better than branching randomly, but is still far from perfect. To offset mistakes
 made by this heuristic, this paper proposes a new perspective on value-ordering: rather than
@@ -87,16 +89,17 @@ defining a search order, we use degree to direct what \emph{proportion} of the s
 be spent in each subproblem. By combining rapid restarts and nogood recording, and introducing a
 small amount of randomness into the value-ordering heuristic, we make a state-of-the-art subgraph
 algorithm perform two orders of magnitude better on a large number of satisfiable instances, whilst
-performing worse only rarely on satisfiable instances, and never on unsatisfiable instances.
+performing worse only rarely on satisfiable instances, and never on unsatisfiable instances.  This
+strategy is also effective in an optimisation setting, producing benefits in two maximum common
+induced subgraph algorithms. Through this combination of techniques we have, for the first time, a
+practical alternative to backtracking search for constraint programming style algorithms where we
+have a strong value-ordering heuristic and where we care both about satisfiable and unsatisfiable
+instances.
 
-This new form of search can also be parallelised. By running many threads with different random
-seeds but the same restart schedule, and sharing nogoods only following restarts, we can achieve
-speedups of ??, with a \emph{much} simpler implementation than conventional work-stealing.  Finally,
-we show that this strategy is also effective in an optimisation setting, producing benefits in two
-maximum common induced subgraph algorithms. This combination of techniques gives us, for the first
-time, a practical alternative to backtracking search for constraint programming style algorithms
-where we have a strong value-ordering heuristic and where we care both about satisfiable and
-unsatisfiable instances.
+This new form of search can also be parallelised, with a \emph{much} simpler implementation than
+conventional work-stealing. By running many threads with different random seeds but the same restart
+schedule, and sharing nogoods only following restarts, we can achieve speedups of thirty one from a
+thirty six core machine, or ninety five by using ten such machines with message passing.
 
 \subsection{Definitions}
 
@@ -114,8 +117,6 @@ adjacent vertices in $\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{
 vertices with loops in $\mathcal{P}$ may only be mapped to vertices with loops in $\mathcal{T}$).
 The \emph{induced} problem additionally requires that non-adjacent vertices are mapped to
 non-adjacent vertices.
-
-?? Applications
 
 % We write $v \mapsto v'$ to mean that pattern vertex $v$ is mapped to target $v'$ under
 % either kind of mapping. Finally, we define a function $\FuncSty{compatible}(v, w)$ to mean that
@@ -322,9 +323,8 @@ families from earlier papers:
         transition \cite{DBLP:journals/jair/McCreeshPST18}.
     \item[PR] contains graphs generated from segmented images, corresponding to a computer vision
         problem \cite{DBLP:journals/pr/SolnonDHJ15}.
-    \item[Images and Meshes] contain graphs representing 2D segmented images and 3D object models
-        respectively, again representing a computer vision problem
-        \cite{DBLP:journals/cviu/DamiandSHJS11}.
+    \item[Images and Meshes] contain graphs representing 2D segmented images and 3D object models,
+        again representing a computer vision problem \cite{DBLP:journals/cviu/DamiandSHJS11}.
 \end{description}
 
 \noindent
@@ -355,8 +355,8 @@ non-induced problem, and at least \input{gen-n-unsat.tex}\unskip\ are unsatisfia
     \label{figure:others}
 \end{figure}
 
-We begin with a set of baseline performance measurements. In the first and
-third plots \cref{figure:others} we show the cumulative number of instances solved over time for the
+We begin with a set of baseline performance measurements. In the top
+two plots \cref{figure:others} we show the cumulative number of instances solved over time for the
 non-induced and induced problems respectively. We compare the Glasgow Subgraph Solver using
 depth-first search (DFS) and with the modifications described in the remainder of this paper
 (solution-biased search, SBS), the PathLAD variation of the LAD algorithm
@@ -432,48 +432,51 @@ heavy-commitment backtracking search.
 \end{figure}
 
 Traditionally, value-ordering heuristics are designed to drive search towards the most promising
-region of the search space ?? cite, or the most constrained ?? cite, or the region with the highest solution
-density ?? cite. In subgraph isomorphism, this is done by selecting vertices from highest degree to
-lowest \cite{DBLP:journals/jair/McCreeshPST18}. The left-hand plot of
+region of the search space \cite{DBLP:conf/ecai/Geelen92}, or the most constrained
+\cite{DBLP:conf/aaai/GentMPW96}, or the region with the highest solution density
+\cite{DBLP:journals/jair/PesantQZ12}. In subgraph isomorphism, this is done by selecting vertices
+from highest degree to lowest \cite{DBLP:journals/jair/McCreeshPST18}. The left-hand plot of
 \cref{figure:value-ordering-heuristics} demonstrates that this is indeed a good choice: the
 \textbf{Degree} heuristic's line shows much better performance on satisfiable instances than the
 \textbf{Random} (branch randomly) or \textbf{Anti} (branch from lowest degree to highest) heuristic
-lines. (On unsatisfiable instances, the value-ordering heuristic has no effect on performance,
-because a complete search must be performed.)
+lines. Meanwhile, on unsatisfiable instances, the value-ordering heuristic has no effect on
+performance, because a complete search must be performed.
 
 But what happens if our value-ordering heuristic has to choose between mapping a pattern vertex to,
-for example, three vertices of degree ten, two vertices of degree nine, or five of degree two? When
-driving conventional backtracking search, the degree heuristic would pick one of the vertices of
-degree ten, and we would commit all of our search effort to the exponentially large search tree
-underneath it.  We will show that this is not a wise choice, and that instead, we should \emph{commit
-equal search effort} to each of the three subproblems found by mapping to vertices of degree ten.
-And similarly, should we be certain that vertex of degree ten is so much better than a vertex of
-degree nine that we should commit no effort to degree nine vertices until all the degree ten
-subproblems have been explored? Or might it be better to commit, say, twice as much effort to each
-degree ten subproblems as to each degree nine subproblems, and only a very small amount of effort to
-the degree two subproblems?  To test this hypothesis, we will now introduce a new alternative to
-backtracking search, which we call \emph{solution-biased search}.  This search is made up of three
-components: a new slightly-random value-ordering heuristic, rapid restarts, and nogood recording.
+for example, three target vertices of degree ten, two vertices of degree nine, or five of degree
+two? When driving conventional backtracking search, the degree heuristic would pick one of the
+vertices of degree ten, and we would commit all of our search effort to the exponentially large
+search tree underneath it, not considering any other choice until this tree has been fully explored
+and eliminated.  We will show that this is not a wise choice, and that instead, we should
+\emph{commit equal search effort} to each of the three subproblems found by mapping to vertices of
+degree ten.  And similarly, should we be certain that vertex of degree ten is so much better than a
+vertex of degree nine that we should commit no effort to degree nine vertices until all the degree
+ten subproblems have been explored? Or might it be better to commit, say, twice as much effort to
+each degree ten subproblems as to each degree nine subproblems, and only a very small amount of
+effort to the degree two subproblems?  To test this hypothesis, we will now introduce a new
+alternative to backtracking search, which we call \emph{solution-biased search}.  This search is
+made up of three components: a new slightly-random value-ordering heuristic, rapid restarts, and
+nogood recording. The aim is to perform a complete search, but spending proportionally more time in
+parts of the search tree that are preferred by the value-ordering heuristic.
 
 \subsection{Biased Value-Ordering}
 
-We define a new \textbf{Biased} value-ordering heuristic, as follows. When branching, we select a
-vertex $v'$ from the chosen domain $D_v$ with probability \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in
-D_v}{2^{\deg(w)}}} \text{.} \] This heuristic is now equally likely to pick between vertices of
-equal degree, is twice as likely to pick a vertex of degree $d$ as one of degree $d - 1$, and is
-over a thousand times more likely to pick a vertex of degree $d$ than degree $d - 10$.
-\Cref{figure:value-ordering-heuristics} shows that the performance of the degree and biased
-heuristics are very similar: the biased heuristic has slightly worse performance below a ??
-timeout, and effectively equal performance above it. This shows that we can introduce an element of
-randomness into the degree value-ordering heuristic without adversely affecting its performance
-\emph{in aggregate}.
+Firstly, we define a new \textbf{Biased} value-ordering heuristic, as follows. When branching, we
+select a vertex $v'$ from the chosen domain $D_v$ with probability \[ p(v') =
+\frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \] This heuristic is now equally likely
+to pick between vertices of equal degree, is twice as likely to pick a vertex of degree $d$ as one
+of degree $d - 1$, and is over a thousand times more likely to pick a vertex of degree $d$ than
+degree $d - 10$.
 
-The right-hand plot of \cref{figure:value-ordering-heuristics} gives a detailed comparison of the
-degree and biased heuristics. It shows that despite the aggregate performance being similar, on a
-case by case basis, the two heuristics can make a large difference to the performance of individual
-satisfiable instances. This suggests that although degree is a good heuristic, we should perhaps not
-commit heavily to a vertex of highest degree, but also consider vertices of the same or similar
-degree.
+\Cref{figure:value-ordering-heuristics} confirms that this heuristic, when used with backtracking
+search, will solve close to the same number of instances as the degree heuristic would for any given
+choice of timeout. In other words, we can introduce an element of randomness into the degree
+value-ordering heuristic without adversely affecting its performance \emph{in aggregate}.  The
+right-hand plot gives a detailed comparison. It shows that despite the aggregate performance being
+similar, on a case by case basis, the two heuristics can make a large difference to the performance
+for individual satisfiable instances. This justifies our belief that although degree is a good
+heuristic, we should perhaps not commit heavily to a vertex of highest degree, but also consider
+vertices of the same or similar degree.
 
 \subsection{Restarting Search and Nogood Recording}
 
@@ -551,9 +554,9 @@ the search is better, if it is done alongside a mechanism to avoid heavy commitm
 particular random choice. However, the biased heuristic together
 with restarts (solution-biased search, SBS) is better still---that is, if we are introducing
 restarts, then it is better to add a small amount of randomness to a tailored heuristic than it is
-to throw away the heuristic altogether.  Indeed, the original algorithm can solve ?? satisfiable
-instances by ?? seconds, whilst the biased and random restarting algorithms require only ?? seconds
-and ?? seconds respectively to solve the same number.
+to throw away the heuristic altogether.  Indeed, the original algorithm can solve 1983 satisfiable
+instances by 909 seconds, whilst the biased and random restarting algorithms require only 12 seconds
+and 35 seconds respectively to solve the same number.
 
 In the more detailed view in the right-hand plot of \cref{figure:old-vs-new}, comparing the original
 algorithm to solution-biased search, all of the unsatisfiable instances are very close to the $x-y$
@@ -591,15 +594,6 @@ more search nodes than those under a target vertex of degree $d - 1$.
 
 \section{Parallel Search}
 
-?? No sharing, sharing with Luby restarts, sharing with constant restarts, sharing with triggered
-restarts
-
-?? Reproducibility, constant and triggered
-
-?? How many more nodes on unsat instances
-
-?? Scalability to MPI
-
 \begin{figure}[tb]
     \includegraphics{gen-graph-parallel.pdf}
 
@@ -613,6 +607,112 @@ restarts
     algorithm to results using 32 threads on a single machine, and using five or ten distributed
     memory hosts. Below, instance by instance comparisons.}\label{figure:parallel}
 \end{figure}
+
+Exploiting multiple cores to speed up constraint programming solvers remains an active area of
+research, with no universally perfect solution being available. Four of the more common approaches
+are based upon decompositions
+\cite{DBLP:journals/corr/abs-1008-4328,DBLP:journals/jair/MalapertRR16}, work stealing
+\cite{DBLP:conf/cp/MichelSH07,DBLP:conf/cp/ChuSS09,DBLP:conf/cp/McCreeshP15,DBLP:conf/cpaior/HoffmannMNPRS018},
+parallel discrepancy searches \cite{DBLP:conf/cp/MoisanGQ13,DBLP:conf/cpaior/MoisanQG14}, and
+algorithm portfolios \cite{DBLP:conf/lion/LindauerHH15}. Decomposition approaches are unsuitable for
+decision problems, or problems where we have good value-ordering heuristics, because the
+decomposition interferes strongly with the shape of the search tree
+\cite{DBLP:journals/jair/MalapertRR16}. Work stealing, traditionally, also interferes with
+value-ordering \cite{DBLP:journals/topc/McCreeshP15}, although specially designed exceptions exist
+\cite{DBLP:conf/cp/ChuSS09,DBLP:conf/cp/McCreeshP15,DBLP:conf/cpaior/HoffmannMNPRS018}. However,
+these have very complicated implementations. Parallel discrepancy searches are aware of
+value-ordering heuristics, but have other limitations: they struggles on search trees with heavy
+filtering, and rely upon inner search tree nodes being orders of magnitude less expensive to process
+than leaf nodes. Portfolios, meanwhile, typically rely upon running multiple models or heuristics
+simultaneously, and selecting whichever finishes first, whereas here we have a known good model and
+set of heuristics.
+
+\subsection{Shared Memory Parallelism}
+
+Solution-biased search allows for a much simpler parallel implementation, which we now evaluate.  We
+create a number of threads, and give each thread its own random seed, but otherwise each thread
+performs the same sequential search. Then, whenever a thread restarts, it uses a barrier to wait for
+every other thread to also restart. Each thread's new nogoods from that restart can then be
+gathered, and then each thread resumes, with a larger set of nogoods than would have been generated
+in a sequential run. Finally, whenever any single thread terminates, either due to having found a
+solution or proved unsatisfiability, then every other thread may immediately terminate.
+
+A number of factors combine to make this technique feasible:
+
+\begin{itemize}
+    \item Each thread will be run with the same restart schedule, and so will spend approximately
+        the same amount of time between restarts. Because the only synchronisation between threads
+        is at restarts, we expect threads to be kept busy doing useful work.  (This is in contrast
+        to an alternative method for paralellising restarting search \cite{DBLP:conf/aaai/CireKS14},
+        which packs together successive sequence values to produce a balanced workload.)
+    \item Sequentially, on non-trivial instances the algorithm will restart very many times (many
+        tens of thousands, for instances that reach the thousand second timeout).
+    \item Because the search trees we explore are exponentially large, the randomness in the
+        value-ordering heuristic is sufficient to ensure that most of the time, threads are
+        exploring different parts of the search tree.
+    \item The gathering of nogoods to describe the work done so far provides an alternative to
+        requiring either a specific mechanism to allocate work, or expensive synchronisation between threads.
+    \item If sometimes threads do happen to explore part of
+        the same subproblems, this is not a problem: if the instance is satisfiable, either thread
+        might find a solution first, and if the instance is unsatisfiable, we merely introduce some
+        redundancy into the proof.\footnote{For solving a counting or enumeration problem,
+        matters become slightly more complicated, but not devastatingly so.} The combination of
+        rapid restarts and nogood recording is enough to ensure that this is only a small overhead.
+\end{itemize}
+
+\Cref{figure:parallel} shows how this scheme performs in practice. Sequentially, we can solve 14,357
+instances within the thousand second timeout, with the last instance being solved at 939.0 seconds.
+Using thirty six threads on machines with two eighteen core processors, we can solve 14,357
+instances with a timeout of only 74.2 seconds, giving an aggregate speedup of 12.7.
+
+Closer inspection of the results reveals that with this many threads, a considerable proportion of
+the overall search time is spent with threads waiting at the barrier for synchronisation. This is
+because the time taken to carry out search until 660 backtracks are encountered is only
+\emph{roughly} a constant (in practice it usually varies by around a factor of two). Furthermore,
+the Luby sequence includes occasional large multipliers, and if unsatisfiability is proved during
+towards the end of one of these runs, each thread will end up duplicating a large amount of work.
+
+Because we are using nogood recording, an alternative approach is possible. Rather than using the
+Luby sequence for restarts, we could restart after either a constant number of backtracks, or simply
+after a certain time interval has passed. \Cref{figure:parallel} also shows the effects of restarting
+every 100ms. Sequentially, this approach is slightly better than using the Luby sequence, being able to
+solve 14,370 instances, with the last at 996.4 seconds. With thirty six threads, solving this many
+instances takes 31.8 seconds, giving an aggregate speedup of 31.4.
+
+It is important to emphasise that there is no expectation of a linear speedup from this approach,
+particularly for satisfiable instances. Due to the random nature of the value-ordering heuristic,
+one of our extra threads may ``get lucky'' and find a solution much quicker than we would
+sequentially, leading to a superlinear speedup. Conversely, our extra threads may contribute nothing to finding a
+solution---or worse, due to new nogoods altering the choice made by the random branching heuristic,
+we could even get an absolute slowdown. We can see both of these effects in the bottom left plot of
+\cref{figure:parallel}: although we achieve roughly a linear speedup on unsatisfiable instances,
+satisfiable instances show much greater variability. However, this approach does at least mirror our intuition of
+allocating search effort in proportion to where the value-ordering heuristic believes it will be
+most fruitful, and so we should not be too surprised that we see roughly a linear speedup on average
+on harder instances.
+
+Additionally, for easy instances, most of the algorithm's execution time is spent in a preprocessing
+phase. We have not parallelised this, which is why our results are poor below the one second mark.
+
+\subsection{Distributed Memory Parallelism}
+
+To further test the scalability of this technique, we also implemented a distributed-parallelism
+layer on top of the threaded layer, using MPI. In contrast to the huge difficulties of implementing
+work-stealing in a distributed memory setting, this required only the addition of a simple ``all
+gather'' operation to communicate nogoods, and a ``gather'' to collect and combine the results of
+each host. Termination, meanwhile, was handled by posting an empty nogood (and so termination can
+only occur on a restart).
+
+\Cref{figure:parallel} also shows the results of these experiments, using five and ten hosts.
+Because each host has two sockets, the five host results use ten MPI ranks, each with eighteen
+threads, and the ten host results use twenty MPI ranks. Because the supercomputing service we use is
+not designed for huge numbers of very short problems, we ran only instances whose sequential runtime
+was at least one second, and for the sake of plotting results, treat skipped instances as taking one
+second. Due to the job launcher used, it is also not possible to accurately measure ``total''
+runtime including startup costs, and so instead we report the runtime of the rank zero
+process---this figure is somewhat optimistic for very easy instances. With these caveats in mind, we
+see that our results continue to improve as the host count increases, and we come very close to the
+magic goal of an overall speedup of one hundred.
 
 \section{Maximum Common Subgraph Algorithms}
 
@@ -655,7 +755,7 @@ moved from a decision problem to an optimisation problem, the same changes remai
 beneficial. For the $k{\downarrow}$ algorithm, the change has a minimal effect on many instances
 (typically, where the $k = 0$ subproblem is unsatisfiable and hard, and the $k = 1$ subproblem is
 satisfiable and easy), but gives large benefits on many more instances than it penalises: it is over
-an order of magnitude better on nearly a hundred instances, whilst being an order of magnitude worse
+an order of magnitude better on over three hundred instances, whilst being an order of magnitude worse
 on only seven.
 
 With McSplit${\downarrow}$, the inability to use two watched literals means that in many cases we
@@ -679,10 +779,10 @@ recording, and biasing an existing value-ordering heuristic with just a pinch of
 
 ?? Apply to CP in general
 
-\section*{Acknowledgements}
-
-The authors would like to thank Ruth Hoffmann, Christophe Lecoutre, Christine Solnon, and Craig
-Reilly for their comments.
+% \section*{Acknowledgements}
+% 
+% The authors would like to thank Ozgur Akgun, Chris Jefferson, Christophe Lecoutre, Christine
+% Solnon, and Craig Reilly for their comments.
 
 \bibliographystyle{splncs04}
 \bibliography{dblp}

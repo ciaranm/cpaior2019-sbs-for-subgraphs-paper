@@ -6,8 +6,8 @@ set output "gen-graph-scatter-mcsplit.tex"
 load "inferno.pal"
 load "common.gnuplot"
 
-set xlabel "McSplit${\\downarrow}$ Runtime (ms)"
-set ylabel "Biased + Restarts McSplit${\\downarrow}$ Runtime (ms)" offset 0.5
+set xlabel "DFS McSplit${\\downarrow}$ Runtime (ms)"
+set ylabel "SBS McSplit${\\downarrow}$ Runtime (ms)" offset 0.5
 set logscale x
 set logscale y
 set format x '$10^{%T}$'

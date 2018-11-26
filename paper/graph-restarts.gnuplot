@@ -6,8 +6,8 @@ set output "gen-graph-restarts.tex"
 load "parula.pal"
 load "common.gnuplot"
 
-solvedfinal=-1
-solvednorestarts=-1
+solvedfinal=0
+solvednorestarts=0
 set table "/dev/null"
 plot "runtimes.data" u (cumx(norestarts)):(solvednorestarts=solvednorestarts+(stringcolumn("sat")ne"1"||isfail(norestarts)?0:1)) smooth cumulative
 plot "runtimes.data" u (cumx(final)):(solvedfinal=solvedfinal+(stringcolumn("sat")ne"1"||isfail(final)?0:1)) smooth cumulative
@@ -16,13 +16,19 @@ unset table
 set table "gen-as-runtimes-norestarts-sat.data"
 set format x '%.0f'
 set format x '%.0f'
-plot "runtimes.data" u (cumx(norestarts)):(stringcolumn("sat")ne"1"||isfail(norestarts)?0:1) smooth cumulative
+plot "runtimes.data" u (stringcolumn("sat")ne"1"?1e6:cumx(norestarts)):(stringcolumn("sat")ne"1"||isfail(norestarts)?0:1) smooth cumulative
+unset table
+
+set table "gen-as-runtimes-randomrestarts-sat.data"
+set format x '%.0f'
+set format x '%.0f'
+plot "runtimes.data" u (stringcolumn("sat")ne"1"?1e6:cumx(randomrestarts)):(stringcolumn("sat")ne"1"||isfail(randomrestarts)?0:1) smooth cumulative
 unset table
 
 set table "gen-as-runtimes-final-sat.data"
 set format x '%.0f'
 set format x '%.0f'
-plot "runtimes.data" u (cumx(final)):(stringcolumn("sat")ne"1"||isfail(final)?0:1) smooth cumulative
+plot "runtimes.data" u (stringcolumn("sat")ne"1"?1e6:cumx(final)):(stringcolumn("sat")ne"1"||isfail(final)?0:1) smooth cumulative
 unset table
 
 lastnorestarts=0
