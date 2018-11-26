@@ -117,9 +117,9 @@ plot \
     "runtimes.data" u (cumx(final)):(cumy(final)) smooth cumulative w l ti 'SBS (Luby)' ls 1, \
     "runtimes.data" u (cumx(timer)):(cumy(timer)) smooth cumulative w l ti 'SBS (Timer)' ls 2 dt (2,2), \
     "runtimes.data" u (cumx(par)):(cumy(par)) smooth cumulative w l ti '32 Threads (Luby)' ls 3 dt (6,2), \
-    "runtimes.data" u (cumx(partimer)):(cumy(partimer)) smooth cumulative w l ti '32 Threads (Timer)' ls 5 dt (18,2), \
-    "runtimes.data" u (cumminx(dist5)):(cumy(dist5)) smooth cumulative w l ti '5 Hosts (Timer)' ls 6 dt (6,2,2,2), \
-    "runtimes.data" u (cumminx(dist10)):(cumy(dist10)) smooth cumulative w l ti '10 Hosts (Timer)' ls 7 dt (18,2,2,2), \
+    "runtimes.data" u (cumx(partimer)):(cumy(partimer)) smooth cumulative w l ti '32 Threads (Timer)' ls 4 dt (18,2), \
+    "runtimes.data" u (cumminx(dist5)):(cumy(dist5)) smooth cumulative w l ti '5 Hosts (Timer)' ls 5 dt (6,2,2,2), \
+    "runtimes.data" u (cumminx(dist10)):(cumy(dist10)) smooth cumulative w l ti '10 Hosts (Timer)' ls 6 dt (18,2,2,2), \
 
 print "grepme"
 print solvedfinal

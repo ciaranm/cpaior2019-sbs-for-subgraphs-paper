@@ -16,10 +16,10 @@ set yrange [1100:1500]
 set key bottom right invert Left width -10
 
 plot \
-    "inducedruntimes.data" u (cumx(riinduced)):(cumsaty(riinduced)) smooth cumulative w l notitle ls 8 dt (18,2,2,2), \
-    "inducedruntimes.data" u (cumx(vf3induced)):(cumsaty(vf3induced)) smooth cumulative w l notitle ls 7 dt (6,2,2,2), \
-    "inducedruntimes.data" u (cumx(vf2induced)):(cumsaty(vf2induced)) smooth cumulative w l notitle ls 6 dt (18,2), \
-    "inducedruntimes.data" u (cumx(pathladinduced)):(cumsaty(pathladinduced)) smooth cumulative w l notitle ls 5 dt (6,2), \
-    "inducedruntimes.data" u (cumx(norestartsinduced)):(cumsaty(norestartsinduced)) smooth cumulative w l notitle ls 4 dt (2,2), \
-    "inducedruntimes.data" u (cumx(finalinduced)):(cumsaty(finalinduced)) smooth cumulative w l notitle ls 3
+    "inducedruntimes.data" u (cumx(riinduced)):(cumsaty(riinduced)) smooth cumulative w l notitle ls 6 dt (18,2,2,2), \
+    "inducedruntimes.data" u (cumx(vf3induced)):(cumsaty(vf3induced)) smooth cumulative w l notitle ls 5 dt (6,2,2,2), \
+    "inducedruntimes.data" u (cumx(vf2induced)):(cumsaty(vf2induced)) smooth cumulative w l notitle ls 4 dt (18,2), \
+    "inducedruntimes.data" u (cumx(pathladinduced)):(cumsaty(pathladinduced)) smooth cumulative w l notitle ls 3 dt (6,2), \
+    "inducedruntimes.data" u (cumx(norestartsinduced)):(cumsaty(norestartsinduced)) smooth cumulative w l notitle ls 2 dt (2,2), \
+    "inducedruntimes.data" u (cumx(finalinduced)):(cumsaty(finalinduced)) smooth cumulative w l notitle ls 1
 

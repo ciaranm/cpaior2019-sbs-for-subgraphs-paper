@@ -63,19 +63,29 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
     value-ordering heuristic to direct backtracking search. Such a search makes a heavy commitment
     to the first branching choice, which is often incorrect. To mitigate this, we introduce and
     evaluate a new approach, which we call ``solution-biased search''. By combining a
-    slightly-random value-ordering heuristic, rapid restarts, and nogood recording, we achieve two
-    orders of magnitude faster performance on satisfiable instances, whilst not affecting
-    performance on unsatisfiable instances. This search can be parallelised in a very simple
-    but effective way: across both satisfiable and unsatisfiable instances, we get a further speedup
-    of over thirty from thirty six cores, or ninety five from ten distributed-memory hosts.  We also
-    show that solution-biased search is also suitable for optimisation problems, by using it to
-    improve two maximum common induced subgraph algorithms.
+    slightly-random value-ordering heuristic, rapid restarts, and nogood recording, we design an
+    algorithm which instead uses degree to direct the proportion of search effort spent in different
+    subproblems. This increases performance by two orders of magnitude on satisfiable instances,
+    whilst not affecting performance on unsatisfiable instances. Such a such search can also be
+    parallelised in a very simple but effective way: across both satisfiable and unsatisfiable
+    instances, we get a further speedup of over thirty from thirty six cores, or ninety five from
+    ten distributed-memory hosts. Finally, we show that solution-biased search is also suitable for
+    optimisation problems, by using it to improve two maximum common induced subgraph algorithms.
 \end{abstract}
 
 \section{Introduction}
 
 The subgraph isomorphism problem is to decide whether a copy of a small ``pattern'' graph occurs
-inside a larger ``target'' graph.  ?? Applications
+inside a larger ``target'' graph. The problem is broadly applicable, with applications in areas
+including in bioinformatics \cite{o:BonniciGPSF13}, chemistry \cite{o:Regin95}, computer vision
+\cite{DBLP:journals/cviu/DamiandSHJS11,DBLP:journals/pr/SolnonDHJ15}, law enforcement
+\cite{DBLP:journals/cacm/CoffmanGM04}, model checking \cite{DBLP:journals/tcs/SevegnaniC15},
+malware detection \cite{DBLP:conf/dimva/BruschiMM06}, compilers
+\cite{DBLP:conf/cgo/MurrayF12,DBLP:conf/cp/BlindellLCS15}, pattern recognition
+\cite{DBLP:journals/ijprai/FoggiaPV14}, program similarity
+comparison \cite{o:DallaPredaV17}, the design of mechanical locks
+\cite{DBLP:journals/siamrev/VomelLBF17}, and graph databases
+\cite{DBLP:journals/jair/McCreeshPST18}.
 
 Although the problem is \NP-complete, by combining design techniques from artificial intelligence
 with careful algorithm engineering, modern subgraph isomorphism solvers can often produce exact
@@ -116,7 +126,8 @@ vertices of a \emph{pattern} graph $\mathcal{P}$ to a \emph{target} graph $\math
 adjacent vertices in $\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{T}$ (including that
 vertices with loops in $\mathcal{P}$ may only be mapped to vertices with loops in $\mathcal{T}$).
 The \emph{induced} problem additionally requires that non-adjacent vertices are mapped to
-non-adjacent vertices.
+non-adjacent vertices. The \emph{degree} of a vertex is the number of other vertices to which it is
+adjacent.
 
 % We write $v \mapsto v'$ to mean that pattern vertex $v$ is mapped to target $v'$ under
 % either kind of mapping. Finally, we define a function $\FuncSty{compatible}(v, w)$ to mean that
@@ -348,10 +359,10 @@ non-induced problem, and at least \input{gen-n-unsat.tex}\unskip\ are unsatisfia
     \hfill
     \includegraphics{gen-graph-others-induced-zoom.pdf}
 
-    \caption{On the top row, the cumulative number of instances solved over time, comparing our algorithm
-    (both in its basic form, and with the improvements introduced in the remainder of the paper) to
-    other solvers, for the non-induced and induced problems. On the bottom row, the same,
-    considering only satisfiable instances.}
+    \caption{On the top row, the cumulative number of instances solved over time, comparing the
+    Glasgow Subgraph Solver (both in its basic form, and with the improvements introduced in the
+    remainder of the paper) to other solvers, for the non-induced and induced problems. On the
+    bottom row, the same, considering only satisfiable instances.}
     \label{figure:others}
 \end{figure}
 
@@ -594,20 +605,6 @@ more search nodes than those under a target vertex of degree $d - 1$.
 
 \section{Parallel Search}
 
-\begin{figure}[tb]
-    \includegraphics{gen-graph-parallel.pdf}
-
-    \medskip
-
-    \includegraphics{gen-graph-scatter-par.pdf}
-    \hfill
-    \includegraphics{gen-graph-scatter-dist.pdf}
-
-    \caption{Above, the cumulative number of instances solved over time, comparing the sequential
-    algorithm to results using 32 threads on a single machine, and using five or ten distributed
-    memory hosts. Below, instance by instance comparisons.}\label{figure:parallel}
-\end{figure}
-
 Exploiting multiple cores to speed up constraint programming solvers remains an active area of
 research, with no universally perfect solution being available. Four of the more common approaches
 are based upon decompositions
@@ -628,6 +625,20 @@ simultaneously, and selecting whichever finishes first, whereas here we have a k
 set of heuristics.
 
 \subsection{Shared Memory Parallelism}
+
+\begin{figure}[tb]
+    \includegraphics{gen-graph-parallel.pdf}
+
+    \medskip
+
+    \includegraphics{gen-graph-scatter-par.pdf}
+    \hfill
+    \includegraphics{gen-graph-scatter-dist.pdf}
+
+    \caption{Above, the cumulative number of instances solved over time, comparing the sequential
+    algorithm to results using 32 threads on a single machine, and using five or ten distributed
+    memory hosts. Below, instance by instance comparisons.}\label{figure:parallel}
+\end{figure}
 
 Solution-biased search allows for a much simpler parallel implementation, which we now evaluate.  We
 create a number of threads, and give each thread its own random seed, but otherwise each thread

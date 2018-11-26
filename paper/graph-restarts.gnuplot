@@ -57,7 +57,7 @@ set label 1 right at lastnorestarts, solvednorestarts "".sprintf("$%.1f{\\times}
 plot \
     "runtimes.data" u (cumx(final)):(cumsaty(final)) smooth cumulative w l ti 'SBS' ls 1, \
     "runtimes.data" u (cumx(randomrestarts)):(cumsaty(randomrestarts)) smooth cumulative w l ti 'RSR' ls 2 dt (2,2), \
-    "runtimes.data" u (cumx(softmax)):(cumsaty(softmax)) smooth cumulative w l ti 'DFS Biased' ls 4 dt (6,2), \
-    "runtimes.data" u (cumx(norestarts)):(cumsaty(norestarts)) smooth cumulative w l ti 'DFS Degree' ls 6 dt (18,2), \
-    "runtimes.data" u (cumx(random)):(cumsaty(random)) smooth cumulative w l ti 'DFS Random' ls 7 dt (6,2,2,2)
+    "runtimes.data" u (cumx(softmax)):(cumsaty(softmax)) smooth cumulative w l ti 'DFS Biased' ls 3 dt (6,2), \
+    "runtimes.data" u (cumx(norestarts)):(cumsaty(norestarts)) smooth cumulative w l ti 'DFS Degree' ls 5 dt (18,2), \
+    "runtimes.data" u (cumx(random)):(cumsaty(random)) smooth cumulative w l ti 'DFS Random' ls 6 dt (6,2,2,2)
 
