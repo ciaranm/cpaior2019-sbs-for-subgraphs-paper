@@ -392,7 +392,8 @@ non-induced problem, which tends to be harder; results with the induced variant 
 
 \subsection{Discrepancy Searches}
 
-A \emph{discrepancy} is where search goes against a value-ordering heuristic.  Discrepancy searches
+A \emph{discrepancy} is where search goes against the advice of a value-ordering heuristic.
+Discrepancy searches
 \cite{DBLP:conf/ijcai/HarveyG95,DBLP:conf/aaai/Korf96,DBLP:conf/ijcai/Walsh97,DBLP:conf/cpaior/KarouiHLN07}
 are alternatives to backtracking search that initially search disallowing all discrepancies, and
 then retry search allowing an increasing number of discrepancies at each iteration until either a
@@ -453,10 +454,10 @@ from highest degree to lowest \cite{DBLP:journals/jair/McCreeshPST18}. The left-
 lines. Meanwhile, on unsatisfiable instances, the value-ordering heuristic has no effect on
 performance, because a complete search must be performed.
 
-But what happens if our value-ordering heuristic has to choose between mapping a pattern vertex to,
-for example, three target vertices of degree ten, two vertices of degree nine, or five of degree
-two? When driving conventional backtracking search, the degree heuristic would pick one of the
-vertices of degree ten, and we would commit all of our search effort to the exponentially large
+But what happens if our value-ordering heuristic has to choose between mapping a pattern vertex to
+one of, for example, three target vertices of degree ten, two vertices of degree nine, or five of
+degree two? When driving conventional backtracking search, the degree heuristic would pick one of
+the vertices of degree ten, and we would commit all of our search effort to the exponentially large
 search tree underneath it, not considering any other choice until this tree has been fully explored
 and eliminated.  We will show that this is not a wise choice, and that instead, we should
 \emph{commit equal search effort} to each of the three subproblems found by mapping to vertices of
@@ -486,7 +487,7 @@ value-ordering heuristic without adversely affecting its performance \emph{in ag
 right-hand plot gives a detailed comparison. It shows that despite the aggregate performance being
 similar, on a case by case basis, the two heuristics can make a large difference to the performance
 for individual satisfiable instances. This justifies our belief that although degree is a good
-heuristic, we should perhaps not commit heavily to a vertex of highest degree, but also consider
+heuristic, we should perhaps not commit heavily to a single vertex of highest degree, but also consider
 vertices of the same or similar degree.
 
 \subsection{Restarting Search and Nogood Recording}
@@ -595,13 +596,28 @@ when disabling nogood recording, and on the right-hand plot we see many more sat
 above the $x-y$ diagonal when using the random value-ordering heuristic as opposed to the
 degree-biased heuristic.
 
-\subsection{Why ``Solution-Biased'', and why Exponential Bias?}
+\subsection{Solution-Biased Search in Theory}
 
-?? Although we have shown that it provides good results, we have yet to justify where the biased
-formula comes from, or indeed why we call this approach ``solution-biased''. The crux of the
-matter is that whilst we do not know where solutions actually lie in the search space, we \emph{do}
-know that subproblems under a target vertex of degree $d$ tend to contain a small constant times
-more search nodes than those under a target vertex of degree $d - 1$.
+Although we have shown that it provides good results, we have yet to justify where the biased
+formula comes from, or indeed why we call this approach ``solution-biased''.  Our goal is to use
+biased randomness in a value-ordering heuristic to spend time in subproblems proportional to an
+estimate of their solution density \cite{DBLP:journals/jair/PesantQZ12}. ?? I feel like we still
+need a sentence here saying why this is a good idea.
+
+To estimate solution density, we need an estimate of how big different subproblems are likely to be,
+and of how many solutions each subproblem is likely to contain. Of course, obtaining exact (or even
+approximate) values for these figures is at least as hard as solving the problem in its entirety.
+For pairs of Erd\H{o}s-R\'enyi
+random graphs with large solution counts (i.e.\ chosen from within the ``easy satisfiable'' region
+\cite{DBLP:journals/jair/McCreeshPST18}), we observe a linear relationship between subproblem size
+and number of solutions. Thus, for graphs from this distribution, we need only an estimator of
+subproblem size. Measurements also suggest that, for pairs of Erd\H{o}s-R\'enyi graphs, subproblems
+under a target vertex of degree $d$ tend to contain a small constant times more search nodes than
+those under a target vertex of degree $d - 1$.  This empirical analysis suggests that an estimator
+that is exponential in $d$ will give our method the desired behaviour, at least for
+Erd\H{o}s-R\'enyi graphs. We expect it may be possible to derive better estimators for particular
+input classes, although over the full range of problem instances, we have verified that estimators
+of the form $e^d$ substantially outperform polynomial and factorial weightings.
 
 \section{Parallel Search}
 
@@ -782,7 +798,7 @@ order heuristics, and without paying a penalty for unsatisfiable instances. In p
 well-known that introducing some form of randomness \cite{DBLP:conf/aaai/GomesSK98} or reduced
 commitment \cite{DBLP:conf/ijcai/HarveyG95} into backtracking search can be beneficial, but until
 now it has not been clear how to do so efficiently in practice, particularly when we already have
-strong search ordering heuristics and when are expecting to encounter large numbers of unsatisfiable
+strong search ordering heuristics and when we are expecting to encounter large numbers of unsatisfiable
 instances. Our results show that the key to success is a combination of aggressive restarts, nogood
 recording, and biasing an existing value-ordering heuristic with just a pinch of randomness.
 
