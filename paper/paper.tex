@@ -689,7 +689,8 @@ A number of factors combine to make this technique feasible:
 \Cref{figure:parallel} shows how this scheme performs in practice. Sequentially, we can solve 14,357
 instances within the thousand second timeout, with the last instance being solved at 939.0 seconds.
 Using thirty six threads on machines with two eighteen core processors, we can solve 14,357
-instances with a timeout of only 74.2 seconds, giving an aggregate speedup of 12.7.
+instances with a timeout of only 74.2 seconds, giving an aggregate speedup
+\cite{DBLP:conf/cpaior/HoffmannMNPRS018} of 12.7.
 
 Closer inspection of the results reveals that with this many threads, a considerable proportion of
 the overall search time is spent with threads waiting at the barrier for synchronisation. This is
@@ -743,7 +744,6 @@ magic goal of an overall speedup of one hundred.
 \section{Maximum Common Subgraph Algorithms}
 
 \begin{figure}[tb]
-    \centering
     \includegraphics{gen-graph-mcs.pdf}
 
     \medskip
