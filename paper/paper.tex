@@ -101,10 +101,7 @@ small amount of randomness into the value-ordering heuristic, we make a state-of
 algorithm perform two orders of magnitude better on a large number of satisfiable instances, whilst
 performing worse only rarely on satisfiable instances, and never on unsatisfiable instances.  This
 strategy is also effective in an optimisation setting, producing benefits in two maximum common
-induced subgraph algorithms. Through this combination of techniques we have, for the first time, a
-practical alternative to backtracking search for constraint programming style algorithms where we
-have a strong value-ordering heuristic and where we care both about satisfiable and unsatisfiable
-instances.
+induced subgraph algorithms.
 
 This new form of search can also be parallelised, with a \emph{much} simpler implementation than
 conventional work-stealing. By running many threads with different random seeds but the same restart
@@ -601,8 +598,10 @@ degree-biased heuristic.
 Although we have shown that it provides good results, we have yet to justify where the biased
 formula comes from, or indeed why we call this approach ``solution-biased''.  Our goal is to use
 biased randomness in a value-ordering heuristic to spend time in subproblems proportional to an
-estimate of their solution density \cite{DBLP:journals/jair/PesantQZ12}. ?? I feel like we still
-need a sentence here saying why this is a good idea.
+estimate of their solution density \cite{DBLP:journals/jair/PesantQZ12}. Such an approach is better
+than committing entirely to the area of maximum solution density because estimators only give a
+probability---although we may estimate that one subtree has twice the solution density of another,
+in reality the ``better'' subtree may contain no solutions at all.
 
 To estimate solution density, we need an estimate of how big different subproblems are likely to be,
 and of how many solutions each subproblem is likely to contain. Of course, obtaining exact (or even
@@ -792,24 +791,28 @@ slowdown.
 
 \section{Conclusion and Future Work}
 
-We have shown that it is both possible and beneficial to introduce a small amount of randomness into
-backtracking search algorithms for hard subgraph problems, without compromising existing search
-order heuristics, and without paying a penalty for unsatisfiable instances. In principle it is
-well-known that introducing some form of randomness \cite{DBLP:conf/aaai/GomesSK98} or reduced
-commitment \cite{DBLP:conf/ijcai/HarveyG95} into backtracking search can be beneficial, but until
-now it has not been clear how to do so efficiently in practice, particularly when we already have
-strong search ordering heuristics and when we are expecting to encounter large numbers of unsatisfiable
-instances. Our results show that the key to success is a combination of aggressive restarts, nogood
-recording, and biasing an existing value-ordering heuristic with just a pinch of randomness.
+The conventional view of value-ordering heuristics is that they define a search order. We have
+proposed an alternative perspective, where value-orderings define a weighting specifying how much
+search effort should be put into different subproblems, based upon a rough estimate of solution
+densities. We have also shown how to turn this perspective into an algorithm, by combining a biased
+random value-ordering heuristic with rapid restarts and nogood recording. This combination of
+techniques gives us, for the first time, a practical alternative to backtracking search where we
+have a strong value-ordering heuristic and where we care both about satisfiable and unsatisfiable
+instances.  A further benefit is the ease with which such a search can be parallelised. By having
+each thread carry out the same search with a different random seed, and sharing nogoods only on
+restarts, we remove the need for intrusive changes to the core search algorithm, eliminate the
+irregularity problem, and still respect the advice of the value-ordering heuristic.
 
-?? Parallel
+We believe that these technique are broadly applicable, beyond subgraph algorithms, and we intend to
+implement them in a full constraint programming solver. We are also interested in making better use
+of statistical knowledge (either \emph{a priori} or learned during search) to further refine the
+biased randomisation process. And finally, we are trying hard to work out whether our new
+perspective also has some relevance to \emph{variable} ordering heuristics.
 
-?? Apply to CP in general
+\section*{Acknowledgements}
 
-% \section*{Acknowledgements}
-% 
-% The authors would like to thank Ozgur Akgun, Chris Jefferson, Christophe Lecoutre, Christine
-% Solnon, and Craig Reilly for their comments.
+The authors would like to thank Ozgur Akgun, Chris Jefferson, Christophe Lecoutre, Christine
+Solnon, and Craig Reilly for their comments.
 
 \bibliographystyle{splncs04}
 \bibliography{dblp}
