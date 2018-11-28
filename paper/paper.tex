@@ -139,13 +139,13 @@ non-induced and the induced subgraph isomorphism problems.  The solver is very c
 the $k{\downarrow}$ algorithm of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} with $k =
 0$, and we refer the reader to that paper for full technical details; that algorithm, in turn, is a
 simplification and re-engineering of an older Glasgow algorithm
-\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}.  Essentially, the solver is essentially
-a dedicated forward-checking constraint programming implementation specifically for subgraph
-problems. It works with a model having a variable per pattern graph vertex, with domains ranging
-over the target graph vertices, and performs a backtracking search to map each pattern vertex to a
-target vertex whilst propagating adjacency and injectivity constraints (together with further
-implied constraints based upon degrees and paths).  However, it uses specialised bit-parallel data
-structures and algorithms, and propagates constraints in a fixed order rather than using a queue.
+\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}.  Essentially, the solver is a dedicated
+forward-checking constraint programming implementation specifically for subgraph problems. It works
+with a model having a variable per pattern graph vertex, with domains ranging over the target graph
+vertices, and performs a backtracking search to map each pattern vertex to a target vertex whilst
+propagating adjacency and injectivity constraints (together with further implied constraints based
+upon degrees and paths).  However, it uses specialised bit-parallel data structures and algorithms,
+and propagates constraints in a fixed order rather than using a queue.
 
 % We now briefly outline the non-shaded parts of \cref{algorithm:sip}, which is how we will solve the
 % subgraph isomorphism problem. This algorithm is very closely based upon the $k{\downarrow}$
