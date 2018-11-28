@@ -99,11 +99,11 @@ defining a search order, we use degree to direct what \emph{proportion} of the s
 be spent in each subproblem. By combining rapid restarts and nogood recording, and introducing a
 small amount of randomness into the value-ordering heuristic, we make a state-of-the-art subgraph
 algorithm perform two orders of magnitude better on a large number of satisfiable instances, whilst
-performing worse only rarely on satisfiable instances, and never on unsatisfiable instances.  This
+performing worse rarely on satisfiable instances, and never on unsatisfiable instances.  This
 strategy is also effective in an optimisation setting, producing benefits in two maximum common
 induced subgraph algorithms.
 
-This new form of search can also be parallelised, with a \emph{much} simpler implementation than
+This new form of search can also be parallelised, with a much simpler implementation than
 conventional work-stealing. By running many threads with different random seeds but the same restart
 schedule, and sharing nogoods only following restarts, we can achieve speedups of thirty one from a
 thirty six core machine, or ninety five by using ten such machines with message passing.
@@ -139,7 +139,7 @@ non-induced and the induced subgraph isomorphism problems.  The solver is very c
 the $k{\downarrow}$ algorithm of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} with $k =
 0$, and we refer the reader to that paper for full technical details; that algorithm, in turn, is a
 simplification and re-engineering of an older Glasgow algorithm
-\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}.  Essentially, the solver is essentially
+\cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}.  Essentially, the solver is
 a dedicated forward-checking constraint programming implementation specifically for subgraph
 problems. It works with a model having a variable per pattern graph vertex, with domains ranging
 over the target graph vertices, and performs a backtracking search to map each pattern vertex to a
@@ -154,13 +154,13 @@ structures and algorithms, and propagates constraints in a fixed order rather th
 % \cite{DBLP:conf/cp/McCreeshP15,DBLP:conf/lion/KotthoffMS16}. We show the non-induced problem; the
 % induced problem may be solved by including the loop-complements of $\mathcal{P}$ and $\mathcal{T}$
 % in $L$ on \siplineref{supplemental}.
-% 
+%
 % \Cref{algorithm:sip} works by recursively building up a valid mapping of pattern vertices to target
 % vertices. For each pattern vertex $v$, we have a domain $D_v$ containing a set of feasible target
 % vertices. Each domain is initialised at the top of search (\siplinerangeref{initstart}{initend}),
 % using the invariants described by \citet{Zampelli et al.\ }{DBLP:journals/constraints/ZampelliDS10} and
 % \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17} to restrict its initial values.
-% 
+%
 % The $\FuncSty{search}$ procedure recursively selects an unassigned domain $D$
 % (\siplineref{variableordering}), and tries assigning
 % it each of its remaining values in turn (\siplineref{valueordering}). The effects of this assignment
@@ -168,7 +168,7 @@ structures and algorithms, and propagates constraints in a fixed order rather th
 % inconsistency is detected, we continue and try another value; otherwise, we recurse
 % (\siplineref{recurse}) until a solution is found. Finally, if we run out of values, we backtrack
 % (\siplineref{backtrack}).
-% 
+%
 % Our $\FuncSty{propagate}$ routine is also close to that of \citet{Hoffmann et al.\ }{DBLP:conf/aaai/HoffmannMR17},
 % differing only in that we carry out the filtering for injectivity
 % (\siplinerangeref{alldiffstart}{alldiffend}) after every assignment rather than once at the end of
@@ -187,7 +187,7 @@ structures and algorithms, and propagates constraints in a fixed order rather th
 %         \coordinate (restart9ec) at ($(pic cs:restart9e) + (-0.15, 0.00)$);
 %         \node [fill=highlight, rounded corners, fit=(restart9sc) (restart9ec)] { };
 %     \end{tikzpicture}
-% 
+%
 %     \nl $\FuncSty{subgraphIsomorphism}$ (Graph $\mathcal{P}$, Graph $\mathcal{T}$) $\rightarrow$ Bool \;
 % \nl \Begin{
 %     \nl \lIf{$\left|\vertexset(\mathcal{P})\right| >
@@ -215,7 +215,7 @@ structures and algorithms, and propagates constraints in a fixed order rather th
 %     \cref{algorithm:sip:search,algorithm:sip:propagate} for the search and propagation routines.}
 % \label{algorithm:sip}
 % \end{algorithm}
-% 
+%
 % \begin{algorithm}[p]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
 %     \begin{tikzpicture}[remember picture,overlay]
 %         \coordinate (restart3sc) at ($(pic cs:restart3s) + (0, 0.15)$);
@@ -263,7 +263,7 @@ structures and algorithms, and propagates constraints in a fixed order rather th
 % \caption{Search routine for \cref{algorithm:sip}.}
 % \label{algorithm:sip:search}
 % \end{algorithm}
-% 
+%
 % \begin{algorithm}[tb]\DontPrintSemicolon\small\SetInd{0.1em}{1em}
 %     \begin{tikzpicture}[remember picture,overlay]
 %         \coordinate (restart7sc) at ($(pic cs:restart7s) + (0, 0.15)$);
@@ -320,14 +320,14 @@ families from earlier papers:
         degree, regular mesh, and uniform), where each pattern is a permuted random connected subgraph
         of the target (and so each instance is satisfiable) \cite{DBLP:journals/pami/CordellaFSV04}.
         These benchmark instances are widely used, but have unusual properties and so broad
-        conclusions should not be drawn based solely upon behaviour on these instances
+        conclusions should not be drawn based solely upon behaviour of these instances
         \cite{DBLP:journals/jair/McCreeshPST18}.
     \item[SF] contains randomly generated scale-free graphs using a similar method
         \cite{DBLP:journals/constraints/ZampelliDS10}.
    \item[LV] consists of various kinds of graph gathered by Larrosa and Valiente
        \cite{DBLP:journals/mscs/LarrosaV02} from the Stanford Graph Database. We include both the
-        50 small graphs, and the 50 larger graphs.
-    \item[Phase] contains hard crafted instances that lie near the satisfiable / unsatisfiable phase
+        50 small graphs, and the 50 large graphs.
+    \item[Phase] contains hand crafted instances that lie near the satisfiable / unsatisfiable phase
         transition \cite{DBLP:journals/jair/McCreeshPST18}.
     \item[PR] contains graphs generated from segmented images, corresponding to a computer vision
         problem \cite{DBLP:journals/pr/SolnonDHJ15}.
@@ -527,7 +527,7 @@ automatic parameter tuner \cite{DBLP:conf/lion/HutterHL11} to select the value 6
 
 To avoid exploring portions of the search
 space that we have already visited, every time we restart, we add new constraints to the problem
-which eliminate already-explored subtrees---such a constraint is called a nogood. We generate
+which eliminate already-explored subtrees---such a constraint is called a \emph{nogood}. We generate
 simple decision nogoods. That is, upon backtracking due to a decision to restart, we post a nogood
 of the form $(v \mapsto v') \wedge (w \mapsto w') \wedge (x \mapsto x') \Rightarrow \bot$ for every
 branch to the left of the current (incomplete) branch in the search tree, and when we first make a
@@ -655,23 +655,23 @@ set of heuristics.
     memory hosts. Below, instance by instance comparisons.}\label{figure:parallel}
 \end{figure}
 
-Solution-biased search allows for a much simpler parallel implementation, which we now evaluate.  We
-create a number of threads, and give each thread its own random seed, but otherwise each thread
+Solution-biased search allows for a much simpler parallel implementation. We
+create a number of threads, and give each thread its own random seed, otherwise each thread
 performs the same sequential search. Then, whenever a thread restarts, it uses a barrier to wait for
-every other thread to also restart. Each thread's new nogoods from that restart can then be
-gathered, and then each thread resumes, with a larger set of nogoods than would have been generated
-in a sequential run. Finally, whenever any single thread terminates, either due to having found a
-solution or proved unsatisfiability, then every other thread may immediately terminate.
+every other thread to also restart. At each restart each thread's new nogood can be gathered, and
+then each thread resumes, with a larger set of nogood than in a sequential run. Finally, whenever
+any single thread terminates, either due to having found a solution or proved unsatisfiability,
+then every other thread may immediately terminate.
 
 A number of factors combine to make this technique feasible:
 
 \begin{itemize}
     \item Each thread will be run with the same restart schedule, and so will spend approximately
         the same amount of time between restarts. Because the only synchronisation between threads
-        is at restarts, we expect threads to be kept busy doing useful work.  (This is in contrast
+        is at a restart, we expect threads to be busy doing search.  (This is in contrast
         to an alternative method for paralellising restarting search \cite{DBLP:conf/aaai/CireKS14},
         which packs together successive sequence values to produce a balanced workload.)
-    \item Sequentially, on non-trivial instances the algorithm will restart very many times (many
+    \item Sequentially, on non-trivial instances the algorithm will restart often (many
         tens of thousands, for instances that reach the thousand second timeout).
     \item Because the search trees we explore are exponentially large, the randomness in the
         value-ordering heuristic is sufficient to ensure that most of the time, threads are
@@ -707,10 +707,10 @@ solve 14,370 instances, with the last at 996.4 seconds. With thirty six threads,
 instances takes 31.8 seconds, giving an aggregate speedup of 31.4.
 
 It is important to emphasise that there is no expectation of a linear speedup from this approach,
-particularly for satisfiable instances. Due to the random nature of the value-ordering heuristic,
+particularly for satisfiable instances. Due to the biased random nature of the value-ordering heuristic,
 one of our extra threads may ``get lucky'' and find a solution much quicker than we would
 sequentially, leading to a superlinear speedup. Conversely, our extra threads may contribute nothing to finding a
-solution---or worse, due to new nogoods altering the choice made by the random branching heuristic,
+solution---or worse, due to new nogoods altering the choice made by the biased random branching heuristic,
 we could even get an absolute slowdown. We can see both of these effects in the bottom left plot of
 \cref{figure:parallel}: although we achieve roughly a linear speedup on unsatisfiable instances,
 satisfiable instances show much greater variability. However, this approach does at least mirror our intuition of
@@ -811,11 +811,10 @@ perspective also has some relevance to \emph{variable} ordering heuristics.
 
 \section*{Acknowledgements}
 
-The authors would like to thank Ozgur Akgun, Chris Jefferson, Christophe Lecoutre, Christine
+The authors would like to thank \"{O}zg\"{u}r Akg\"{u}n, Chris Jefferson, Christophe Lecoutre, Christine
 Solnon, and Craig Reilly for their comments.
 
 \bibliographystyle{splncs04}
 \bibliography{dblp}
 
 \end{document}
-
