@@ -66,7 +66,7 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
     slightly-random value-ordering heuristic, rapid restarts, and nogood recording, we design an
     algorithm which instead uses degree to direct the proportion of search effort spent in different
     subproblems. This increases performance by two orders of magnitude on satisfiable instances,
-    whilst not affecting performance on unsatisfiable instances. Such a such search can also be
+    whilst not affecting performance on unsatisfiable instances. This algorithm can also be
     parallelised in a very simple but effective way: across both satisfiable and unsatisfiable
     instances, we get a further speedup of over thirty from thirty six cores, or ninety five from
     ten distributed-memory hosts. Finally, we show that solution-biased search is also suitable for
@@ -77,7 +77,7 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
 
 The subgraph isomorphism problem is to decide whether a copy of a small ``pattern'' graph occurs
 inside a larger ``target'' graph. The problem is broadly applicable, with applications in areas
-including in bioinformatics \cite{DBLP:journals/bmcbi/BonniciGPSF13}, chemistry \cite{o:Regin95}, computer vision
+including bioinformatics \cite{DBLP:journals/bmcbi/BonniciGPSF13}, chemistry \cite{o:Regin95}, computer vision
 \cite{DBLP:journals/cviu/DamiandSHJS11,DBLP:journals/pr/SolnonDHJ15}, law enforcement
 \cite{DBLP:journals/cacm/CoffmanGM04}, model checking \cite{DBLP:journals/tcs/SevegnaniC15},
 malware detection \cite{DBLP:conf/dimva/BruschiMM06}, compilers
@@ -119,12 +119,12 @@ thirty six core machine, or ninety five by using ten such machines with message 
 % simple paths of length $\ell$ between vertices $v$ and $w$ in $G$.
 
 The \emph{non-induced subgraph isomorphism problem} is to find an injective mapping from the
-vertices of a \emph{pattern} graph $\mathcal{P}$ to a \emph{target} graph $\mathcal{T}$, such that
-adjacent vertices in $\mathcal{P}$ are mapped to adjacent vertices in $\mathcal{T}$ (including that
-vertices with loops in $\mathcal{P}$ may only be mapped to vertices with loops in $\mathcal{T}$).
-The \emph{induced} problem additionally requires that non-adjacent vertices are mapped to
-non-adjacent vertices. The \emph{degree} of a vertex is the number of other vertices to which it is
-adjacent.
+vertices of a \emph{pattern} graph $\mathcal{P}$ to the vertices of a \emph{target} graph
+$\mathcal{T}$, such that adjacent vertices in $\mathcal{P}$ are mapped to adjacent vertices in
+$\mathcal{T}$ (including that vertices with loops in $\mathcal{P}$ may only be mapped to vertices
+with loops in $\mathcal{T}$).  The \emph{induced} problem additionally requires that non-adjacent
+vertices are mapped to non-adjacent vertices. The \emph{degree} of a vertex is the number of other
+vertices to which it is adjacent.
 
 % We write $v \mapsto v'$ to mean that pattern vertex $v$ is mapped to target $v'$ under
 % either kind of mapping. Finally, we define a function $\FuncSty{compatible}(v, w)$ to mean that
@@ -364,7 +364,7 @@ non-induced problem, and at least \input{gen-n-unsat.tex}\unskip\ are unsatisfia
 \end{figure}
 
 We begin with a set of baseline performance measurements. In the top
-two plots \cref{figure:others} we show the cumulative number of instances solved over time for the
+two plots of \cref{figure:others} we show the cumulative number of instances solved over time for the
 non-induced and induced problems respectively. We compare the Glasgow Subgraph Solver using
 depth-first search (DFS) and with the modifications described in the remainder of this paper
 (solution-biased search, SBS), the PathLAD variation of the LAD algorithm
@@ -396,7 +396,7 @@ are alternatives to backtracking search that initially search disallowing all di
 then retry search allowing an increasing number of discrepancies at each iteration until either a
 solution is found or unsatisfiability is proven. These schemes assume that value-ordering heuristics
 are usually reliable, and that most solutions can be found with only a small number of
-discrepancies; in such cases, the heavy commitment to early branching choices made by conventional
+discrepancies. In such cases, the heavy commitment to early branching choices made by conventional
 backtracking search can be extremely costly.
 
 \begin{figure}[tb]
@@ -458,7 +458,7 @@ the vertices of degree ten, and we would commit all of our search effort to the 
 search tree underneath it, not considering any other choice until this tree has been fully explored
 and eliminated.  We will show that this is not a wise choice, and that instead, we should
 \emph{commit equal search effort} to each of the three subproblems found by mapping to vertices of
-degree ten.  And similarly, should we be certain that vertex of degree ten is so much better than a
+degree ten.  And similarly, should we be certain that a vertex of degree ten is so much better than a
 vertex of degree nine that we should commit no effort to degree nine vertices until all the degree
 ten subproblems have been explored? Or might it be better to commit, say, twice as much effort to
 each degree ten subproblems as to each degree nine subproblems, and only a very small amount of
@@ -615,8 +615,8 @@ under a target vertex of degree $d$ tend to contain a small constant times more 
 those under a target vertex of degree $d - 1$.  This empirical analysis suggests that an estimator
 that is exponential in $d$ will give our method the desired behaviour, at least for
 Erd\H{o}s-R\'enyi graphs. We expect it may be possible to derive better estimators for particular
-input classes, although over the full range of problem instances, we have verified that estimators
-of the form $e^d$ substantially outperform polynomial and factorial weightings.
+input classes, although over the full range of problem instances, we have verified that exponential
+estimators substantially outperform polynomial and factorial weightings.
 
 \section{Parallel Search}
 
