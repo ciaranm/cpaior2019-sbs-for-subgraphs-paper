@@ -76,7 +76,7 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
 \section{Introduction}
 
 The subgraph isomorphism problem is to decide whether a copy of a small ``pattern'' graph occurs
-inside a larger ``target'' graph. The problem is broadly applicable, with applications in areas
+inside a larger ``target'' graph. The problem is broadly applicable, arising in areas
 including bioinformatics \cite{DBLP:journals/bmcbi/BonniciGPSF13}, chemistry \cite{o:Regin95}, computer vision
 \cite{DBLP:journals/cviu/DamiandSHJS11,DBLP:journals/pr/SolnonDHJ15}, law enforcement
 \cite{DBLP:journals/cacm/CoffmanGM04}, model checking \cite{DBLP:journals/tcs/SevegnaniC15},
@@ -305,7 +305,7 @@ structures and algorithms, and propagates constraints in a fixed order rather th
 
 Our experiments are performed on the EPCC Cirrus HPC facility, on systems with dual Intel Xeon
 E5-2695 v4 CPUs and 256GBytes RAM, running Centos 7.3.1611. We use GCC 7.2.0 as the compiler. For
-paralellism, we use C++ native threads, and for distributed parallelism we also use the SGI MPT
+parallelism, we use C++ native threads, and for distributed parallelism we also use the SGI MPT
 implementation of MPI. All timing measurements are steady-clock, and we use a deterministic
 pseudo-random number generator for reproducibility.
 
@@ -369,21 +369,23 @@ depth-first search (DFS) and with the modifications described in the remainder o
 \cite{DBLP:journals/ai/Solnon10,DBLP:conf/lion/KotthoffMS16}, VF2
 \cite{DBLP:journals/pami/CordellaFSV04}, RI \cite{DBLP:journals/bmcbi/BonniciGPSF13}, and VF3
 \cite{DBLP:conf/gbrpr/CarlettiFSV17} (which only supports the induced problem), in each case using
-the original implementation provided by the algorithm's authors. For each algorithm, the $y$ value
-gives the cumulative number of instances which (individually) can be solved in no more than $x$
-milliseconds.  The vertical distance between two lines therefore shows how many more instances can
-be solved by one solver than another, if every instance is run separately with the chosen $x$
-timeout. The horizontal distance shows how many times longer the per-instance timeout would need to
-be to allow the rightmost algorithm to succeed on $y$ out of the 14,621 instances (bearing in mind
-that the two sets of $y$ instances could be different).  The plots show that our starting point
-comfortably beats PathLAD, VF2, VF3 and RI, except for very low choices of timeout.
+the original implementation provided by the algorithm's authors.  The plots show that our starting
+point comfortably beats PathLAD, VF2, VF3 and RI, except for very low choices of timeout. For each
+algorithm, the $y$ value gives the cumulative number of instances which (individually) can be solved
+in no more than $x$ milliseconds.  The vertical distance between two lines therefore shows how many
+more instances can be solved by one solver than another, if every instance is run separately with
+the chosen $x$ timeout. The horizontal distance shows how many times longer the per-instance timeout
+would need to be to allow the rightmost algorithm to succeed on $y$ out of the 14,621 instances
+(bearing in mind that the two sets of $y$ instances could be different), and gives a measure called
+\emph{aggregate speedup} \cite{DBLP:conf/cpaior/HoffmannMNPRS018}.
 
 The dataset includes many instances which are extremely easy for a good solver, and so it can be
 hard to see the differences between the stronger solvers at higher runtimes. This paper focusses
 upon improving the performance on the remaining hard satisfiable instances, and so in the bottom two
-plots in \cref{figure:others} (and in subsequent cumulative plots) we show only satisfiable
-instances, and use a reduced range on both axes.  For the remainder of this paper, we show only the
-non-induced problem, which tends to be harder; results with the induced variant are similar.
+plots in \cref{figure:others} (and in subsequent cumulative plots for sequential algorithms) we show
+only satisfiable instances, and use a reduced range on both axes.  For the remainder of this paper,
+we show only the non-induced problem, which tends to be harder; results with the induced variant are
+similar.
 
 \subsection{Discrepancy Searches}
 
@@ -394,7 +396,7 @@ are alternatives to backtracking search that initially search disallowing all di
 then retry search allowing an increasing number of discrepancies at each iteration until either a
 solution is found or unsatisfiability is proven. These schemes assume that value-ordering heuristics
 are usually reliable, and that most solutions can be found with only a small number of
-discrepancies. In such cases, the heavy commitment to early branching choices made by conventional
+discrepancies. In such cases, the heavy commitment to early branching choices made by
 backtracking search can be extremely costly.
 
 \begin{figure}[tb]
@@ -571,9 +573,7 @@ diagonal, showing that their performance is nearly unchanged. On the other hand,
 numbers of satisfiable instances well below the diagonal line, indicating large speedups.  Better
 yet, there are only a handful of satisfiable instances that are more than a factor of ten times
 worse.  In other words, as well as improving performance, we have made up most of the consistency we
-lost by introducing randomness.  This is a promising result: for the first time, we have introduced
-a viable alternative to backtracking search in a setting where we both have a strong
-\emph{value}-ordering heuristic, \emph{and} care about both satisfiable and unsatisfiable instances.
+lost by introducing randomness.
 
 \begin{figure}[tb]
     \includegraphics{gen-graph-scatter-biased-goods.pdf}
@@ -603,10 +603,10 @@ in reality the ``better'' subtree may contain no solutions at all.
 
 To estimate solution density, we need an estimate of how big different subproblems are likely to be,
 and of how many solutions each subproblem is likely to contain. Of course, obtaining exact (or even
-approximate) values for these figures is at least as hard as solving the problem in its entirety.
-For pairs of Erd\H{o}s-R\'enyi
+approximate) values for these figures is at least as hard as solving the problem in its entirety,
+but we may obtain usable approximations.  For pairs of Erd\H{o}s-R\'enyi
 random graphs with large solution counts (i.e.\ chosen from within the ``easy satisfiable'' region
-\cite{DBLP:journals/jair/McCreeshPST18}), we observe a linear relationship between subproblem size
+\cite{DBLP:journals/jair/McCreeshPST18}), we can observe a linear relationship between subproblem size
 and number of solutions. Thus, for graphs from this distribution, we need only an estimator of
 subproblem size. Measurements also suggest that, for pairs of Erd\H{o}s-R\'enyi graphs, subproblems
 under a target vertex of degree $d$ tend to contain a small constant times more search nodes than
@@ -649,8 +649,8 @@ set of heuristics.
     \includegraphics{gen-graph-scatter-dist.pdf}
 
     \caption{Above, the cumulative number of instances solved over time, comparing the sequential
-    algorithm to results using 32 threads on a single machine, and using five or ten distributed
-    memory hosts. Below, instance by instance comparisons.}\label{figure:parallel}
+    algorithm to results using 32 threads on a single machine, and using five, ten or twenty
+    distributed memory hosts. Below, instance by instance comparisons.}\label{figure:parallel}
 \end{figure}
 
 Solution-biased search allows for a much simpler parallel implementation. We create a
@@ -710,7 +710,8 @@ Sequentially, this approach is slightly better than using the Luby sequence, bei
 14,370 instances, with the last at 996.4 seconds. With thirty-six threads, solving this many
 instances takes 31.8 seconds, giving an aggregate speedup of 31.4.
 
-It is important to emphasise that there is no expectation of a linear speedup from this approach,
+It is important to emphasise that there is no expectation of a linear speedup from this approach
+\cite{DBLP:conf/aaai/LiW84,DBLP:journals/tc/LiW86,DBLP:conf/irregular/BruinKT95},
 particularly for satisfiable instances. Due to the biased random nature of the value-ordering heuristic,
 one of our extra threads may ``get lucky'' and find a solution much quicker than we would
 sequentially, leading to a superlinear speedup. Conversely, our extra threads may contribute nothing to finding a
@@ -735,7 +736,7 @@ combine the results of each host. Termination, meanwhile, was handled by posting
 (and so termination can only occur on a restart).
 
 \Cref{figure:parallel} also shows the results of these experiments, using five, ten, and twenty
-hosts.  Because each host has two sockets, the five host results use ten MPI ranks, each with
+hosts.  Because each host has two CPU sockets, the five host results use ten MPI ranks, each with
 eighteen threads, and the ten and twenty host results use twenty and forty MPI ranks respectively.
 The supercomputing service we use is not designed for huge numbers of very short problems, and so we
 ran only instances whose sequential runtime was at least one second; for the sake of plotting
@@ -805,11 +806,13 @@ search effort should be put into different subproblems, based upon a rough estim
 densities. We have also shown how to turn this perspective into an algorithm, by combining a biased
 random value-ordering heuristic with rapid restarts and nogood recording. This combination of
 techniques gives us, for the first time, a practical alternative to backtracking search where we
-have a strong value-ordering heuristic and where we care both about satisfiable and unsatisfiable
-instances.  A further benefit is the ease with which such a search can be parallelised. By having
-each thread carry out the same search with a different random seed, and sharing nogoods only on
-restarts, we remove the need for intrusive changes to the core search algorithm, eliminate the
-irregularity problem, and still respect the advice of the value-ordering heuristic.
+have a strong \emph{value}-ordering heuristic, and where we care both about satisfiable \emph{and}
+unsatisfiable instances.
+
+A further benefit is the ease with which such a search can be parallelised. By having each thread
+carry out the same search with a different random seed, and sharing nogoods only on restarts, we
+remove the need for intrusive changes to the core search algorithm, eliminate the irregularity
+problem, and still respect the advice of the value-ordering heuristic.
 
 We believe that these technique are broadly applicable, beyond subgraph algorithms, and we intend to
 implement them in a full constraint programming solver. We are also interested in making better use
