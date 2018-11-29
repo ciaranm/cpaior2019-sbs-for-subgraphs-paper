@@ -40,6 +40,7 @@ partimer="glasgowbiasedtimer100triggeredthreads36v1"
 partimer2="glasgowbiasedtimer100triggeredthreads36v2"
 dist5="glasgowbiasedtimer100triggeredthreads36mpih5x2t18"
 dist10="glasgowbiasedtimer100triggeredthreads36mpih10x2t18"
+dist20="glasgowbiasedtimer100triggeredthreads36mpih20x2t18"
 
 mcsplitdown="mcsplitdown14"
 mcsplitdownbiasedrestarts="mcsplitdownbiasedrestarts14"

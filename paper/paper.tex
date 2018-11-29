@@ -68,7 +68,7 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
     subproblems. This increases performance by two orders of magnitude on satisfiable instances,
     whilst not affecting performance on unsatisfiable instances. This algorithm can also be
     parallelised in a very simple but effective way: across both satisfiable and unsatisfiable
-    instances, we get a further speedup of over thirty from thirty-six cores, or ninety five from
+    instances, we get a further speedup of over thirty from thirty-six cores, or ninety-five from
     ten distributed-memory hosts. Finally, we show that solution-biased search is also suitable for
     optimisation problems, by using it to improve two maximum common induced subgraph algorithms.
 \end{abstract}
@@ -468,7 +468,7 @@ parts of the search tree that are preferred by the value-ordering heuristic.
 
 \subsection{Biased Value-Ordering}
 
-Firstly, we define a new \textbf{Biased} value-ordering heuristic, as follows. When branching, we
+We first define a new \textbf{Biased} value-ordering heuristic, as follows. When branching, we
 select a vertex $v'$ from the chosen domain $D_v$ with probability \[ p(v') =
 \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \text{.} \] This heuristic is now equally likely
 to pick between vertices of equal degree, is twice as likely to pick a vertex of degree $d$ as one
@@ -727,23 +727,27 @@ phase. We have not parallelised this, which is why our results are poor below th
 
 \subsection{Distributed Memory Parallelism}
 
-To further test the scalability of this technique, we also implemented a distributed-memory
-parallelism layer on top of the threaded layer, using MPI. In contrast to the huge difficulties of
+To further test the scalability of this technique, we also used MPI to implement a distributed-memory
+parallelism layer on top of the threaded layer. In contrast to the huge difficulties of
 implementing work-stealing in a distributed memory setting, this required only the addition of two
 MPI calls: an ``all gather'' operation to communicate nogoods, and a ``gather'' to collect and
 combine the results of each host. Termination, meanwhile, was handled by posting an empty nogood
 (and so termination can only occur on a restart).
 
-\Cref{figure:parallel} also shows the results of these experiments, using five and ten hosts.
-Because each host has two sockets, the five host results use ten MPI ranks, each with eighteen
-threads, and the ten host results use twenty MPI ranks. Because the supercomputing service we use is
-not designed for huge numbers of very short problems, we ran only instances whose sequential runtime
-was at least one second, and for the sake of plotting results, treat skipped instances as taking one
-second. Due to the job launcher used, it is also not possible to accurately measure ``total''
-runtime including startup costs, and so instead we report the runtime of the rank zero
-process---this figure is somewhat optimistic for very easy instances. With these caveats in mind, we
-see that our results continue to improve as the host count increases, and we come very close to the
-magic goal of an overall speedup of one hundred.
+\Cref{figure:parallel} also shows the results of these experiments, using five, ten, and twenty
+hosts.  Because each host has two sockets, the five host results use ten MPI ranks, each with
+eighteen threads, and the ten and twenty host results use twenty and forty MPI ranks respectively.
+The supercomputing service we use is not designed for huge numbers of very short problems, and so we
+ran only instances whose sequential runtime was at least one second; for the sake of plotting
+results, we treat skipped instances as taking one second. Due to the job launcher used, it is also
+not possible to accurately measure ``total'' runtime including startup costs, and so instead we
+report the runtime of the rank zero process---this figure is somewhat optimistic for very easy
+instances. With these caveats in mind, when seeing how long a timeout is needed to solve any 14,370
+instances, we get aggregate speedups of 57.1 from five hosts and 95.5 from ten hosts over a
+sequential baseline; using twenty hosts is slightly slower, due to increased overheads. However,
+when seeing how long a timeout is needed to solve 14,424 instances, distributed parallelism gives us
+further aggregate speedups of 2.2, 3.5, and 7.9 from five, ten, and twenty hosts, over the single
+machine parallel baseline.
 
 \section{Maximum Common Subgraph Algorithms}
 
