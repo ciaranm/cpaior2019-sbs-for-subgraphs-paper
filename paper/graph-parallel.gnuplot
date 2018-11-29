@@ -106,11 +106,12 @@ set label 2 left at 1e6, solvedtimer "".sprintf("\\raisebox{0.1cm}{$%.1f{\\times
     (lasttimer / (0.0+partimerthreshold)), (lasttimer / (0.0+dist5threshold)), (lasttimer / (0.0+dist10threshold)))
 
 set arrow 5 from lastpartimer, solvedpartimer to dist5threshold2, solvedpartimer front
+set arrow 6 from dist5threshold2, solvedpartimer to dist10threshold2, solvedpartimer front
 set label 5 left at 1e6, solvedpartimer "".sprintf("\\raisebox{0.0cm}{$%.1f{\\times}$, $%.1f{\\times}$}", \
     (lastpartimer / (0.0+dist5threshold2)), (lastpartimer / (0.0+dist10threshold2)))
 
-set arrow 6 from lastdist5, solveddist5 to dist10threshold3, solveddist5 front
-set label 6 left at 1e6, solveddist5 "".sprintf("\\raisebox{0.1cm}{$%.1f{\\times}$}", \
+set arrow 7 from lastdist5, solveddist5 to dist10threshold3, solveddist5 front
+set label 7 left at 1e6, solveddist5 "".sprintf("\\raisebox{0.1cm}{$%.1f{\\times}$}", \
     (lastdist5 / (0.0+dist10threshold3)))
 
 plot \
