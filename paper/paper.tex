@@ -655,22 +655,27 @@ set of heuristics.
     memory hosts. Below, instance by instance comparisons.}\label{figure:parallel}
 \end{figure}
 
-Solution-biased search allows for a much simpler parallel implementation. We
-create a number of threads, and give each thread its own random seed, otherwise each thread
-performs the same sequential search. Then, whenever a thread restarts, it uses a barrier to wait for
-every other thread to also restart. At each restart each thread's new nogoods can be gathered, and
-then each thread resumes, with a larger set of nogoods than in a sequential run. Finally, whenever
-any single thread terminates, either due to having found a solution or proved unsatisfiability,
-then every other thread may immediately terminate.
+Solution-biased search allows for a much simpler parallel implementation. We create a
+number of threads, and give each thread its own random seed; otherwise each thread performs the same
+sequential search. Threads synchronise on restarts, a simple barrier causing each thread to wait for
+every other thread to also restart.  Nogoods from all threads are then gathered and combined before
+search resumes, now with a larger set of nogoods than in a sequential run.  Finally, whenever any
+single thread terminates, either due to having found a solution or proved unsatisfiability, then
+every other thread may immediately terminate.
 
-A number of factors combine to make this technique feasible:
+This technique requires only limited changes to the top level search driver, and none whatsoever to
+the main recursive search algorithm. Notably, it does not require any locking or communication
+during the recursive search, aside from a single atomic boolean flag to assist early termination.  A
+number of factors combine to make this approach feasible:
 
 \begin{itemize}
     \item Each thread will be run with the same restart schedule, and so will spend approximately
         the same amount of time between restarts. Because the only synchronisation between threads
         is at a restart, we expect threads to be busy doing search.  (This is in contrast
         to an alternative method for paralellising restarting search \cite{DBLP:conf/aaai/CireKS14},
-        which packs together successive sequence values to produce a balanced workload.)
+        which packs together successive sequence values to produce a balanced workload.) This
+        approach therefore avoids the irregular task size issues which usually arise in parallel
+        combinatorial search.
     \item Sequentially, on non-trivial instances the algorithm will restart often (many
         tens of thousands, for instances that reach the thousand second timeout).
     \item Because the search trees we explore are exponentially large, the randomness in the
@@ -701,9 +706,10 @@ towards the end of one of these runs, each thread will end up duplicating a larg
 
 Because we are using nogood recording, an alternative approach is possible. Rather than using the
 Luby sequence for restarts, we could restart after either a constant number of backtracks, or simply
-after a certain time interval has passed. \Cref{figure:parallel} also shows the effects of restarting
-every 100ms. Sequentially, this approach is slightly better than using the Luby sequence, being able to
-solve 14,370 instances, with the last at 996.4 seconds. With thirty six threads, solving this many
+after a certain time interval has passed---this bounds the maximum possible idle time that threads
+could spend at a barrier. \Cref{figure:parallel} also shows the effects of restarting every 100ms.
+Sequentially, this approach is slightly better than using the Luby sequence, being able to solve
+14,370 instances, with the last at 996.4 seconds. With thirty six threads, solving this many
 instances takes 31.8 seconds, giving an aggregate speedup of 31.4.
 
 It is important to emphasise that there is no expectation of a linear speedup from this approach,
@@ -723,12 +729,12 @@ phase. We have not parallelised this, which is why our results are poor below th
 
 \subsection{Distributed Memory Parallelism}
 
-To further test the scalability of this technique, we also implemented a distributed-parallelism
-layer on top of the threaded layer, using MPI. In contrast to the huge difficulties of implementing
-work-stealing in a distributed memory setting, this required only the addition of a simple ``all
-gather'' operation to communicate nogoods, and a ``gather'' to collect and combine the results of
-each host. Termination, meanwhile, was handled by posting an empty nogood (and so termination can
-only occur on a restart).
+To further test the scalability of this technique, we also implemented a distributed-memory
+parallelism layer on top of the threaded layer, using MPI. In contrast to the huge difficulties of
+implementing work-stealing in a distributed memory setting, this required only the addition of two
+MPI calls: an ``all gather'' operation to communicate nogoods, and a ``gather'' to collect and
+combine the results of each host. Termination, meanwhile, was handled by posting an empty nogood
+(and so termination can only occur on a restart).
 
 \Cref{figure:parallel} also shows the results of these experiments, using five and ten hosts.
 Because each host has two sockets, the five host results use ten MPI ranks, each with eighteen
@@ -753,8 +759,8 @@ magic goal of an overall speedup of one hundred.
     \includegraphics{gen-graph-scatter-mcsplit.pdf}
 
     \caption{Above, the cumulative number of maximum common induced subgraph instances solved by
-    k${\downarrow}$ and McSplit${\downarrow}$ over time, with and without restarts and nogood
-    recording. Below, comparing k${\downarrow}$ (left) and McSplit${\downarrow}$ (right) on an instance by instance
+    k${\downarrow}$ and McSplit${\downarrow}$ over time, with the two forms of search. Below,
+    comparing k${\downarrow}$ (left) and McSplit${\downarrow}$ (right) on an instance by instance
     basis.}\label{figure:mcs}
 \end{figure}
 
