@@ -68,7 +68,7 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
     subproblems. This increases performance by two orders of magnitude on satisfiable instances,
     whilst not affecting performance on unsatisfiable instances. This algorithm can also be
     parallelised in a very simple but effective way: across both satisfiable and unsatisfiable
-    instances, we get a further speedup of over thirty from thirty six cores, or ninety five from
+    instances, we get a further speedup of over thirty from thirty-six cores, or ninety five from
     ten distributed-memory hosts. Finally, we show that solution-biased search is also suitable for
     optimisation problems, by using it to improve two maximum common induced subgraph algorithms.
 \end{abstract}
@@ -105,10 +105,10 @@ induced subgraph algorithms.
 
 This new form of search can also be parallelised, with a \emph{much} simpler implementation than
 conventional work-stealing. By running many threads with different random seeds but the same restart
-schedule, and sharing nogoods only following restarts, we can achieve speedups of thirty one from a
-thirty six core machine, or ninety five by using ten such machines with message passing.
+schedule, and sharing nogoods only following restarts, we can achieve speedups of thirty-one from a
+thirty-six core machine, or ninety-five by using ten such machines with message passing.
 
-\subsection{Definitions}
+\subsection{Background}
 
 % Let $G$ be a graph. We denote its set of vertices by $\vertexset(G)$, and write $v \sim_G w$ to mean
 % that vertices $v$ and $w$ are adjacent; we allow a vertex to be adjacent to itself (a \emph{loop}). The
@@ -130,8 +130,6 @@ vertices to which it is adjacent.
 % either kind of mapping. Finally, we define a function $\FuncSty{compatible}(v, w)$ to mean that
 % mapping $v \mapsto w$ is feasible based upon both the loop rule, and the neighbourhood degree
 % sequence relation of \citet{Zampelli et al.\ }{DBLP:journals/constraints/ZampelliDS10}.
-
-\subsection{The Glasgow Subgraph Solver}
 
 This paper looks at improving the Glasgow Subgraph
 Solver\footnote{\url{https://github.com/ciaranm/glasgow-subgraph-solver/}}, which can solve both the
@@ -693,7 +691,7 @@ number of factors combine to make this approach feasible:
 
 \Cref{figure:parallel} shows how this scheme performs in practice. Sequentially, we can solve 14,357
 instances within the thousand second timeout, with the last instance being solved at 939.0 seconds.
-Using thirty six threads on machines with two eighteen core processors, we can solve 14,357
+Using thirty-six threads on machines with two eighteen core processors, we can solve 14,357
 instances with a timeout of only 74.2 seconds, giving an aggregate speedup
 \cite{DBLP:conf/cpaior/HoffmannMNPRS018} of 12.7.
 
@@ -709,7 +707,7 @@ Luby sequence for restarts, we could restart after either a constant number of b
 after a certain time interval has passed---this bounds the maximum possible idle time that threads
 could spend at a barrier. \Cref{figure:parallel} also shows the effects of restarting every 100ms.
 Sequentially, this approach is slightly better than using the Luby sequence, being able to solve
-14,370 instances, with the last at 996.4 seconds. With thirty six threads, solving this many
+14,370 instances, with the last at 996.4 seconds. With thirty-six threads, solving this many
 instances takes 31.8 seconds, giving an aggregate speedup of 31.4.
 
 It is important to emphasise that there is no expectation of a linear speedup from this approach,
