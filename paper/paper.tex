@@ -99,11 +99,11 @@ defining a search order, we use degree to direct what \emph{proportion} of the s
 be spent in each subproblem. By combining rapid restarts and nogood recording, and introducing a
 small amount of randomness into the value-ordering heuristic, we make a state-of-the-art subgraph
 algorithm perform two orders of magnitude better on a large number of satisfiable instances, whilst
-performing worse rarely on satisfiable instances, and never on unsatisfiable instances.  This
+performing worse only rarely on satisfiable instances, and never on unsatisfiable instances.  This
 strategy is also effective in an optimisation setting, producing benefits in two maximum common
 induced subgraph algorithms.
 
-This new form of search can also be parallelised, with a much simpler implementation than
+This new form of search can also be parallelised, with a \emph{much} simpler implementation than
 conventional work-stealing. By running many threads with different random seeds but the same restart
 schedule, and sharing nogoods only following restarts, we can achieve speedups of thirty one from a
 thirty six core machine, or ninety five by using ten such machines with message passing.
@@ -658,8 +658,8 @@ set of heuristics.
 Solution-biased search allows for a much simpler parallel implementation. We
 create a number of threads, and give each thread its own random seed, otherwise each thread
 performs the same sequential search. Then, whenever a thread restarts, it uses a barrier to wait for
-every other thread to also restart. At each restart each thread's new nogood can be gathered, and
-then each thread resumes, with a larger set of nogood than in a sequential run. Finally, whenever
+every other thread to also restart. At each restart each thread's new nogoods can be gathered, and
+then each thread resumes, with a larger set of nogoods than in a sequential run. Finally, whenever
 any single thread terminates, either due to having found a solution or proved unsatisfiability,
 then every other thread may immediately terminate.
 
@@ -710,7 +710,7 @@ It is important to emphasise that there is no expectation of a linear speedup fr
 particularly for satisfiable instances. Due to the biased random nature of the value-ordering heuristic,
 one of our extra threads may ``get lucky'' and find a solution much quicker than we would
 sequentially, leading to a superlinear speedup. Conversely, our extra threads may contribute nothing to finding a
-solution---or worse, due to new nogoods altering the choice made by the biased random branching heuristic,
+solution---or worse, due to new nogoods altering the choice made by the random branching heuristic,
 we could even get an absolute slowdown. We can see both of these effects in the bottom left plot of
 \cref{figure:parallel}: although we achieve roughly a linear speedup on unsatisfiable instances,
 satisfiable instances show much greater variability. However, this approach does at least mirror our intuition of
