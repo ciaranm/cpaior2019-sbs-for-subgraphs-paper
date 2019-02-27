@@ -1,0 +1,13 @@
+hostname = r2i2n30
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --geometric-restarts=1.0 --restarts-constant=100000 --restart-timer=100 --timeout 10000 --format lad ../instances/LV/g19 ../instances/LV/g43
+started_at = 2018-11-30 02:32:33
+pattern_file = ../instances/LV/g19
+target_file = ../instances/LV/g43
+status = aborted
+nodes = 577428831
+propagations = 2808977615
+runtime = 10001705
+restarts = 99642
+nogoods_size = 1704416
+nogoods_lengths = 1:62 2:684 3:7122 4:38231 5:152267 6:227776 7:315238 8:296018 9:265902 10:161443 11:106332 12:67691 13:34759 14:17882 15:8152 16:3102 17:1285 18:378 19:87 20:5
+search_time = 10000088

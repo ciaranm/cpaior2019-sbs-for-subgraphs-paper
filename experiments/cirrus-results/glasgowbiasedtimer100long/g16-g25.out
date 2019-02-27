@@ -1,0 +1,9 @@
+hostname = r1i0n7
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --geometric-restarts=1.0 --restarts-constant=100000 --restart-timer=100 --timeout 1000 --format lad ../instances/LV/g16 ../instances/LV/g25
+started_at = 2018-11-23 04:43:21
+pattern_file = ../instances/LV/g16
+target_file = ../instances/LV/g25
+status = false
+nodes = 0
+propagations = 0
+runtime = 0

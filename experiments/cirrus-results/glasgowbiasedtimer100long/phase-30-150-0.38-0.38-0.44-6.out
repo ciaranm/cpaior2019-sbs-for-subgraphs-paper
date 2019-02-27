@@ -1,0 +1,13 @@
+hostname = r1i4n14
+commandline = ../glasgow/solve_subgraph_isomorphism --value-ordering=biased --geometric-restarts=1.0 --restarts-constant=100000 --restart-timer=100 --timeout 10000 --format lad ../instances/phase/phase-30-150-0.38-0.38-0.44-6-pattern ../instances/phase/phase-30-150-0.38-0.38-0.44-6-target
+started_at = 2018-11-30 05:16:05
+pattern_file = ../instances/phase/phase-30-150-0.38-0.38-0.44-6-pattern
+target_file = ../instances/phase/phase-30-150-0.38-0.38-0.44-6-target
+status = aborted
+nodes = 3138414164
+propagations = 7892817245
+runtime = 10001841
+restarts = 99962
+nogoods_size = 1803082
+nogoods_lengths = 1:109 2:8222 3:169126 4:400776 5:407472 6:295885 7:178445 8:132568 9:97315 10:62602 11:35434 12:12534 13:2347 14:225 15:20 16:2
+search_time = 10000011
