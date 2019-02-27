@@ -621,13 +621,13 @@ estimators substantially outperform polynomial and factorial weightings.
 Exploiting multiple cores to speed up constraint programming solvers remains an active area of
 research, with no universally perfect solution being available. Four of the more common approaches
 are based upon decompositions
-\cite{DBLP:journals/corr/abs-1008-4328,DBLP:journals/jair/MalapertRR16}, work stealing
+\cite{DBLP:journals/corr/abs-1008-4328,DBLP:journals/jair/MalapertRR16}, work-stealing
 \cite{DBLP:conf/cp/MichelSH07,DBLP:conf/cp/ChuSS09,DBLP:conf/cp/McCreeshP15,DBLP:conf/cpaior/HoffmannMNPRS018},
 parallel discrepancy searches \cite{DBLP:conf/cp/MoisanGQ13,DBLP:conf/cpaior/MoisanQG14}, and
 algorithm portfolios \cite{DBLP:conf/lion/LindauerHH15}. Decomposition approaches are unsuitable for
 decision problems, or problems where we have good value-ordering heuristics, because the
 decomposition interferes strongly with the shape of the search tree
-\cite{DBLP:journals/jair/MalapertRR16}. Work stealing, traditionally, also interferes with
+\cite{DBLP:journals/jair/MalapertRR16}. Work-stealing, traditionally, also interferes with
 value-ordering \cite{DBLP:journals/topc/McCreeshP15}, although specially designed exceptions exist
 \cite{DBLP:conf/cp/ChuSS09,DBLP:conf/cp/McCreeshP15,DBLP:conf/cpaior/HoffmannMNPRS018}. However,
 these have very complicated implementations. Parallel discrepancy searches are aware of
@@ -745,10 +745,10 @@ not possible to accurately measure ``total'' runtime including startup costs, an
 report the runtime of the rank zero process---this figure is somewhat optimistic for very easy
 instances. With these caveats in mind, when seeing how long a timeout is needed to solve any 14,370
 instances, we get aggregate speedups of 57.1 from five hosts and 95.5 from ten hosts over a
-sequential baseline; using twenty hosts is slightly slower, due to increased overheads. However,
-when seeing how long a timeout is needed to solve 14,424 instances, distributed parallelism gives us
-further aggregate speedups of 2.2, 3.5, and 7.9 from five, ten, and twenty hosts, over the single
-machine parallel baseline.
+sequential baseline; using twenty hosts is slightly slower, due to increased overheads. Finally, if
+we look at harder instances, by allow a longer sequential timeout, we can solve 14,415 instances
+sequentially with the last at 8,549 seconds; at this difficulty level, we achieve aggregate speedups
+of 82.6, 103.2, and 144.9 from five, ten and twenty hosts.
 
 \section{Maximum Common Subgraph Algorithms}
 

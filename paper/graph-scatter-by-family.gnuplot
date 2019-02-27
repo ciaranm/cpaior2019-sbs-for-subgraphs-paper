@@ -6,7 +6,7 @@ set output "gen-graph-scatter-by-family.tex"
 load "parula.pal"
 load "common.gnuplot"
 
-set xlabel "DDS Search Time (ms)"
+set xlabel "DFS Search Time (ms)"
 set ylabel "SBS Search Time (ms)" offset 0.5
 set logscale x
 set logscale y
