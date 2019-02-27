@@ -68,7 +68,7 @@ Scotland \\ \email{ciaran.mccreesh@glasgow.ac.uk}}
     subproblems. This increases performance by two orders of magnitude on satisfiable instances,
     whilst not affecting performance on unsatisfiable instances. This algorithm can also be
     parallelised in a very simple but effective way: across both satisfiable and unsatisfiable
-    instances, we get a further speedup of over thirty from thirty-six cores, or ninety-five from
+    instances, we get a further speedup of over thirty from thirty-six cores, and over one hundred from
     ten distributed-memory hosts. Finally, we show that solution-biased search is also suitable for
     optimisation problems, by using it to improve two maximum common induced subgraph algorithms.
 \end{abstract}
@@ -105,8 +105,9 @@ induced subgraph algorithms.
 
 This new form of search can also be parallelised, with a \emph{much} simpler implementation than
 conventional work-stealing. By running many threads with different random seeds but the same restart
-schedule, and sharing nogoods only following restarts, we can achieve speedups of thirty-one from a
-thirty-six core machine, or ninety-five by using ten such machines with message passing.
+schedule, and sharing nogoods only following restarts, we can achieve aggregate speedups
+\cite{DBLP:conf/cpaior/HoffmannMNPRS018} of thirty-one from a thirty-six core machine, or over one
+hundred by using ten such machines.
 
 \subsection{Background}
 
@@ -525,15 +526,14 @@ automatic parameter tuner \cite{DBLP:conf/lion/HutterHL11} to select the value 6
 % made so far, in the form of a CNF clause with each literal being a guessed $(v \mapsto v')$
 % assignment.
 
-To avoid exploring portions of the search
-space that we have already visited, every time we restart, we add new constraints to the problem
-which eliminate already-explored subtrees---such a constraint is called a \emph{nogood}. We generate
-simple decision nogoods. That is, upon backtracking due to a decision to restart, we post a nogood
-of the form $(v \mapsto v') \wedge (w \mapsto w') \wedge (x \mapsto x') \Rightarrow \bot$ for every
-branch to the left of the current (incomplete) branch in the search tree, and when we first make a
-decision to restart before backtracking, we post a similar nogood eliminating the entire subtree
-explored. We use the two watched literals technique \cite{DBLP:conf/dac/MoskewiczMZZM01} to
-propagate stored nogoods.
+To avoid exploring portions of the search space that we have already visited, every time we restart,
+we add new constraints to the problem which eliminate already-explored subtrees---such a constraint
+is called a \emph{nogood}. We generate simple decision nogoods. That is, upon backtracking due to a
+decision to restart, we post a nogood of the form $(v \mapsto v') \wedge (w \mapsto w') \wedge (x
+\mapsto x') \Rightarrow \bot$ for every branch to the left of the current (incomplete) branch at
+every level of the search tree, and when we first make a decision to restart before backtracking, we
+post a similar nogood eliminating the entire subtree explored. We use the two watched literals
+technique \cite{DBLP:conf/dac/MoskewiczMZZM01} to propagate stored nogoods.
 %(\siplineref{2wl}).
 This has two benefits: the propagation complexity does not particularly depend upon the number of
 stored nogoods, and it does not require any work upon backtracking.  Other more sophisticated nogood
@@ -680,7 +680,9 @@ number of factors combine to make this approach feasible:
         value-ordering heuristic is sufficient to ensure that most of the time, threads are
         exploring different parts of the search tree.
     \item The gathering of nogoods to describe the work done so far provides an alternative to
-        requiring either a specific mechanism to allocate work, or expensive synchronisation between threads.
+        requiring either a specific mechanism to allocate work, or expensive synchronisation between
+        threads. Notably, this completely bypasses the typical difficulties of sharing all learned
+        nogoods in learning solvers \cite{DBLP:books/daglib/p/HamadiJS12}.
     \item If sometimes threads do happen to explore part of
         the same subproblems, this is not a problem: if the instance is satisfiable, either thread
         might find a solution first, and if the instance is unsatisfiable, we merely introduce some
