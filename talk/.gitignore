@@ -1,0 +1,14 @@
+gen-*
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.pdf
+*.bbl
+*.blg
+*.nav
+*.snm
+*.toc
+!UoG_keyline.pdf
+!UStA_Logo_SP.eps
