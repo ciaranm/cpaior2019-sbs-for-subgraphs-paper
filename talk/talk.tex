@@ -85,7 +85,7 @@
             \begin{minipage}{0.20\paperwidth}
                 \begin{center}
                 \includegraphics[keepaspectratio=true,scale=0.35]{UoG_keyline.pdf} \\[0.15cm]
-                \includegraphics[keepaspectratio=true,scale=0.8]{UStA_Logo_SP.eps}
+                \includegraphics[keepaspectratio=true,scale=0.07]{UStA_Logo_SP.png}
                 \end{center}
             \end{minipage}
         };
@@ -230,32 +230,54 @@ Prosser \and James Trimble}
 \begin{frame}{Subgraph Isomorphism}
     \centering
     \begin{tikzpicture}
-        \node [draw, circle, fill=uofgcobalt, inner sep=4pt, font=\bfseries] (Na) at (1,  0) {\vphantom{1}};
-        \node [draw, circle, fill=uofgpumpkin, inner sep=4pt, font=\bfseries] (Nb) at (1, -1.5) {\vphantom{1}};
-        \node [draw, circle, fill=uofglawn, inner sep=4pt, font=\bfseries] (Nc) at (0, -3) {\vphantom{1}};
-        \node [draw, circle, fill=uofgthistle, inner sep=4pt, font=\bfseries] (Nd) at (2, -3) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (Na) at (1,  0) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (Nb) at (1, -1.5) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (Nc) at (0, -3) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (Nd) at (2, -3) {\vphantom{1}};
+
+        \node <2> [draw, circle, fill=uofgcobalt, inner sep=4pt, font=\bfseries] (Na) at (1,  0) {\vphantom{1}};
+        \node <2> [draw, circle, fill=uofgpumpkin, inner sep=4pt, font=\bfseries] (Nb) at (1, -1.5) {\vphantom{1}};
+        \node <2> [draw, circle, fill=uofglawn, inner sep=4pt, font=\bfseries] (Nc) at (0, -3) {\vphantom{1}};
+        \node <2> [draw, circle, fill=uofgthistle, inner sep=4pt, font=\bfseries] (Nd) at (2, -3) {\vphantom{1}};
 
         \draw [ultra thick] (Na) -- (Nb);
         \draw [ultra thick] (Nb) -- (Nc);
         \draw [ultra thick] (Nc) -- (Nd);
         \draw [ultra thick] (Nb) -- (Nd);
 
-        \node [draw, circle, fill=uofgcobalt, inner sep=4pt, font=\bfseries] (N1) at (5.5,  0) {\vphantom{1}};
-        \node [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N2) at (7.5,  0) {\vphantom{1}};
-        \node [draw, circle, fill=uofgpumpkin, inner sep=4pt, font=\bfseries] (N3) at (5.5, -1.5) {\vphantom{1}};
-        \node [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N4) at (7.5, -1.5) {\vphantom{1}};
-        \node [draw, circle, fill=uofglawn, inner sep=4pt, font=\bfseries] (N5) at (5.5, -3) {\vphantom{1}};
-        \node [draw, circle, fill=uofgthistle, inner sep=4pt, font=\bfseries] (N6) at (7.5, -3) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N1) at (5.5,  0) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N2) at (7.5,  0) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N3) at (5.5, -1.5) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N4) at (7.5, -1.5) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N5) at (5.5, -3) {\vphantom{1}};
+        \node <1> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N6) at (7.5, -3) {\vphantom{1}};
 
-        \draw [thick, color=uofgsandstone!50] (N1) -- (N2);
-        \draw [ultra thick] (N1) -- (N3);
-        \draw [thick, color=uofgsandstone!50] (N1) -- (N4);
-        \draw [thick, color=uofgsandstone!50] (N2) -- (N4);
-        \draw [ultra thick] (N3) -- (N5);
-        \draw [ultra thick] (N3) -- (N6);
-        \draw [thick, color=uofgsandstone!50] (N4) -- (N6);
-        \draw [ultra thick] (N5) -- (N6);
-        \draw [thick, color=uofgsandstone!50] (N1) to [in=135, out=225] (N5);
+        \node <2> [draw, circle, fill=uofgcobalt, inner sep=4pt, font=\bfseries] (N1) at (5.5,  0) {\vphantom{1}};
+        \node <2> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N2) at (7.5,  0) {\vphantom{1}};
+        \node <2> [draw, circle, fill=uofgpumpkin, inner sep=4pt, font=\bfseries] (N3) at (5.5, -1.5) {\vphantom{1}};
+        \node <2> [draw, circle, fill=white, inner sep=4pt, font=\bfseries] (N4) at (7.5, -1.5) {\vphantom{1}};
+        \node <2> [draw, circle, fill=uofglawn, inner sep=4pt, font=\bfseries] (N5) at (5.5, -3) {\vphantom{1}};
+        \node <2> [draw, circle, fill=uofgthistle, inner sep=4pt, font=\bfseries] (N6) at (7.5, -3) {\vphantom{1}};
+
+        \draw <1> [thick, color=uofgsandstone!50] (N1) -- (N2);
+        \draw <1> [thick, color=uofgsandstone!50] (N1) -- (N3);
+        \draw <1> [thick, color=uofgsandstone!50] (N1) -- (N4);
+        \draw <1> [thick, color=uofgsandstone!50] (N2) -- (N4);
+        \draw <1> [thick, color=uofgsandstone!50] (N3) -- (N5);
+        \draw <1> [thick, color=uofgsandstone!50] (N3) -- (N6);
+        \draw <1> [thick, color=uofgsandstone!50] (N4) -- (N6);
+        \draw <1> [thick, color=uofgsandstone!50] (N5) -- (N6);
+        \draw <1> [thick, color=uofgsandstone!50] (N1) to [in=135, out=225] (N5);
+
+        \draw <2> [thick, color=uofgsandstone!50] (N1) -- (N2);
+        \draw <2> [ultra thick] (N1) -- (N3);
+        \draw <2> [thick, color=uofgsandstone!50] (N1) -- (N4);
+        \draw <2> [thick, color=uofgsandstone!50] (N2) -- (N4);
+        \draw <2> [ultra thick] (N3) -- (N5);
+        \draw <2> [ultra thick] (N3) -- (N6);
+        \draw <2> [thick, color=uofgsandstone!50] (N4) -- (N6);
+        \draw <2> [ultra thick] (N5) -- (N6);
+        \draw <2> [thick, color=uofgsandstone!50] (N1) to [in=135, out=225] (N5);
     \end{tikzpicture}
 \end{frame}
 
@@ -270,7 +292,8 @@ Prosser \and James Trimble}
         \item Then we get clever:
             \begin{itemize}
                 \item Extra constraints about degrees, paths, \ldots
-                \item Very good variable- and value-ordering heuristics
+                \item Better data structures and propagation queues.
+                \item Very good variable- and value-ordering heuristics.
             \end{itemize}
     \end{itemize}
 \end{frame}
@@ -281,9 +304,41 @@ Prosser \and James Trimble}
     \end{center}
 
     \begin{itemize}
+        \item A CP style solver specifically for subgraph algorithms.
         \item Subgraph isomorphism, and all its variants (induced / non-induced, homomorphism,
             locally injective, labels, side constraints, directed, \ldots).
         \item Also special algorithms for clique.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Benchmark Instances}
+    \begin{itemize}
+        \item 14,621 instances from Christine Solnon's collection:
+            \begin{itemize}
+                \item Randomly generated with different models.
+                \item Real-world graphs.
+                \item Computer vision problems.
+                \item Biochemistry problems.
+                \item Phase transition instances.
+            \end{itemize}
+        \item At least\ldots
+            \begin{itemize}
+                \item $\ge$ 2,110 satisfiable.
+                \item $\ge$ 12,322 unsatisfiable.
+            \end{itemize}
+        \item A lot of them are very easy for good algorithms.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Hardware}
+    \begin{itemize}
+        \item HPC, optimised for throughput not reproducibility.\footnote{This work used the Cirrus
+            UK National Tier-2 HPC Service at EPCC (http://www.cirrus.ac.uk) funded by the
+            University of Edinburgh and EPSRC (EP/P020267/1)}
+        \item Dual Intel Xeon E5-2695 v4 CPUs, $2 \times 18$ cores
+        \item 256GBytes RAM
+        \item GCC 7.2.0
+        \item C++ native threads, SGI MPT MPI
     \end{itemize}
 \end{frame}
 
@@ -293,11 +348,7 @@ Prosser \and James Trimble}
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Sanity Check}
-    \begin{center}
-        \includegraphics<1>{gen-graph-value-ordering.pdf}%
-        \includegraphics<2>{gen-graph-value-ordering-unsat.pdf}
-    \end{center}
+\begin{frame}{Sanity Check}\includegraphics<1>{gen-graph-value-ordering.pdf}\includegraphics<2>{gen-graph-value-ordering-unsat.pdf}
 \end{frame}
 
 \begin{frame}{However\ldots}
@@ -325,8 +376,9 @@ Prosser \and James Trimble}
 
 \begin{frame}{A Slightly Random Value-Ordering Heuristic}
     \only<1>{
-    \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \]
     \begin{itemize}
+        \item For a fixed domain $D_v$, pick a vertex $v'$ from a domain $D_v$ with probability
+    \[ p(v') = \frac{2^{\deg(v')}}{\sum_{w \in D_v}{2^{\deg(w)}}} \]
         \item Equally likely to pick between two vertices of degree $d$.
         \item Twice as likely to select a vertex of degree $d$ than a vertex of degree $d - 1$.
         \item In the paper: \textcolor{uofgcobalt}{solution density} and expected distribution of solutions.
@@ -367,6 +419,7 @@ Prosser \and James Trimble}
 
 \begin{frame}{Broader Perspective}
     \begin{itemize}
+        \item Can scale to even more hosts with less strict synchronisation.
         \item Also good for maximum common subgraph algorithms.
         \item Does this work for CP in general?
         \item Can we finally kill off vanilla sequential backtracking search?
